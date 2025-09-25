@@ -14,10 +14,9 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 import { auth, db } from '../../services/firebase';
-import { AuthStackParamList } from '../../navigation/RootNavigator';
-import { CreateUserData } from '../../types/user';
+import { RootStackParamList } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
@@ -53,17 +52,11 @@ export default function RegisterScreen({ navigation }: Props) {
       });
 
       // 3. Créer le document utilisateur dans Firestore
-      const userData: CreateUserData = {
-        uid: user.uid,
-        role: 'client', // Rôle par défaut
-        displayName: displayName,
-        email: email,
-        // Les clients n'ont pas de projectId assigné au moment de l'inscription
-        // Cela sera fait par un chef de projet plus tard
-      };
-
       await setDoc(doc(db, 'users', user.uid), {
-        ...userData,
+        uid: user.uid,
+        role: 'client',
+        displayName,
+        email,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
