@@ -1,0 +1,220 @@
+[
+  {
+    "id": "peinture-blanche-mat",
+    "category": "paint",
+    "subcategory": "murale",
+    "label": "Peinture Blanche Mat",
+    "description": "Peinture acrylique blanche mate pour murs et plafonds. Excellent pouvoir couvrant.",
+    "specs": {
+      "material": "Acrylique",
+      "color": "Blanc",
+      "finish": "Mat",
+      "brand": "Dulux",
+      "reference": "DLX-BL-MAT-001",
+      "rendement": "12 m²/L"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Peinture+Blanche+Mat"],
+    "basePrice": 35,
+    "priceUnit": "litre",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["peinture", "blanche", "mat", "acrylique", "dulux"]
+  },
+  {
+    "id": "peinture-grise-satinee",
+    "category": "paint",
+    "subcategory": "murale",
+    "label": "Peinture Grise Satinée",
+    "description": "Peinture acrylique gris perle satinée, lessivable.",
+    "specs": {
+      "material": "Acrylique",
+      "color": "Gris perle",
+      "finish": "Satiné",
+      "brand": "Levis",
+      "reference": "LEV-GR-SAT-002",
+      "rendement": "10 m²/L"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Peinture+Grise+Satin"],
+    "basePrice": 42,
+    "priceUnit": "litre",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["peinture", "grise", "satin", "lessivable", "levis"]
+  },
+  {
+    "id": "carrelage-metro-blanc",
+    "category": "tiles",
+    "subcategory": "mural",
+    "label": "Carrelage Métro Blanc",
+    "description": "Carrelage métro blanc brillant 7.5x15 cm, style parisien classique.",
+    "specs": {
+      "material": "Céramique",
+      "dimensions": "7.5 x 15 cm",
+      "color": "Blanc",
+      "finish": "Brillant",
+      "brand": "Cerabati",
+      "reference": "CER-MET-BL-001",
+      "epaisseur": "6 mm"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Carrelage+Metro+Blanc"],
+    "basePrice": 25,
+    "priceUnit": "m²",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["carrelage", "metro", "blanc", "brillant", "parisien", "cerabati"]
+  },
+  {
+    "id": "carrelage-parquet-chene",
+    "category": "flooring",
+    "subcategory": "imitation",
+    "label": "Carrelage Imitation Parquet Chêne",
+    "description": "Carrelage grès cérame imitation parquet chêne naturel 20x120 cm.",
+    "specs": {
+      "material": "Grès cérame",
+      "dimensions": "20 x 120 cm",
+      "color": "Chêne naturel",
+      "finish": "Mat structuré",
+      "brand": "Porcelanosa",
+      "reference": "POR-CHE-NAT-001",
+      "epaisseur": "9 mm"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Carrelage+Parquet+Chene"],
+    "basePrice": 48,
+    "priceUnit": "m²",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["carrelage", "parquet", "chene", "imitation", "bois", "porcelanosa"]
+  },
+  {
+    "id": "lavabo-suspendu-moderne",
+    "category": "fixtures",
+    "subcategory": "sanitaire",
+    "label": "Lavabo Suspendu Moderne",
+    "description": "Lavabo suspendu en céramique blanche, design épuré 60 cm.",
+    "specs": {
+      "material": "Céramique",
+      "dimensions": "60 x 42 x 15 cm",
+      "color": "Blanc",
+      "finish": "Émaillé",
+      "brand": "Ideal Standard",
+      "reference": "IDS-LAV-SUS-001",
+      "type": "Sans trop-plein"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Lavabo+Suspendu"],
+    "basePrice": 180,
+    "priceUnit": "pièce",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["lavabo", "suspendu", "ceramique", "moderne", "ideal", "standard"]
+  },
+  {
+    "id": "mitigeur-evier-chrome",
+    "category": "fixtures",
+    "subcategory": "robinetterie",
+    "label": "Mitigeur Évier Chromé",
+    "description": "Mitigeur cuisine chromé avec bec orientable et douchette extractible.",
+    "specs": {
+      "material": "Laiton chromé",
+      "dimensions": "35 x 22 cm",
+      "color": "Chromé",
+      "finish": "Brillant",
+      "brand": "Grohe",
+      "reference": "GRO-MIT-EVI-001",
+      "type": "Douchette extractible"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Mitigeur+Evier"],
+    "basePrice": 285,
+    "priceUnit": "pièce",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["mitigeur", "evier", "chrome", "douchette", "grohe", "cuisine"]
+  },
+  {
+    "id": "spot-encastrable-led",
+    "category": "lighting",
+    "subcategory": "encastré",
+    "label": "Spot LED Encastrable",
+    "description": "Spot LED encastrable 7W blanc chaud dimmable, IP44.",
+    "specs": {
+      "material": "Aluminium",
+      "dimensions": "Ø 8.5 cm",
+      "color": "Blanc",
+      "finish": "Mat",
+      "brand": "Philips",
+      "reference": "PHI-LED-ENC-001",
+      "puissance": "7W - 600lm"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Spot+LED+Encastrable"],
+    "basePrice": 35,
+    "priceUnit": "pièce",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["spot", "led", "encastrable", "dimmable", "philips", "7w"]
+  },
+  {
+    "id": "interrupteur-va-et-vient",
+    "category": "hardware",
+    "subcategory": "electrique",
+    "label": "Interrupteur Va-et-Vient",
+    "description": "Interrupteur va-et-vient blanc, mécanisme silencieux.",
+    "specs": {
+      "material": "Plastique ABS",
+      "dimensions": "8.5 x 8.5 cm",
+      "color": "Blanc",
+      "finish": "Mat",
+      "brand": "Legrand",
+      "reference": "LEG-INT-VAV-001",
+      "intensite": "16A - 250V"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Interrupteur"],
+    "basePrice": 12,
+    "priceUnit": "pièce",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["interrupteur", "va-et-vient", "blanc", "legrand", "silencieux"]
+  },
+  {
+    "id": "porte-entree-bois",
+    "category": "materials",
+    "subcategory": "menuiserie",
+    "label": "Porte d'Entrée Bois",
+    "description": "Porte d'entrée en chêne massif avec vitrage, serrure 3 points.",
+    "specs": {
+      "material": "Chêne massif",
+      "dimensions": "215 x 90 x 6.8 cm",
+      "color": "Chêne naturel",
+      "finish": "Vernis satiné",
+      "brand": "Bel'M",
+      "reference": "BEL-POR-CHE-001",
+      "vitrage": "Double vitrage 4/16/4"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Porte+Entree+Bois"],
+    "basePrice": 1250,
+    "priceUnit": "pièce",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["porte", "entree", "bois", "chene", "serrure", "belm"]
+  },
+  {
+    "id": "parquet-chene-massif",
+    "category": "flooring",
+    "subcategory": "parquet",
+    "label": "Parquet Chêne Massif",
+    "description": "Parquet chêne massif 14 mm, finition huilée naturelle.",
+    "specs": {
+      "material": "Chêne massif",
+      "dimensions": "14 x 125 x 1000 mm",
+      "color": "Chêne naturel",
+      "finish": "Huilé naturel",
+      "brand": "Panaget",
+      "reference": "PAN-CHE-HUI-001",
+      "epaisseur": "14 mm"
+    },
+    "images": ["https://via.placeholder.com/300x200?text=Parquet+Chene+Massif"],
+    "basePrice": 85,
+    "priceUnit": "m²",
+    "isAvailable": true,
+    "isActive": true,
+    "searchTerms": ["parquet", "chene", "massif", "huile", "panaget", "naturel"]
+  }
+]

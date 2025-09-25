@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isChef() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'chef';
+    }
+
+    function isClient() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client';
+    }
+
+    function getClientProjectId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.projectId;
+    }
+
+    function isProjectParticipant(projectId) {
+      return isChef() || (isClient() && getClientProjectId() == projectId);
+    }
+
+    // Users collection: users can only read/write their own document
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Projects collection
+    match /projects/{projectId} {
+      // Chefs: full access (MVP - simplification)
+      // Clients: only access to their assigned project
+      allow read: if isChef() || (isClient() && getClientProjectId() == projectId);
+      allow write: if isChef() || (isClient() && getClientProjectId() == projectId);
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if isProjectParticipant(projectId);
+      }
+
+      // Media subcollection
+      match /media/{mediaId} {
+        allow read: if isProjectParticipant(projectId);
+        // Write: chefs can always write, clients only if explicitly allowed
+        allow write: if isChef() || (isClient() && getClientProjectId() == projectId);
+      }
+
+      // Selections subcollection
+      match /selections/{selectionId} {
+        allow read: if isProjectParticipant(projectId);
+        // Create/Update: clients can create and update their selections
+        allow create: if isClient() && getClientProjectId() == projectId &&
+                         request.resource.data.selectedBy == request.auth.uid;
+        allow update: if isChef() ||
+                         (isClient() && getClientProjectId() == projectId &&
+                          resource.data.selectedBy == request.auth.uid &&
+                          resource.data.status == 'pending'); // Clients can only edit pending selections
+      }
+    }
+
+    // Catalog collection: read for all authenticated users, write for chefs only
+    match /catalog/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isChef();
+    }
+
+    // TODO: Future enhancements for production
+    // - Add custom claims for fine-grained roles (admin, supervisor, etc.)
+    // - Implement per-project ACL instead of global chef access
+    // - Add owner field validation on document creation
+    // - Add rate limiting and validation rules for data integrity
+    // - Consider project-specific permissions (project managers, observers)
+  }
+}
