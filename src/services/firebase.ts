@@ -2,9 +2,10 @@ import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   initializeAuth,
-  getReactNativePersistence,
   connectAuthEmulator,
 } from 'firebase/auth';
+// Note: getReactNativePersistence est disponible dans firebase v9+
+// Pour l'instant, utilisons une approche simplifiée
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import Constants from 'expo-constants';
@@ -41,21 +42,13 @@ if (!firebaseConfig.apiKey) {
 // Initialiser Firebase (éviter la double initialisation)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialiser l'authentification avec une persistance adaptée à React Native
+// Initialiser l'authentification
 const initializeFirebaseAuth = () => {
-  if (Platform.OS === 'web') {
-    return getAuth(app);
-  }
-
   try {
-    return initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
+    return getAuth(app);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('already exists')) {
-      return getAuth(app);
-    }
-    throw error;
+    console.warn('Firebase Auth initialization warning:', error);
+    return getAuth(app);
   }
 };
 

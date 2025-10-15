@@ -32,9 +32,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ title, status, progress }) =>
       </View>
     </View>
     <View style={styles.progressContainer}>
-      <View style={[styles.progressBar, { width: `${progress}%` }]} />
+      <View style={[styles.progressBar, { width: progress + '%' }]} />
     </View>
-    <Text style={styles.progressText}>{`${progress}% complété`}</Text>
+    <Text style={styles.progressText}>{progress}% complété</Text>
   </TouchableOpacity>
 );
 
@@ -116,6 +116,18 @@ const HomeScreen = () => {
             <Text style={styles.messageTitle}>Chef de projet</Text>
             <Text style={styles.messagePreview}>Validation des plans...</Text>
             <Text style={styles.messageTime}>Il y a 2h</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Test Section - MediaManager */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🧪 Test - Gestion des médias</Text>
+          <TouchableOpacity 
+            style={styles.testButton}
+            onPress={() => navigation.navigate('MediaManager', { projectId: 'test-project-123' })}
+          >
+            <Text style={styles.testButtonText}>📸 Ouvrir MediaManager (Test)</Text>
+            <Text style={styles.testButtonSubtext}>ID Projet: test-project-123</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -263,6 +275,31 @@ const styles = StyleSheet.create({
   messageTime: {
     fontSize: 12,
     color: '#999',
+  },
+  testButton: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#4b86b4',
+    borderStyle: 'dashed',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  testButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4b86b4',
+    marginBottom: 5,
+  },
+  testButtonSubtext: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
 

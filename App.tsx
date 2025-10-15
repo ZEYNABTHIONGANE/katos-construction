@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
@@ -10,17 +11,20 @@ import { auth } from './src/services/firebase';
 import LoginScreen from './src/screens/Auth/LoginScreen';
 import RegisterScreen from './src/screens/Auth/RegisterScreen';
 import { RootStackParamList } from './src/navigation/types';
+import HomeScreen from './src/screens/Main/HomeScreen';
+import ProjectsScreen from './src/screens/Main/ProjectsScreen';
+import CatalogScreen from './src/screens/Main/CatalogScreen';
+import MessagesScreen from './src/screens/Main/MessagesScreen';
 
+// Création du stack avec typage
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Ecran de chargement
 function LoadingScreen() {
   return (
     <View
       style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
+        flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5',
       }}
     >
       <ActivityIndicator size="large" color="#2E7D3E" />
@@ -29,14 +33,12 @@ function LoadingScreen() {
   );
 }
 
+// Ecran "Compte" affichant les infos utilisateur
 function AccountScreen({ user }: { user: FirebaseUser }) {
   return (
     <SafeAreaView
       style={{
-        flex: 1,
-        padding: 24,
-        backgroundColor: '#f5f5f5',
-        justifyContent: 'center',
+        flex: 1, padding: 24, backgroundColor: '#f5f5f5', justifyContent: 'center',
       }}
     >
       <View
@@ -66,10 +68,19 @@ function AccountScreen({ user }: { user: FirebaseUser }) {
   );
 }
 
+// Wrapper pour passer les props à AccountScreen via navigation
+function AccountWrapper({ user }: { user: FirebaseUser | null }) {
+  if (!user) return null; // fallback si user null
+  return <AccountScreen user={user} />;
+}
+
+
+// Composant principal
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [initializing, setInitializing] = useState(true);
 
+  // Surveille l'état auth Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, currentUser => {
       setUser(currentUser);
@@ -83,32 +94,74 @@ export default function App() {
     return <LoadingScreen />;
   }
 
+
+  const isAuthenticated = !!user; 
   return (
     <>
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: '#2E7D3E' },
+            headerStyle: {
+              backgroundColor: '#2E7D3E',
+            },
             headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: 'bold' },
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            contentStyle: {
+              backgroundColor: '#f5f5f5',
+            }
           }}
+          initialRouteName={isAuthenticated ? "Home" : "Login"}
         >
-          {user ? (
-            <Stack.Screen
-              name="Account"
-              options={{ title: 'Mon compte' }}
-            >
-              {() => <AccountScreen user={user} />}
-            </Stack.Screen>
-          ) : (
-            <>
-              <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Connexion' }} />
-              <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Inscription' }} />
-            </>
-          )}
-        </Stack.Navigator>
+
+      {!isAuthenticated ? (
+        
+        // Routes d'authentification
+        <>
+          <Stack.Screen 
+            name="Login" 
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Register" 
+            component={RegisterScreen}
+            options={{ headerShown: false }}
+          />
+        </>
+      ) : (
+        // Routes principales
+        <>
+          <Stack.Screen 
+            name="Home" 
+            component={HomeScreen}
+
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Projects" 
+            component={ProjectsScreen}
+            options={{ title: 'Mes Projets' }}
+          />
+          <Stack.Screen 
+            name="Catalog" 
+            component={CatalogScreen}
+            options={{ title: 'Catalogue' }}
+          />
+          <Stack.Screen 
+            name="Messages" 
+            component={MessagesScreen}
+            options={{ title: 'Messages' }}
+          />
+        </>
+      )}
+    </Stack.Navigator>
       </NavigationContainer>
       <StatusBar style="auto" />
     </>
   );
 }
+
+
+
