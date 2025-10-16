@@ -1,306 +1,498 @@
-import React from 'react';
+import React from "react";
 import {
   View,
-  ScrollView,
+  Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   Dimensions,
-} from 'react-native';
-import { Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialIcons } from "@expo/vector-icons";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { HomeTabParamList } from "../../types";
+import { mockUser, mockProject, mockProjectUpdates } from "../../data/mockData";
 
-const { width } = Dimensions.get('window');
+type Props = BottomTabScreenProps<HomeTabParamList, "Home">;
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+const { width } = Dimensions.get("window");
 
-interface ProjectCardProps {
-  title: string;
-  status: string;
-  progress: number;
-}
+export default function HomeScreen({ navigation }: Props) {
+  const handleProjectPress = () => {
+    navigation.navigate("Chantier");
+  };
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ title, status, progress }) => (
-  <TouchableOpacity style={styles.projectCard}>
-    <View style={styles.projectHeader}>
-      <Text style={styles.projectTitle}>{title}</Text>
-      <View style={[styles.statusBadge, { backgroundColor: status === 'En cours' ? '#4b86b4' : '#2ecc71' }]}>
-        <Text style={styles.statusText}>{status}</Text>
+  const handleChatPress = () => {
+    navigation.navigate("Chat");
+  };
+
+  const statisticsData = [
+    {
+      id: "1",
+      title: "Avancement",
+      value: `${mockProject.progress}%`,
+      icon: "trending-up",
+      iconColor: "#2B2E83",
+      iconBg: "#E8E9F7",
+    },
+    {
+      id: "2",
+      title: "Phase actuelle",
+      value: "Toiture",
+      icon: "construction",
+      iconColor: "#EF9631",
+      iconBg: "#FDF4E8",
+    },
+    {
+      id: "3",
+      title: "Messages",
+      value: "5",
+      icon: "chat",
+      iconColor: "#2B2E83",
+      iconBg: "#E8E9F7",
+    },
+    {
+      id: "4",
+      title: "Finitions",
+      value: "3/12",
+      icon: "palette",
+      iconColor: "#EF9631",
+      iconBg: "#FDF4E8",
+    },
+  ];
+
+  const renderStatCard = (stat: (typeof statisticsData)[0]) => (
+    <View key={stat.id} style={styles.statCard}>
+      <View style={[styles.statIcon, { backgroundColor: stat.iconBg }]}>
+        <MaterialIcons
+          name={stat.icon as any}
+          size={24}
+          color={stat.iconColor}
+        />
       </View>
+      <Text style={styles.statTitle}>{stat.title}</Text>
+      <Text style={styles.statValue}>{stat.value}</Text>
     </View>
-    <View style={styles.progressContainer}>
-      <View style={[styles.progressBar, { width: progress + '%' }]} />
-    </View>
-    <Text style={styles.progressText}>{progress}% complété</Text>
-  </TouchableOpacity>
-);
+  );
 
-const CatalogueItem = ({ title, count }: { title: string; count: number }) => (
-  <TouchableOpacity style={styles.catalogueItem}>
-    <Text style={styles.catalogueTitle}>{title}</Text>
-    <Text style={styles.catalogueCount}>{count} éléments</Text>
-  </TouchableOpacity>
-);
-
-const HomeScreen = () => {
-  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const renderRecentUpdate = (
+    update: (typeof mockProjectUpdates)[0],
+    index: number
+  ) => (
+    <TouchableOpacity key={update.id} style={styles.updateItem}>
+      <View style={styles.updateAvatar}>
+        <MaterialIcons
+          name={update.status === "completed" ? "check-circle" : "schedule"}
+          size={20}
+          color={update.status === "completed" ? "#4CAF50" : "#FF9800"}
+        />
+      </View>
+      <View style={styles.updateContent}>
+        <Text style={styles.updateTitle}>{update.title}</Text>
+        <Text style={styles.updateDate}>{update.date}</Text>
+      </View>
+      <View
+        style={[
+          styles.updateStatus,
+          {
+            backgroundColor:
+              update.status === "completed" ? "#E8F5E8" : "#FFF3E0",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.updateStatusText,
+            { color: update.status === "completed" ? "#4CAF50" : "#FF9800" },
+          ]}
+        >
+          {update.status === "completed" ? "Terminé" : "En cours"}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        {/* Header Section */}
+    <View style={styles.container}>
+      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
+        {/* Header moderne */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Bienvenue sur</Text>
-          <Text style={styles.appName}>Katos Construction</Text>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Projects')}
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Bonjour</Text>
+            <Text style={styles.userName}>
+              {mockUser.name.split(" ")[0]} 👋
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => navigation.navigate("Profil")}
           >
             <Image
-              source={require('../../../assets/icon.png')}
-              style={styles.actionIcon}
+              source={{ uri: mockUser.avatar }}
+              style={styles.profileImage}
             />
-            <Text style={styles.actionText}>Nouveau Projet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Catalog', { category: undefined })}
-          >
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionText}>Catalogue</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Messages')}
-          >
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={styles.actionIcon}
-            />
-            <Text style={styles.actionText}>Messages</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Projects Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Projets en cours</Text>
-          <ProjectCard title="Rénovation Maison" status="En cours" progress={75} />
-          <ProjectCard title="Construction Garage" status="Planifié" progress={0} />
-        </View>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Section Statistiques */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle,{paddingBottom: 14}]}>Tableau de bord</Text>
+            <View style={styles.statsGrid}>
+              {statisticsData.map(renderStatCard)}
+            </View>
+          </View>
 
-        {/* Catalogue Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Catalogue Matériaux</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <CatalogueItem title="Revêtements" count={24} />
-            <CatalogueItem title="Peintures" count={18} />
-            <CatalogueItem title="Sanitaires" count={12} />
-            <CatalogueItem title="Électricité" count={15} />
-          </ScrollView>
-        </View>
+          {/* Projet Principal */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Mon Projet</Text>
+              <TouchableOpacity onPress={handleProjectPress}>
+                <Text style={styles.seeMoreText}>Voir détails</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Messages Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Messages récents</Text>
-          <TouchableOpacity style={styles.messageCard}>
-            <Text style={styles.messageTitle}>Chef de projet</Text>
-            <Text style={styles.messagePreview}>Validation des plans...</Text>
-            <Text style={styles.messageTime}>Il y a 2h</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.projectCard}
+              onPress={handleProjectPress}
+            >
+              <Image
+                source={{ uri: mockProject.imageUrl }}
+                style={styles.projectImage}
+              />
+              <View style={styles.projectInfo}>
+                <Text style={styles.projectName}>{mockProject.name}</Text>
+                <Text style={styles.projectAddress}>{mockProject.address}</Text>
 
-        {/* Test Section - MediaManager */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🧪 Test - Gestion des médias</Text>
-          <TouchableOpacity 
-            style={styles.testButton}
-            onPress={() => navigation.navigate('MediaManager', { projectId: 'test-project-123' })}
-          >
-            <Text style={styles.testButtonText}>📸 Ouvrir MediaManager (Test)</Text>
-            <Text style={styles.testButtonSubtext}>ID Projet: test-project-123</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${mockProject.progress}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {mockProject.progress}%
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Actions Rapides */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle,{paddingBottom: 14}]}>Actions Rapides</Text>
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => navigation.navigate("Chantier")}
+              >
+                <View
+                  style={[styles.actionIcon, { backgroundColor: "#E3F2FD" }]}
+                >
+                  <MaterialIcons
+                    name="construction"
+                    size={24}
+                    color="#2196F3"
+                  />
+                </View>
+                <Text style={styles.actionText}>Chantier</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={handleChatPress}
+              >
+                <View
+                  style={[styles.actionIcon, { backgroundColor: "#E8F5E8" }]}
+                >
+                  <MaterialIcons name="chat" size={24} color="#4CAF50" />
+                </View>
+                <Text style={styles.actionText}>Messages</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => navigation.navigate("Finitions")}
+              >
+                <View
+                  style={[styles.actionIcon, { backgroundColor: "#FCE4EC" }]}
+                >
+                  <MaterialIcons name="palette" size={24} color="#E91E63" />
+                </View>
+                <Text style={styles.actionText}>Finitions</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Mises à jour récentes */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Mises à jour récentes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Chantier")}>
+                <Text style={styles.seeMoreText}>Voir plus</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.updatesContainer}>
+              {mockProjectUpdates.slice(0, 4).map(renderRecentUpdate)}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    padding: 20,
-    backgroundColor: '#2a4d69',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+     backgroundColor: "#2B2E83",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingTop: 80,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 20, 
+
+
   },
-  welcomeText: {
-    color: '#fff',
-    fontSize: 16,
-    opacity: 0.9,
+  headerLeft: {
+    flex: 1,
   },
-  appName: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 8,
+  greeting: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 4,
+    fontFamily: 'FiraSans_400Regular',
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 15,
-    backgroundColor: '#fff',
-    marginVertical: 10,
+  userName: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontFamily: 'FiraSans_700Bold',
   },
-  actionButton: {
-    alignItems: 'center',
-  },
-  actionIcon: {
+  profileButton: {
     width: 40,
     height: 40,
-    marginBottom: 5,
+    borderRadius: 20,
+    overflow: "hidden",
   },
-  actionText: {
-    fontSize: 12,
-    color: '#2a4d69',
+  profileImage: {
+    width: "100%",
+    height: "100%",
+  },
+  content: {
+    flex: 1,
+    marginTop: -20,
+  },
+  scrollContent: {
+    paddingBottom: 130, // Espace pour la navigation flottante
+    paddingTop: 40,
   },
   section: {
-    padding: 15,
-    marginBottom: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-    color: '#2a4d69',
+    color: "#1A1A1A",
+    fontFamily: 'FiraSans_700Bold',
+  },
+  seeMoreText: {
+    fontSize: 14,
+    color: "#2B2E83",
+    fontFamily: 'FiraSans_500Medium',
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    width: (width - 60) / 2,
+    marginBottom: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statTitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
+    textAlign: "center",
+    fontFamily: 'FiraSans_400Regular',
+  },
+  statValue: {
+    fontSize: 18,
+    color: "#1A1A1A",
+    textAlign: "center",
+    fontFamily: 'FiraSans_700Bold',
   },
   projectCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  projectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+  projectImage: {
+    width: "100%",
+    height: 160,
+    backgroundColor: "#F3F4F6",
   },
-  projectTitle: {
+  projectInfo: {
+    padding: 16,
+  },
+  projectName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#2a4d69',
+    color: "#1A1A1A",
+    marginBottom: 4,
+    fontFamily: 'FiraSans_600SemiBold',
   },
-  statusBadge: {
+  projectAddress: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 12,
+    fontFamily: 'FiraSans_400Regular',
+  },
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 4,
+    marginRight: 12,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#2B2E83",
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: "#2B2E83",
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    width: (width - 80) / 3,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  actionText: {
+    fontSize: 12,
+    color: "#1A1A1A",
+    textAlign: "center",
+    fontFamily: 'FiraSans_500Medium',
+  },
+  updatesContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  updateItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  updateAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  updateContent: {
+    flex: 1,
+  },
+  updateTitle: {
+    fontSize: 14,
+    color: "#1A1A1A",
+    marginBottom: 2,
+    fontFamily: 'FiraSans_500Medium',
+  },
+  updateDate: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontFamily: 'FiraSans_400Regular',
+  },
+  updateStatus: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
+  updateStatusText: {
+    fontSize: 11,
+    fontFamily: 'FiraSans_500Medium',
   },
-  progressContainer: {
-    height: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
-    marginVertical: 8,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#4b86b4',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  catalogueItem: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginRight: 10,
-    width: width * 0.4,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  catalogueTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#2a4d69',
-    marginBottom: 5,
-  },
-  catalogueCount: {
-    fontSize: 12,
-    color: '#666',
-  },
-  messageCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4b86b4',
-  },
-  messageTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#2a4d69',
-    marginBottom: 5,
-  },
-  messagePreview: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  messageTime: {
-    fontSize: 12,
-    color: '#999',
-  },
-  testButton: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#4b86b4',
-    borderStyle: 'dashed',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  testButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4b86b4',
-    marginBottom: 5,
-  },
-  testButtonSubtext: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
+  safeArea: {
+    flex: 1,
   },
 });
-
-export default HomeScreen;

@@ -9,6 +9,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
   newArchEnabled: true,
+  plugins: [
+    "expo-font"
+  ],
 
   ios: {
     supportsTablet: true,

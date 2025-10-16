@@ -1,26 +1,29 @@
-import React, { useState } from 'react'
-
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { RootStackParamList } from '../../types';
 
-import { auth } from '../../services/firebase';
-import { RootStackParamList } from '../../navigation/types';
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'> & {
+  onLogin: () => void;
+};
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
-
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation, onLogin }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -29,148 +32,232 @@ export default function LoginScreen({ navigation }: Props) {
     }
 
     setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Connexion réussie:', userCredential.user.uid);
 
-      // La navigation se fera automatiquement via le guard d'auth
-    } catch (error: any) {
-      console.error('❌ Erreur connexion:', error);
-
-      let errorMessage = 'Erreur de connexion';
-
-      // Messages d'erreur plus user-friendly
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Aucun compte trouvé avec cette adresse email';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Mot de passe incorrect';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Adresse email invalide';
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'Ce compte a été désactivé';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Trop de tentatives de connexion. Veuillez réessayer plus tard';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      Alert.alert('Erreur de connexion', errorMessage);
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
       setLoading(false);
-    }
+
+      // Mock validation
+      if (email === 'client@katos.com' && password === '1234') {
+        onLogin();
+      } else {
+        Alert.alert(
+          'Erreur de connexion',
+          'Email ou mot de passe incorrect'
+        );
+      }
+    }, 1500);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <Text style={styles.title}>Connexion Katos</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} />
+          </View>
+          <Text style={styles.title}>Katos Construction</Text>
+          <Text style={styles.subtitle}>Connectez-vous à votre espace client</Text>
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          editable={!loading}
-          accessibilityLabel="Adresse email"
-        />
+        {/* Form Section */}
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <MaterialIcons name="email" size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Adresse email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Mot de passe"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-          accessibilityLabel="Mot de passe"
-        />
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <MaterialIcons name="lock" size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Mot de passe"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <MaterialIcons
+                  name={showPassword ? 'visibility' : 'visibility-off'}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Se connecter"
-          accessibilityState={{ disabled: loading }}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>Se connecter</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.loginButtonText}>Se connecter</Text>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.navigate('Register')}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Aller à l'inscription"
-          accessibilityState={{ disabled: loading }}
-        >
-          <Text style={styles.linkText}>
-            Pas encore de compte ? S'inscrire
-          </Text>
-        </TouchableOpacity>
-
+          {/* Demo Account Info */}
+          <View style={styles.demoContainer}>
+            <View style={styles.demoHeader}>
+              <MaterialIcons name="info" size={16} color="#2B2E83" />
+              <Text style={styles.demoTitle}>Compte de démonstration</Text>
+            </View>
+            <Text style={styles.demoText}>
+              Email: client@katos.com{'\n'}
+              Mot de passe: 1234
+            </Text>
+          </View>
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-    justifyContent: 'center',
+    backgroundColor: '#F8F9FA',
   },
-  form: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8E9F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    color: '#1A1A1A',
+    marginBottom: 8,
+    fontFamily: 'FiraSans_700Bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 30,
-    color: '#2E7D3E',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  form: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
+    flex: 1,
+    height: 52,
     fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: 'FiraSans_400Regular',
   },
-  button: {
-    backgroundColor: '#2E7D3E',
-    padding: 15,
-    borderRadius: 8,
+  eyeIcon: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  loginButton: {
+    backgroundColor: '#2B2E83',
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 15,
+    marginTop: 8,
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  buttonDisabled: {
+  loginButtonDisabled: {
     opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  buttonText: {
-    color: 'white',
+  loginButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'FiraSans_600SemiBold',
   },
-  linkButton: {
+  demoContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  demoHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  linkText: {
-    color: '#2E7D3E',
+  demoTitle: {
+    marginLeft: 8,
     fontSize: 14,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  demoText: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    fontFamily: 'FiraSans_400Regular',
   },
 });
