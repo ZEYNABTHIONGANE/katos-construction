@@ -28,9 +28,9 @@ export default function ChantierScreen({ navigation }: Props) {
   const getPhaseStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return '#28a745';
+        return '#4CAF50';
       case 'in-progress':
-        return '#EF9631';
+        return '#E96C2E';
       case 'pending':
         return '#6c757d';
       default:
@@ -168,7 +168,7 @@ export default function ChantierScreen({ navigation }: Props) {
                 <MaterialIcons
                   name={update.status === 'completed' ? 'check-circle' : 'schedule'}
                   size={20}
-                  color={update.status === 'completed' ? '#28a745' : '#EF9631'}
+                  color={update.status === 'completed' ? '#4CAF50' : '#E96C2E'}
                 />
                 <Text style={styles.updateDate}>{update.date}</Text>
               </View>
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    marginBottom: 20,
   },
   backButton: {
     padding: 8,
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
   },
   projectAddress: {
     fontSize: 14,
-    color: '#EF9631',
+    color: '#E96C2E',
     marginBottom: 20,
     fontFamily: 'FiraSans_400Regular',
   },
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
   },
   progressValue: {
     fontSize: 18,
-    color: '#EF9631',
+    color: '#E96C2E',
     fontFamily: 'FiraSans_700Bold',
   },
   section: {
@@ -404,7 +405,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   contactButton: {
-    backgroundColor: '#EF9631',
+    backgroundColor: '#E96C2E',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

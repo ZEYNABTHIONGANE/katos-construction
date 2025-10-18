@@ -2,7 +2,8 @@
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
-  HomeTabs: undefined;
+  ClientTabs: undefined;
+  ChefTabs: undefined;
 };
 
 export type HomeTabParamList = {
@@ -13,12 +14,20 @@ export type HomeTabParamList = {
   Profil: undefined;
 };
 
+export type ChefTabParamList = {
+  ChefDashboard: undefined;
+  ChefChantiers: undefined;
+  ChefChat: undefined;
+  ChefProfil: undefined;
+};
+
 // Data types
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
+  role: 'client' | 'chef';
   avatar?: string;
 }
 

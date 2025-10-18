@@ -19,7 +19,7 @@ import { mockCategories, mockSelections } from '../../data/mockData';
 type Props = BottomTabScreenProps<HomeTabParamList, 'Finitions'>;
 
 export default function FinitionsScreen({ navigation }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(mockCategories[0] || null);
   const [userSelections, setUserSelections] = useState<Selection[]>(mockSelections);
   const [showSelectionsModal, setShowSelectionsModal] = useState(false);
 
@@ -115,48 +115,36 @@ export default function FinitionsScreen({ navigation }: Props) {
         <View style={styles.materialsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {selectedCategory ? selectedCategory.name : 'Choisissez une catégorie'}
+              {selectedCategory ? selectedCategory.name : 'Matériaux'}
             </Text>
             <TouchableOpacity
               style={styles.selectionsButton}
               onPress={() => setShowSelectionsModal(true)}
             >
-              <MaterialIcons name="check-circle" size={20} color="#EF9631" />
+              <MaterialIcons name="check-circle" size={20} color="#E96C2E" />
               <Text style={styles.selectionsButtonText}>
                 Mes sélections ({userSelections.length})
               </Text>
             </TouchableOpacity>
           </View>
 
-          {selectedCategory ? (
-            selectedCategory.materials.length > 0 ? (
-              <FlatList
-                data={selectedCategory.materials}
-                renderItem={renderMaterial}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.materialsList}
-              />
-            ) : (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="construction" size={48} color="#E0E0E0" />
-                <Text style={styles.emptyStateText}>
-                  Aucun matériau disponible dans cette catégorie
-                </Text>
-                <Text style={styles.emptyStateSubtext}>
-                  Cette section sera bientôt mise à jour
-                </Text>
-              </View>
-            )
+          {selectedCategory && selectedCategory.materials.length > 0 ? (
+            <FlatList
+              data={selectedCategory.materials}
+              renderItem={renderMaterial}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.materialsList}
+            />
           ) : (
             <View style={styles.emptyState}>
-              <MaterialIcons name="palette" size={48} color="#E0E0E0" />
+              <MaterialIcons name="construction" size={48} color="#E0E0E0" />
               <Text style={styles.emptyStateText}>
-                Sélectionnez une catégorie pour voir les matériaux
+                {selectedCategory ? 'Aucun matériau disponible dans cette catégorie' : 'Aucune catégorie disponible'}
               </Text>
               <Text style={styles.emptyStateSubtext}>
-                Parcourez nos différentes catégories de finitions
+                {selectedCategory ? 'Cette section sera bientôt mise à jour' : 'Veuillez vérifier votre connexion'}
               </Text>
             </View>
           )}
@@ -252,10 +240,8 @@ const styles = StyleSheet.create({
   },
   categoriesSection: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
     marginTop: 40,
     paddingVertical: 20,
-    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -292,12 +278,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EF9631',
+    borderColor: '#E96C2E',
   },
   selectionsButtonText: {
     marginLeft: 5,
     fontSize: 12,
-    color: '#EF9631',
+    color: '#E96C2E',
     fontFamily: 'FiraSans_500Medium',
   },
   materialsList: {
@@ -382,7 +368,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
   },
   confirmButton: {
-    backgroundColor: '#EF9631',
+    backgroundColor: '#E96C2E',
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: 'center',

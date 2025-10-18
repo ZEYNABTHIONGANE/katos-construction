@@ -9,14 +9,27 @@ import {
   Selection,
 } from '../types';
 
-// Mock User
-export const mockUser: User = {
-  id: '1',
-  name: 'Moussa Diop',
-  email: 'client@katos.com',
-  phone: '+221 77 123 45 67',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-};
+// Mock Users
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Moussa Diop',
+    email: 'client@katos.com',
+    phone: '+221 77 123 45 67',
+    role: 'client',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '2',
+    name: 'Ibrahima Sarr',
+    email: 'chef@katos.com',
+    phone: '+221 76 234 56 78',
+    role: 'chef',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+  },
+];
+
+export const mockUser: User = mockUsers[0];
 
 // Mock Project
 export const mockProject: Project = {

@@ -90,7 +90,7 @@ export default function ChatScreen({ navigation }: Props) {
         <View style={styles.chatHeader}>
           <View style={styles.chatHeaderInfo}>
             <View style={styles.avatarContainer}>
-              <MaterialIcons name="engineering" size={24} color="#EF9631" />
+              <MaterialIcons name="engineering" size={24} color="#E96C2E" />
               <View style={styles.onlineIndicator} />
             </View>
             <View style={styles.chatHeaderText}>

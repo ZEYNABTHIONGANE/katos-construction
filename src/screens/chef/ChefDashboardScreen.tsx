@@ -1,116 +1,115 @@
-import React from "react";
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Dimensions,
-} from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { HomeTabParamList } from "../../types";
-import { mockUser, mockProject, mockProjectUpdates } from "../../data/mockData";
-import AppHeader from "../../components/AppHeader";
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ChefTabParamList } from '../../types';
+import AppHeader from '../../components/AppHeader';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
-type Props = BottomTabScreenProps<HomeTabParamList, "Home">;
+const { width } = Dimensions.get('window');
 
-const { width } = Dimensions.get("window");
+type Props = NativeStackScreenProps<ChefTabParamList, 'ChefDashboard'>;
 
-export default function HomeScreen({ navigation }: Props) {
-  const handleProjectPress = () => {
-    navigation.navigate("Chantier");
+interface StatCard {
+  id: string;
+  title: string;
+  value: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  color: string;
+  backgroundColor: string;
+}
+
+interface ProjectCard {
+  id: string;
+  name: string;
+  client: string;
+  progress: number;
+  status: 'En cours' | 'En retard' | 'Terminé';
+  dueDate: string;
+}
+
+const mockStats: StatCard[] = [
+  {
+    id: '1',
+    title: 'Projets actifs',
+    value: '12',
+    icon: 'domain',
+    color: '#2B2E83',
+    backgroundColor: '#F8F9FF',
+  },
+  {
+    id: '2',
+    title: 'Terminés ce mois',
+    value: '8',
+    icon: 'check-circle',
+    color: '#E96C2E',
+    backgroundColor: '#FFF7ED',
+  },
+  {
+    id: '3',
+    title: 'Clients satisfaits',
+    value: '98%',
+    icon: 'sentiment-very-satisfied',
+    color: '#2B2E83',
+    backgroundColor: '#F8F9FF',
+  },
+  {
+    id: '4',
+    title: 'Messages non lus',
+    value: '5',
+    icon: 'chat-bubble',
+    color: '#E96C2E',
+    backgroundColor: '#FFF7ED',
+  },
+];
+
+const mockProjects: ProjectCard[] = [
+  {
+    id: '1',
+    name: 'Villa Moderne - Famille Diop',
+    client: 'Moussa Diop',
+    progress: 65,
+    status: 'En cours',
+    dueDate: '30 Juin 2024',
+  },
+  {
+    id: '2',
+    name: 'Immeuble Commercial',
+    client: 'SARL Teranga',
+    progress: 30,
+    status: 'En cours',
+    dueDate: '15 Août 2024',
+  },
+  {
+    id: '3',
+    name: 'Rénovation Appartement',
+    client: 'Fatou Kane',
+    progress: 90,
+    status: 'En cours',
+    dueDate: '20 Avril 2024',
+  },
+];
+
+export default function ChefDashboardScreen({ navigation }: Props) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'En cours':
+        return '#E0B043';
+      case 'En retard':
+        return '#F44336';
+      case 'Terminé':
+        return '#4CAF50';
+      default:
+        return '#9CA3AF';
+    }
   };
-
-  const handleChatPress = () => {
-    navigation.navigate("Chat");
-  };
-
-  const statisticsData = [
-    {
-      id: "1",
-      title: "Avancement projet",
-      value: `${mockProject.progress}%`,
-      icon: "trending-up",
-      color: "#2B2E83",
-      backgroundColor: "#F8F9FF",
-    },
-    {
-      id: "2",
-      title: "Phase actuelle",
-      value: "Toiture",
-      icon: "construction",
-      color: "#E96C2E",
-      backgroundColor: "#FFF7ED",
-    },
-    {
-      id: "3",
-      title: "Messages non lus",
-      value: "5",
-      icon: "chat-bubble",
-      color: "#2B2E83",
-      backgroundColor: "#F8F9FF",
-    },
-    {
-      id: "4",
-      title: "Documents",
-      value: "12",
-      icon: "description",
-      color: "#E96C2E",
-      backgroundColor: "#FFF7ED",
-    },
-  ];
-
-  const renderStatCard = (stat: (typeof statisticsData)[0]) => (
-    <TouchableOpacity key={stat.id} style={styles.statCard}>
-      <View style={[styles.statCardContent, { backgroundColor: stat.backgroundColor }]}>
-        <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
-          <MaterialIcons name={stat.icon as any} size={28} color={stat.color} />
-        </View>
-        <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-        <Text style={styles.statTitle}>{stat.title}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderRecentUpdate = (
-    update: (typeof mockProjectUpdates)[0],
-    index: number
-  ) => (
-    <TouchableOpacity key={update.id} style={styles.updateItem}>
-      <View style={styles.updateAvatar}>
-        <MaterialIcons
-          name={update.status === "completed" ? "check-circle" : "schedule"}
-          size={20}
-          color={update.status === "completed" ? "#4CAF50" : "#FF9800"}
-        />
-      </View>
-      <View style={styles.updateContent}>
-        <Text style={styles.updateTitle}>{update.title}</Text>
-        <Text style={styles.updateDate}>{update.date}</Text>
-      </View>
-      <View
-        style={[
-          styles.updateStatus,
-          {
-            backgroundColor:
-              update.status === "completed" ? "#E8F5E8" : "#FFF3E0",
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.updateStatusText,
-            { color: update.status === "completed" ? "#4CAF50" : "#FF9800" },
-          ]}
-        >
-          {update.status === "completed" ? "Terminé" : "En cours"}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
@@ -131,41 +130,54 @@ export default function HomeScreen({ navigation }: Props) {
           style={styles.welcomeSection}
         >
           <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>{mockUser.name.split(" ")[0]}</Text>
-          <Text style={styles.subtitle}>Client chez Katos Construction</Text>
+          <Text style={styles.name}>Ibrahima Sarr</Text>
+          <Text style={styles.subtitle}>Chef de chantier chez Katos Construction</Text>
         </ExpoLinearGradient>
 
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>Aperçu général</Text>
           <View style={styles.statsGrid}>
-            {statisticsData.map(renderStatCard)}
+            {mockStats.map((stat) => (
+              <TouchableOpacity key={stat.id} style={styles.statCard}>
+                <View style={[styles.statCardContent, { backgroundColor: stat.backgroundColor }]}>
+                  <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
+                    <MaterialIcons name={stat.icon} size={28} color={stat.color} />
+                  </View>
+                  <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+                  <Text style={styles.statTitle}>{stat.title}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        <View style={styles.projectsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mon projet</Text>
-            <TouchableOpacity onPress={handleProjectPress}>
-              <Text style={styles.seeAllText}>Voir détails</Text>
-            </TouchableOpacity>
-          </View>
+      <View style={styles.projectsContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Projets en cours</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ChefChantiers')}
+          >
+            <Text style={styles.seeAllText}>Voir tout</Text>
+          </TouchableOpacity>
+        </View>
 
-          <TouchableOpacity style={styles.projectCard} onPress={handleProjectPress}>
+        {mockProjects.map((project) => (
+          <TouchableOpacity key={project.id} style={styles.projectCard}>
             <View style={styles.projectCardInner}>
               <View style={styles.projectHeader}>
                 <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{mockProject.name}</Text>
-                  <Text style={styles.clientName}>{mockProject.address}</Text>
+                  <Text style={styles.projectName}>{project.name}</Text>
+                  <Text style={styles.clientName}>{project.client}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: '#E0B043' }]}>
-                  <Text style={styles.statusText}>En cours</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
+                  <Text style={styles.statusText}>{project.status}</Text>
                 </View>
               </View>
 
               <View style={styles.progressContainer}>
                 <View style={styles.progressHeader}>
                   <Text style={styles.progressLabel}>Progression</Text>
-                  <Text style={styles.progressValue}>{mockProject.progress}%</Text>
+                  <Text style={styles.progressValue}>{project.progress}%</Text>
                 </View>
                 <View style={styles.progressBar}>
                   <ExpoLinearGradient
@@ -174,7 +186,7 @@ export default function HomeScreen({ navigation }: Props) {
                     end={[1, 0]}
                     style={[
                       styles.progressFill,
-                      { width: `${mockProject.progress}%` }
+                      { width: `${project.progress}%` }
                     ]}
                   />
                 </View>
@@ -185,7 +197,7 @@ export default function HomeScreen({ navigation }: Props) {
                   <View style={styles.iconContainer}>
                     <MaterialIcons name="schedule" size={18} color="#2B2E83" />
                   </View>
-                  <Text style={styles.dueDate}>Début: Janvier 2024</Text>
+                  <Text style={styles.dueDate}>Échéance: {project.dueDate}</Text>
                 </View>
                 <View style={styles.arrowContainer}>
                   <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
@@ -193,37 +205,8 @@ export default function HomeScreen({ navigation }: Props) {
               </View>
             </View>
           </TouchableOpacity>
-        </View>
-
-        {/* Mises à jour récentes */}
-        <View style={styles.projectsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mises à jour récentes</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Chantier")}>
-              <Text style={styles.seeAllText}>Voir plus</Text>
-            </TouchableOpacity>
-          </View>
-
-          {mockProjectUpdates.slice(0, 3).map((update) => (
-            <TouchableOpacity key={update.id} style={styles.projectCard}>
-              <View style={styles.projectCardInner}>
-                <View style={styles.projectHeader}>
-                  <View style={styles.projectInfo}>
-                    <Text style={styles.projectName}>{update.title}</Text>
-                    <Text style={styles.clientName}>{update.date}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, {
-                    backgroundColor: update.status === 'completed' ? '#4CAF50' : '#E96C2E'
-                  }]}>
-                    <Text style={styles.statusText}>
-                      {update.status === 'completed' ? 'Terminé' : 'En cours'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        ))}
+      </View>
       </ScrollView>
     </View>
   );

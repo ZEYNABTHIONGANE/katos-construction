@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { RootStackParamList, HomeTabParamList } from '../types';
+import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '../types';
 
 // Screens
 import SplashScreen from '../screens/auth/SplashScreen.simple';
@@ -16,12 +16,19 @@ import ChatScreen from '../screens/main/ChatScreen';
 import FinitionsScreen from '../screens/main/FinitionsScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<HomeTabParamList>();
+// Chef Screens
+import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
+import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
+import ChefChatScreen from '../screens/chef/ChefChatScreen';
+import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
 
-const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const ClientTab = createBottomTabNavigator<HomeTabParamList>();
+const ChefTab = createBottomTabNavigator<ChefTabParamList>();
+
+const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
   return (
-    <Tab.Navigator
+    <ClientTab.Navigator
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: '#2B2E83',
         tabBarInactiveTintColor: '#9CA3AF',
@@ -48,7 +55,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         headerShown: false,
       })}
     >
-      <Tab.Screen
+      <ClientTab.Screen
         name="Home"
         component={HomeScreen}
         options={{
@@ -56,7 +63,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
             <View style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: focused ? '#E8E9F7' : 'transparent',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -79,7 +86,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
           ),
         }}
       />
-      <Tab.Screen
+      <ClientTab.Screen
         name="Chantier"
         component={ChantierScreen}
         options={{
@@ -87,7 +94,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
             <View style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: focused ? '#E8E9F7' : 'transparent',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -110,7 +117,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
           ),
         }}
       />
-      <Tab.Screen
+      <ClientTab.Screen
         name="Chat"
         component={ChatScreen}
         options={{
@@ -118,7 +125,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
             <View style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: focused ? '#E8E9F7' : 'transparent',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -141,7 +148,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
           ),
         }}
       />
-      <Tab.Screen
+      <ClientTab.Screen
         name="Finitions"
         component={FinitionsScreen}
         options={{
@@ -149,7 +156,7 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
             <View style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: focused ? '#E8E9F7' : 'transparent',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -172,14 +179,14 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
           ),
         }}
       />
-      <Tab.Screen
+      <ClientTab.Screen
         name="Profil"
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: focused ? '#E8E9F7' : 'transparent',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -203,14 +210,173 @@ const TabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       >
         {(props) => <ProfilScreen {...props} onLogout={onLogout} />}
-      </Tab.Screen>
-    </Tab.Navigator>
+      </ClientTab.Screen>
+    </ClientTab.Navigator>
+  );
+};
+
+const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
+  return (
+    <ChefTab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarActiveTintColor: '#2B2E83',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          paddingTop: 12,
+          paddingBottom: 12,
+          height: 80,
+          borderRadius: 25,
+          marginHorizontal: 16,
+          marginBottom: 35,
+          position: 'absolute',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
+          elevation: 10,
+        },
+        tabBarIconStyle: {
+          marginTop: 0,
+        },
+        headerShown: false,
+      })}
+    >
+      <ChefTab.Screen
+        name="ChefDashboard"
+        component={ChefDashboardScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="dashboard"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#003366',
+                  marginTop: 2,
+                }}>Accueil</Text>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <ChefTab.Screen
+        name="ChefChantiers"
+        component={ChefChantiersScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="domain"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#003366',
+                  marginTop: 2,
+                }}>Chantiers</Text>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <ChefTab.Screen
+        name="ChefChat"
+        component={ChefChatScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="chat-bubble"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#003366',
+                  marginTop: 2,
+                }}>Messages</Text>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <ChefTab.Screen
+        name="ChefProfil"
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="account-circle"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#003366',
+                  marginTop: 2,
+                }}>Profil</Text>
+              )}
+            </View>
+          ),
+        }}
+      >
+        {(props) => <ChefProfilScreen {...props} onLogout={onLogout} />}
+      </ChefTab.Screen>
+    </ChefTab.Navigator>
   );
 };
 
 export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -220,11 +386,13 @@ export default function AppNavigator() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
+    setCurrentUser(null);
     setIsAuthenticated(false);
   };
 
@@ -246,9 +414,17 @@ export default function AppNavigator() {
             {(props) => <LoginScreen {...props} onLogin={handleLogin} />}
           </Stack.Screen>
         ) : (
-          <Stack.Screen name="HomeTabs">
-            {() => <TabNavigator onLogout={handleLogout} />}
-          </Stack.Screen>
+          <>
+            {currentUser?.role === 'client' ? (
+              <Stack.Screen name="ClientTabs">
+                {() => <ClientTabNavigator onLogout={handleLogout} />}
+              </Stack.Screen>
+            ) : (
+              <Stack.Screen name="ChefTabs">
+                {() => <ChefTabNavigator onLogout={handleLogout} />}
+              </Stack.Screen>
+            )}
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

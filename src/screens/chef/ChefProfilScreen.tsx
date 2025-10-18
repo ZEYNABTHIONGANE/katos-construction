@@ -8,14 +8,13 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { HomeTabParamList } from '../../types';
-import { mockUser, mockProject } from '../../data/mockData';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ChefTabParamList } from '../../types';
+import AppHeader from '../../components/AppHeader';
 
-type Props = BottomTabScreenProps<HomeTabParamList, 'Profil'> & {
-  onLogout?: () => void;
+type Props = NativeStackScreenProps<ChefTabParamList, 'ChefProfil'> & {
+  onLogout: () => void;
 };
 
 interface ProfileOption {
@@ -27,7 +26,7 @@ interface ProfileOption {
   textColor?: string;
 }
 
-export default function ProfilScreen({ navigation, onLogout }: Props) {
+export default function ChefProfilScreen({ navigation, onLogout }: Props) {
   const handleLogout = () => {
     Alert.alert(
       'Déconnexion',
@@ -40,11 +39,7 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
         {
           text: 'Déconnexion',
           style: 'destructive',
-          onPress: () => {
-            if (onLogout) {
-              onLogout();
-            }
-          },
+          onPress: onLogout,
         },
       ]
     );
@@ -59,8 +54,8 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
     },
     {
       id: '2',
-      title: 'Mon projet',
-      icon: 'home-work',
+      title: 'Équipe et ouvriers',
+      icon: 'group',
       onPress: () => {},
     },
     {
@@ -77,8 +72,8 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
     },
     {
       id: '5',
-      title: 'Documents et contrats',
-      icon: 'description',
+      title: 'Rapports et statistiques',
+      icon: 'assessment',
       onPress: () => {},
     },
     {
@@ -117,7 +112,7 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
           <MaterialIcons
             name={option.icon}
             size={20}
-            color={option.textColor || '#2B2E83'}
+            color={option.textColor || '#003366'}
           />
         </View>
         <Text style={[
@@ -135,14 +130,11 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
-        {/* Header moderne */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft} />
-          <Text style={styles.headerTitle}>Profil</Text>
-          <View style={styles.headerRight} />
-        </View>
-
+      <AppHeader
+        title="Profil"
+        showNotification={true}
+        onNotificationPress={() => {}}
+      />
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
@@ -152,13 +144,15 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
       <View style={styles.profileSection}>
         <View style={styles.profileCard}>
           <Image
-            source={{ uri: mockUser.avatar }}
+            source={{
+              uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+            }}
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{mockUser.name}</Text>
-            <Text style={styles.profileRole}>Client</Text>
-            <Text style={styles.profileEmail}>{mockUser.email}</Text>
+            <Text style={styles.profileName}>Ibrahima Sarr</Text>
+            <Text style={styles.profileRole}>Chef de chantier</Text>
+            <Text style={styles.profileEmail}>chef@katos.com</Text>
           </View>
           <TouchableOpacity style={styles.editButton}>
             <MaterialIcons name="edit" size={20} color="#E96C2E" />
@@ -167,18 +161,18 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1</Text>
-            <Text style={styles.statLabel}>Projet actif</Text>
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Projets actifs</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{mockProject.progress}%</Text>
-            <Text style={styles.statLabel}>Avancement</Text>
+            <Text style={styles.statValue}>45</Text>
+            <Text style={styles.statLabel}>Projets terminés</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>2</Text>
-            <Text style={styles.statLabel}>Messages non lus</Text>
+            <Text style={styles.statValue}>3 ans</Text>
+            <Text style={styles.statLabel}>Expérience</Text>
           </View>
         </View>
       </View>
@@ -196,7 +190,6 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
         </Text>
       </View>
       </ScrollView>
-      </SafeAreaView>
     </View>
   );
 }
@@ -206,37 +199,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#2B2E83',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingTop: 80,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 20,
-  },
-  headerLeft: {
-    width: 40,
-  },
-  headerTitle: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: 'FiraSans_700Bold',
-  },
-  headerRight: {
-    width: 40,
-  },
-  safeArea: {
-    flex: 1,
-  },
   content: {
     flex: 1,
-    marginTop: -20,
   },
   scrollContent: {
     paddingBottom: 120,

@@ -22,22 +22,16 @@ export default function AppHeader({
   onProfilePress,
 }: AppHeaderProps) {
   return (
-    <View style={styles.container}>
-      <View style={styles.leftSection}>
-        {showBack ? (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        {showBack && (
           <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-        ) : (
-          <View style={styles.iconPlaceholder} />
         )}
       </View>
-
-      <View style={styles.centerSection}>
-        <Text style={styles.title}>{title}</Text>
-      </View>
-
-      <View style={styles.rightSection}>
+      <Text style={styles.headerTitle}>{title}</Text>
+      <View style={styles.headerRight}>
         {showNotification && (
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress}>
             <MaterialIcons name="notifications" size={24} color="#fff" />
@@ -48,43 +42,45 @@ export default function AppHeader({
             <MaterialIcons name="account-circle" size={24} color="#fff" />
           </TouchableOpacity>
         )}
-        {!showNotification && !showProfile && <View style={styles.iconPlaceholder} />}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#2B2E83',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingTop: 50,
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  leftSection: {
+  headerLeft: {
     width: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  centerSection: {
+  headerTitle: {
     flex: 1,
-    alignItems: 'center',
-  },
-  rightSection: {
-    width: 40,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  title: {
     fontSize: 20,
     color: '#fff',
     fontFamily: 'FiraSans_700Bold',
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
   },
   iconButton: {
     padding: 8,
-  },
-  iconPlaceholder: {
-    width: 40,
-    height: 40,
   },
 });

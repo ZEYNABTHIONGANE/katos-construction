@@ -35,57 +35,67 @@ export default function MaterialCard({
       style={[styles.container, isSelected && styles.selectedContainer]}
       onPress={onPress}
     >
-      <Image source={{ uri: material.imageUrl }} style={styles.image} />
+      <View style={styles.cardInner}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: material.imageUrl }} style={styles.image} />
 
-      {isSelected && (
-        <View style={styles.selectedOverlay}>
-          <MaterialIcons name="check-circle" size={24} color="#EF9631" />
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{material.category}</Text>
+          </View>
+
+          {isSelected && (
+            <View style={styles.selectedBadge}>
+              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+            </View>
+          )}
+
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceText}>{formatPrice(material.price)}</Text>
+          </View>
         </View>
-      )}
 
-      <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>
-          {material.name}
-        </Text>
-
-        {material.description && (
-          <Text style={styles.description} numberOfLines={2}>
-            {material.description}
+        <View style={styles.content}>
+          <Text style={styles.name} numberOfLines={2}>
+            {material.name}
           </Text>
-        )}
 
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{formatPrice(material.price)}</Text>
-          <Text style={styles.category}>{material.category}</Text>
-        </View>
-
-        {material.supplier && (
-          <Text style={styles.supplier}>Fournisseur: {material.supplier}</Text>
-        )}
-
-        {onSelect && (
-          <TouchableOpacity
-            style={[
-              styles.selectButton,
-              isSelected && styles.selectedButton,
-            ]}
-            onPress={onSelect}
-          >
-            <MaterialIcons
-              name={isSelected ? 'check' : 'add'}
-              size={16}
-              color={isSelected ? '#fff' : '#2B2E83'}
-            />
-            <Text
-              style={[
-                styles.selectButtonText,
-                isSelected && styles.selectedButtonText,
-              ]}
-            >
-              {isSelected ? 'Sélectionné' : 'Choisir'}
+          {material.description && (
+            <Text style={styles.description} numberOfLines={2}>
+              {material.description}
             </Text>
-          </TouchableOpacity>
-        )}
+          )}
+
+          {material.supplier && (
+            <View style={styles.supplierContainer}>
+              <MaterialIcons name="business" size={14} color="#6B7280" />
+              <Text style={styles.supplier}>{material.supplier}</Text>
+            </View>
+          )}
+
+          {onSelect && (
+            <TouchableOpacity
+              style={[
+                styles.selectButton,
+                isSelected && styles.selectedButton,
+              ]}
+              onPress={onSelect}
+            >
+              <MaterialIcons
+                name={isSelected ? 'check' : 'add'}
+                size={16}
+                color={isSelected ? '#FFFFFF' : '#2B2E83'}
+              />
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  isSelected && styles.selectedButtonText,
+                ]}
+              >
+                {isSelected ? 'Sélectionné' : 'Choisir'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -93,97 +103,144 @@ export default function MaterialCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 15,
+    borderRadius: 20,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
     overflow: 'hidden',
   },
   selectedContainer: {
-    borderWidth: 2,
-    borderColor: '#EF9631',
+    transform: [{ scale: 0.98 }],
+    borderWidth: 3,
+    borderColor: '#E96C2E',
+  },
+  cardInner: {
+    backgroundColor: '#FFFFFF',
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 140,
   },
   image: {
     width: '100%',
-    height: 150,
-    backgroundColor: '#F5F5F5',
+    height: '100%',
+    backgroundColor: '#F3F4F6',
   },
-  selectedOverlay: {
+  selectedBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 4,
+    top: 12,
+    right: 12,
+    backgroundColor: '#E96C2E',
+    borderRadius: 20,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  priceBadge: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    backgroundColor: 'rgba(43, 46, 131, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  priceText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
   },
   content: {
-    padding: 15,
+    padding: 16,
   },
   name: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#2B2E83',
-    marginBottom: 5,
-    fontFamily: 'FiraSans_700Bold',
-  },
-  description: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 10,
-    lineHeight: 16,
-    fontFamily: 'FiraSans_400Regular',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 8,
+    fontFamily: 'FiraSans_600SemiBold',
+    lineHeight: 18,
   },
-  price: {
-    fontSize: 16,
-    color: '#EF9631',
-    fontFamily: 'FiraSans_700Bold',
-  },
-  category: {
-    fontSize: 12,
-    color: '#999',
-    backgroundColor: '#F5F5F5',
+  categoryBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(233, 108, 46, 0.9)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  categoryText: {
+    fontSize: 9,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+    textTransform: 'uppercase',
+  },
+  description: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 18,
     fontFamily: 'FiraSans_400Regular',
   },
+  supplierContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
   supplier: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 10,
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 6,
     fontFamily: 'FiraSans_400Regular',
   },
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    backgroundColor: '#F0F1FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#2B2E83',
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   selectedButton: {
-    backgroundColor: '#EF9631',
-    borderColor: '#EF9631',
+    backgroundColor: '#E96C2E',
+    borderColor: '#E96C2E',
+    shadowColor: '#E96C2E',
   },
   selectButtonText: {
-    marginLeft: 5,
-    fontSize: 12,
+    marginLeft: 6,
+    fontSize: 14,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
   },
   selectedButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
 });

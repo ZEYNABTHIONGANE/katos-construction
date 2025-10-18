@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types';
+import { RootStackParamList, User } from '../../types';
+import { mockUsers } from '../../data/mockData';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'> & {
-  onLogin: () => void;
+  onLogin: (user: User) => void;
 };
 
 export default function LoginScreen({ navigation, onLogin }: Props) {
@@ -37,9 +38,11 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
     setTimeout(() => {
       setLoading(false);
 
-      // Mock validation
-      if (email === 'client@katos.com' && password === '1234') {
-        onLogin();
+      // Mock validation - check all users
+      const user = mockUsers.find(u => u.email === email && password === '1234');
+
+      if (user) {
+        onLogin(user);
       } else {
         Alert.alert(
           'Erreur de connexion',
@@ -127,7 +130,8 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
               <Text style={styles.demoTitle}>Compte de démonstration</Text>
             </View>
             <Text style={styles.demoText}>
-              Email: client@katos.com{'\n'}
+              Client: client@katos.com{'\n'}
+              Chef: chef@katos.com{'\n'}
               Mot de passe: 1234
             </Text>
           </View>
@@ -155,7 +159,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E8E9F7',
+    backgroundColor: '#F0F1FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
