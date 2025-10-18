@@ -75,42 +75,6 @@ export default function HomeScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderRecentUpdate = (
-    update: (typeof mockProjectUpdates)[0],
-    index: number
-  ) => (
-    <TouchableOpacity key={update.id} style={styles.updateItem}>
-      <View style={styles.updateAvatar}>
-        <MaterialIcons
-          name={update.status === "completed" ? "check-circle" : "schedule"}
-          size={20}
-          color={update.status === "completed" ? "#4CAF50" : "#FF9800"}
-        />
-      </View>
-      <View style={styles.updateContent}>
-        <Text style={styles.updateTitle}>{update.title}</Text>
-        <Text style={styles.updateDate}>{update.date}</Text>
-      </View>
-      <View
-        style={[
-          styles.updateStatus,
-          {
-            backgroundColor:
-              update.status === "completed" ? "#E8F5E8" : "#FFF3E0",
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.updateStatusText,
-            { color: update.status === "completed" ? "#4CAF50" : "#FF9800" },
-          ]}
-        >
-          {update.status === "completed" ? "Terminé" : "En cours"}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
