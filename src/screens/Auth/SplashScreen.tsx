@@ -1,54 +1,22 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from 'react-native-reanimated';
-import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 export default function SplashScreen({ navigation }: Props) {
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.3);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const navigateToLogin = () => {
-    navigation.replace('Login');
-  };
-
-  useEffect(() => {
-    // Start animations
-    opacity.value = withTiming(1, { duration: 1000 });
-    scale.value = withTiming(1, { duration: 1000 });
-
-    // Navigate after delay
-    const timer = setTimeout(() => {
-      runOnJS(navigateToLogin)();
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Pas de navigation ici - elle est gérée par AppNavigator
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.content, animatedStyle]}>
+      <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <MaterialIcons name="home-work" size={80} color="#EF9631" />
+          <Image source={require('../../assets/logo.png')} style={styles.logo} />
         </View>
         <Text style={styles.title}>Katos Construction</Text>
         <Text style={styles.subtitle}>Votre maison, notre passion</Text>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -67,10 +35,15 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(224, 176, 67, 0.1)',
+    backgroundColor: 'rgba(239, 150, 49, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 32,

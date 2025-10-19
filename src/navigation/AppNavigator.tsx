@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '../types';
 
 // Screens
-import SplashScreen from '../screens/auth/SplashScreen.simple';
+
 import LoginScreen from '../screens/auth/LoginScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import ChantierScreen from '../screens/main/ChantierScreen';
@@ -21,6 +21,7 @@ import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
 import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ClientTab = createBottomTabNavigator<HomeTabParamList>();
