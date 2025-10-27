@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Login: undefined;
   ClientTabs: undefined;
   ChefTabs: undefined;
+  ClientProjects: undefined;
 };
 
 export type HomeTabParamList = {
@@ -49,6 +50,10 @@ export interface Message {
   senderName: string;
   timestamp: Date;
   isFromUser: boolean;
+  isRead?: boolean;
+  attachmentType?: 'image' | 'document';
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export interface Material {

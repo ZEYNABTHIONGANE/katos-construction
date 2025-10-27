@@ -8,9 +8,14 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList, Message } from '../../types';
 import AppHeader from '../../components/AppHeader';
@@ -22,6 +27,7 @@ type Props = BottomTabScreenProps<HomeTabParamList, 'Chat'>;
 export default function ChatScreen({ navigation }: Props) {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [newMessage, setNewMessage] = useState('');
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -42,6 +48,7 @@ export default function ChatScreen({ navigation }: Props) {
         senderName: 'Moussa Diop',
         timestamp: new Date(),
         isFromUser: true,
+        isRead: false,
       };
 
       setMessages([...messages, message]);
@@ -56,9 +63,111 @@ export default function ChatScreen({ navigation }: Props) {
           senderName: 'Chef de chantier',
           timestamp: new Date(),
           isFromUser: false,
+          isRead: true,
         };
         setMessages(prev => [...prev, chefResponse]);
       }, 2000);
+    }
+  };
+
+  const handleAttachmentPress = () => {
+    setShowAttachmentModal(true);
+  };
+
+  const handleImagePicker = async () => {
+    setShowAttachmentModal(false);
+
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour envoyer des photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageMessage: Message = {
+        id: `${Date.now()}`,
+        text: 'Photo envoyée',
+        senderId: '1',
+        senderName: 'Moussa Diop',
+        timestamp: new Date(),
+        isFromUser: true,
+        isRead: false,
+        attachmentType: 'image',
+        attachmentUrl: result.assets[0].uri,
+      };
+
+      setMessages(prev => [...prev, imageMessage]);
+    }
+  };
+
+  const handleDocumentPicker = async () => {
+    setShowAttachmentModal(false);
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const documentMessage: Message = {
+          id: `${Date.now()}`,
+          text: `Document: ${result.assets[0].name}`,
+          senderId: '1',
+          senderName: 'Moussa Diop',
+          timestamp: new Date(),
+          isFromUser: true,
+          isRead: false,
+          attachmentType: 'document',
+          attachmentUrl: result.assets[0].uri,
+          attachmentName: result.assets[0].name,
+        };
+
+        setMessages(prev => [...prev, documentMessage]);
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de sélectionner le document');
+    }
+  };
+
+  const handleCameraPress = async () => {
+    setShowAttachmentModal(false);
+
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission requise", "L'accès à la caméra est nécessaire pour prendre des photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageMessage: Message = {
+        id: `${Date.now()}`,
+        text: 'Photo prise',
+        senderId: '1',
+        senderName: 'Moussa Diop',
+        timestamp: new Date(),
+        isFromUser: true,
+        isRead: false,
+        attachmentType: 'image',
+        attachmentUrl: result.assets[0].uri,
+      };
+
+      setMessages(prev => [...prev, imageMessage]);
     }
   };
 
@@ -125,7 +234,7 @@ export default function ChatScreen({ navigation }: Props) {
         {/* Message Input */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
-            <TouchableOpacity style={styles.attachButton}>
+            <TouchableOpacity style={styles.attachButton} onPress={handleAttachmentPress}>
               <MaterialIcons name="add" size={22} color="#9CA3AF" />
             </TouchableOpacity>
             <TextInput
@@ -157,6 +266,53 @@ export default function ChatScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Attachment Modal */}
+      <Modal
+        visible={showAttachmentModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAttachmentModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAttachmentModal(false)}
+        >
+          <View style={styles.attachmentModal}>
+            <Text style={styles.modalTitle}>Ajouter un fichier</Text>
+
+            <TouchableOpacity style={styles.attachmentOption} onPress={handleCameraPress}>
+              <View style={styles.attachmentIconContainer}>
+                <MaterialIcons name="camera-alt" size={24} color="#E96C2E" />
+              </View>
+              <Text style={styles.attachmentOptionText}>Prendre une photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.attachmentOption} onPress={handleImagePicker}>
+              <View style={styles.attachmentIconContainer}>
+                <MaterialIcons name="photo-library" size={24} color="#2B2E83" />
+              </View>
+              <Text style={styles.attachmentOptionText}>Galerie photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.attachmentOption} onPress={handleDocumentPicker}>
+              <View style={styles.attachmentIconContainer}>
+                <MaterialIcons name="description" size={24} color="#10B981" />
+              </View>
+              <Text style={styles.attachmentOptionText}>Document (PDF, Word)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowAttachmentModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       </SafeAreaView>
     </View>
   );
@@ -346,5 +502,68 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#E0E0E0',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  attachmentModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 18,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  attachmentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  attachmentIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  attachmentOptionText: {
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_500Medium',
+    flex: 1,
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
   },
 });

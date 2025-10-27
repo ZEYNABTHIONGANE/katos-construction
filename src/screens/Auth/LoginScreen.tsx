@@ -11,6 +11,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, User } from '../../types';
@@ -53,11 +54,17 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
+    <ExpoLinearGradient
+      colors={['#2B2E83', '#E96C2E']}
+      start={[0, 0]}
+      end={[1, 1]}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -124,27 +131,20 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
           </TouchableOpacity>
 
           {/* Demo Account Info */}
-          <View style={styles.demoContainer}>
-            <View style={styles.demoHeader}>
-              <MaterialIcons name="info" size={16} color="#2B2E83" />
-              <Text style={styles.demoTitle}>Compte de démonstration</Text>
-            </View>
-            <Text style={styles.demoText}>
-              Client: client@katos.com{'\n'}
-              Chef: chef@katos.com{'\n'}
-              Mot de passe: 1234
-            </Text>
-          </View>
+    
         </View>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </ExpoLinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F0F1FF',
+    backgroundColor: '#f7f7f9',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -171,13 +171,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     marginBottom: 8,
     fontFamily: 'FiraSans_700Bold',
+    textAlign: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontFamily: 'FiraSans_400Regular',
   },
@@ -186,10 +192,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    marginHorizontal: 4,
   },
   inputContainer: {
     marginBottom: 20,

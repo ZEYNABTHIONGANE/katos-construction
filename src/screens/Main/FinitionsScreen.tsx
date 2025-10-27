@@ -8,6 +8,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
+import { Toast } from 'toastify-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -53,6 +54,11 @@ export default function FinitionsScreen({ navigation }: Props) {
     return userSelections.some((s) => s.materialId === materialId);
   };
 
+  const handleConfirmSelections = () => {
+    Toast.success('Sélections confirmées avec succès !');
+    setShowSelectionsModal(false);
+  };
+
   const renderCategory = ({ item }: { item: Category }) => (
     <CategoryButton
       name={item.name}
@@ -63,23 +69,21 @@ export default function FinitionsScreen({ navigation }: Props) {
   );
 
   const renderMaterial = ({ item }: { item: Material }) => (
-    <View style={styles.materialItem}>
-      <MaterialCard
-        material={item}
-        onSelect={() => handleMaterialSelect(item)}
-        isSelected={isSelected(item.id)}
-      />
-    </View>
+    <MaterialCard
+      material={item}
+      onSelect={() => handleMaterialSelect(item)}
+      isSelected={isSelected(item.id)}
+      horizontal={true}
+    />
   );
 
   const renderSelection = ({ item }: { item: Selection }) => (
-    <View style={styles.selectionItem}>
-      <MaterialCard
-        material={item.material}
-        onSelect={() => handleMaterialSelect(item.material)}
-        isSelected={true}
-      />
-    </View>
+    <MaterialCard
+      material={item.material}
+      onSelect={() => handleMaterialSelect(item.material)}
+      isSelected={true}
+      horizontal={true}
+    />
   );
 
   return (
@@ -133,7 +137,6 @@ export default function FinitionsScreen({ navigation }: Props) {
               data={selectedCategory.materials}
               renderItem={renderMaterial}
               keyExtractor={(item) => item.id}
-              numColumns={2}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.materialsList}
             />
@@ -161,7 +164,7 @@ export default function FinitionsScreen({ navigation }: Props) {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Mes sélections</Text>
             <TouchableOpacity onPress={() => setShowSelectionsModal(false)}>
-              <MaterialIcons name="close" size={24} color="#666" />
+              <MaterialIcons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -170,7 +173,6 @@ export default function FinitionsScreen({ navigation }: Props) {
               data={userSelections}
               renderItem={renderSelection}
               keyExtractor={(item) => item.id}
-              numColumns={2}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalContent}
             />
@@ -188,7 +190,10 @@ export default function FinitionsScreen({ navigation }: Props) {
 
           {userSelections.length > 0 && (
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.confirmButton}>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleConfirmSelections}
+              >
                 <Text style={styles.confirmButtonText}>
                   Confirmer mes sélections
                 </Text>
@@ -287,12 +292,8 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_500Medium',
   },
   materialsList: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     paddingBottom: 130, // Espace pour la navigation flottante
-  },
-  materialItem: {
-    flex: 1,
-    paddingHorizontal: 10,
   },
   emptyState: {
     flex: 1,
@@ -333,12 +334,8 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_700Bold',
   },
   modalContent: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     paddingTop: 20,
-  },
-  selectionItem: {
-    flex: 1,
-    paddingHorizontal: 10,
   },
   emptySelections: {
     flex: 1,

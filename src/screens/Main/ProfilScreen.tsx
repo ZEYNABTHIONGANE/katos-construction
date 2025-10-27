@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,20 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { HomeTabParamList } from '../../types';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeTabParamList, RootStackParamList } from '../../types';
 import { mockUser, mockProject } from '../../data/mockData';
 
-type Props = BottomTabScreenProps<HomeTabParamList, 'Profil'> & {
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<HomeTabParamList, 'Profil'>,
+  NativeStackScreenProps<RootStackParamList>
+> & {
   onLogout?: () => void;
 };
 
@@ -28,6 +34,25 @@ interface ProfileOption {
 }
 
 export default function ProfilScreen({ navigation, onLogout }: Props) {
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const handleNotificationToggle = (value: boolean) => {
+    setNotificationsEnabled(value);
+    if (value) {
+      Alert.alert(
+        'Notifications activées',
+        'Vous recevrez maintenant toutes les notifications de l\'application.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert(
+        'Notifications désactivées',
+        'Vous ne recevrez plus aucune notification de l\'application.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Déconnexion',
@@ -53,48 +78,24 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
   const profileOptions: ProfileOption[] = [
     {
       id: '1',
-      title: 'Informations personnelles',
-      icon: 'person',
-      onPress: () => {},
+      title: 'Mes projets',
+      icon: 'home-work',
+      onPress: () => navigation.navigate('ClientProjects'),
     },
     {
       id: '2',
-      title: 'Mon projet',
-      icon: 'home-work',
-      onPress: () => {},
-    },
-    {
-      id: '3',
-      title: 'Paramètres',
-      icon: 'settings',
-      onPress: () => {},
-    },
-    {
-      id: '4',
-      title: 'Notifications',
-      icon: 'notifications',
-      onPress: () => {},
-    },
-    {
-      id: '5',
-      title: 'Documents et contrats',
-      icon: 'description',
-      onPress: () => {},
-    },
-    {
-      id: '6',
       title: 'Aide et support',
       icon: 'help',
       onPress: () => {},
     },
     {
-      id: '7',
+      id: '3',
       title: 'À propos',
       icon: 'info',
       onPress: () => {},
     },
     {
-      id: '8',
+      id: '4',
       title: 'Se déconnecter',
       icon: 'exit-to-app',
       onPress: handleLogout,
@@ -179,6 +180,27 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
           <View style={styles.statItem}>
             <Text style={styles.statValue}>2</Text>
             <Text style={styles.statLabel}>Messages non lus</Text>
+          </View>
+        </View>
+
+        {/* Notifications Toggle */}
+        <View style={styles.notificationCard}>
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationIcon}>
+              <MaterialIcons name="notifications" size={24} color="#E96C2E" />
+            </View>
+            <View style={styles.notificationText}>
+              <Text style={styles.notificationTitle}>Notifications</Text>
+              <Text style={styles.notificationDescription}>
+                {notificationsEnabled ? 'Activées' : 'Désactivées'}
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleNotificationToggle}
+              trackColor={{ false: '#E5E7EB', true: '#E96C2E' }}
+              thumbColor="#FFFFFF"
+            />
           </View>
         </View>
       </View>
@@ -320,6 +342,44 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: '#E5E7EB',
     marginHorizontal: 16,
+  },
+  notificationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  notificationIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEF3E7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  notificationText: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 18,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 4,
+  },
+  notificationDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
   },
   optionsSection: {
     backgroundColor: '#FFFFFF',

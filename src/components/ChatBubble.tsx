@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Message } from '../types';
 
 interface ChatBubbleProps {
@@ -20,12 +21,40 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
         {!message.isFromUser && (
           <Text style={styles.senderName}>{message.senderName}</Text>
         )}
+
+        {/* Attachment rendering */}
+        {message.attachmentType === 'image' && message.attachmentUrl && (
+          <TouchableOpacity style={styles.imageContainer}>
+            <Image source={{ uri: message.attachmentUrl }} style={styles.attachedImage} />
+          </TouchableOpacity>
+        )}
+
+        {message.attachmentType === 'document' && message.attachmentName && (
+          <TouchableOpacity style={styles.documentContainer}>
+            <MaterialIcons name="description" size={24} color={message.isFromUser ? '#FFFFFF' : '#2B2E83'} />
+            <Text style={[styles.documentName, message.isFromUser ? styles.userText : styles.otherText]}>
+              {message.attachmentName}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <Text style={[styles.messageText, message.isFromUser ? styles.userText : styles.otherText]}>
           {message.text}
         </Text>
-        <Text style={[styles.timestamp, message.isFromUser ? styles.userTimestamp : styles.otherTimestamp]}>
-          {formatTime(message.timestamp)}
-        </Text>
+
+        <View style={styles.messageFooter}>
+          <Text style={[styles.timestamp, message.isFromUser ? styles.userTimestamp : styles.otherTimestamp]}>
+            {formatTime(message.timestamp)}
+          </Text>
+          {message.isFromUser && (
+            <MaterialIcons
+              name={message.isRead ? "done-all" : "done"}
+              size={14}
+              color={message.isRead ? "#4CAF50" : "rgba(255, 255, 255, 0.7)"}
+              style={styles.readIndicator}
+            />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -76,7 +105,6 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 11,
-    alignSelf: 'flex-end',
     fontFamily: 'FiraSans_400Regular',
   },
   userTimestamp: {
@@ -84,5 +112,37 @@ const styles = StyleSheet.create({
   },
   otherTimestamp: {
     color: '#999',
+  },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 2,
+  },
+  readIndicator: {
+    marginLeft: 4,
+  },
+  imageContainer: {
+    marginBottom: 8,
+  },
+  attachedImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+  documentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  documentName: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontFamily: 'FiraSans_500Medium',
+    flex: 1,
   },
 });

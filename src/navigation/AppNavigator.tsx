@@ -15,6 +15,7 @@ import ChantierScreen from '../screens/main/ChantierScreen';
 import ChatScreen from '../screens/main/ChatScreen';
 import FinitionsScreen from '../screens/main/FinitionsScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
+import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
 
 // Chef Screens
 import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
@@ -379,13 +380,9 @@ export default function AppNavigator() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const handleContinueFromSplash = () => {
+    setIsLoading(false);
+  };
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -401,7 +398,9 @@ export default function AppNavigator() {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="Splash">
+            {(props) => <SplashScreen {...props} onContinue={handleContinueFromSplash} />}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     );
@@ -417,9 +416,16 @@ export default function AppNavigator() {
         ) : (
           <>
             {currentUser?.role === 'client' ? (
-              <Stack.Screen name="ClientTabs">
-                {() => <ClientTabNavigator onLogout={handleLogout} />}
-              </Stack.Screen>
+              <>
+                <Stack.Screen name="ClientTabs">
+                  {() => <ClientTabNavigator onLogout={handleLogout} />}
+                </Stack.Screen>
+                <Stack.Screen
+                  name="ClientProjects"
+                  component={ClientProjectsScreen}
+                  options={{ headerShown: false }}
+                />
+              </>
             ) : (
               <Stack.Screen name="ChefTabs">
                 {() => <ChefTabNavigator onLogout={handleLogout} />}

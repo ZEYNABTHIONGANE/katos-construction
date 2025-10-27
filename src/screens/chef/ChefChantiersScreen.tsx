@@ -9,7 +9,11 @@ import {
   Modal,
   FlatList,
   Dimensions,
+  Alert,
+  TextInput,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
@@ -112,6 +116,14 @@ const mockProjects: ProjectDetailed[] = [
 export default function ChefChantiersScreen({ navigation }: Props) {
   const [selectedProject, setSelectedProject] = useState<ProjectDetailed | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [projects, setProjects] = useState<ProjectDetailed[]>(mockProjects);
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [newMember, setNewMember] = useState({
+    name: '',
+    role: '',
+    phone: '',
+    experience: ''
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -146,8 +158,189 @@ export default function ChefChantiersScreen({ navigation }: Props) {
     setShowModal(true);
   };
 
+  const addImageToGallery = async () => {
+    if (!selectedProject) return;
+
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour ajouter des photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newImageUri = result.assets[0].uri;
+
+      // Mettre à jour le projet avec la nouvelle image
+      const updatedProjects = projects.map(project => {
+        if (project.id === selectedProject.id) {
+          return {
+            ...project,
+            gallery: [...project.gallery, newImageUri]
+          };
+        }
+        return project;
+      });
+
+      setProjects(updatedProjects);
+
+      // Mettre à jour le projet sélectionné
+      const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
+      if (updatedSelectedProject) {
+        setSelectedProject(updatedSelectedProject);
+      }
+
+      Alert.alert("Succès", "Photo ajoutée à la galerie avec succès !");
+    }
+  };
+
+  const updatePhaseProgress = (phaseId: string, newProgressValue: number) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(project => {
+      if (project.id === selectedProject.id) {
+        const updatedPhases = project.phases.map(phase => {
+          if (phase.id === phaseId) {
+            let newStatus = phase.status;
+            if (newProgressValue === 0) {
+              newStatus = 'pending';
+            } else if (newProgressValue === 100) {
+              newStatus = 'completed';
+            } else {
+              newStatus = 'in-progress';
+            }
+
+            return {
+              ...phase,
+              progress: newProgressValue,
+              status: newStatus as 'completed' | 'in-progress' | 'pending'
+            };
+          }
+          return phase;
+        });
+
+        // Calculer la progression globale du projet
+        const totalProgress = updatedPhases.reduce((sum, phase) => sum + phase.progress, 0);
+        const overallProgress = Math.round(totalProgress / updatedPhases.length);
+
+        return {
+          ...project,
+          phases: updatedPhases,
+          progress: overallProgress
+        };
+      }
+      return project;
+    });
+
+    setProjects(updatedProjects);
+
+    // Mettre à jour le projet sélectionné
+    const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updatedSelectedProject) {
+      setSelectedProject(updatedSelectedProject);
+    }
+  };
+
+  const handleProgressChange = (phaseId: string, newProgress: number) => {
+    updatePhaseProgress(phaseId, Math.round(newProgress));
+  };
+
+  const addTeamMember = () => {
+    if (!selectedProject || !newMember.name.trim()) {
+      Alert.alert("Erreur", "Veuillez saisir au minimum le nom du membre");
+      return;
+    }
+
+    // Créer le nom d'affichage avec le rôle si spécifié
+    const displayName = newMember.role.trim()
+      ? `${newMember.name.trim()} (${newMember.role.trim()})`
+      : newMember.name.trim();
+
+    const updatedProjects = projects.map(project => {
+      if (project.id === selectedProject.id) {
+        return {
+          ...project,
+          team: [...project.team, displayName]
+        };
+      }
+      return project;
+    });
+
+    setProjects(updatedProjects);
+
+    // Mettre à jour le projet sélectionné
+    const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updatedSelectedProject) {
+      setSelectedProject(updatedSelectedProject);
+    }
+
+    // Reset form
+    setNewMember({
+      name: '',
+      role: '',
+      phone: '',
+      experience: ''
+    });
+    setShowAddMemberForm(false);
+    Alert.alert("Succès", "Membre ajouté à l'équipe avec succès !");
+  };
+
+  const removeMember = (memberIndex: number) => {
+    if (!selectedProject) return;
+
+    Alert.alert(
+      "Confirmer la suppression",
+      "Êtes-vous sûr de vouloir retirer ce membre de l'équipe ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () => {
+            const updatedProjects = projects.map(project => {
+              if (project.id === selectedProject.id) {
+                const newTeam = [...project.team];
+                newTeam.splice(memberIndex, 1);
+                return {
+                  ...project,
+                  team: newTeam
+                };
+              }
+              return project;
+            });
+
+            setProjects(updatedProjects);
+
+            // Mettre à jour le projet sélectionné
+            const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
+            if (updatedSelectedProject) {
+              setSelectedProject(updatedSelectedProject);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderGalleryItem = ({ item }: { item: string }) => (
     <Image source={{ uri: item }} style={styles.galleryImage} />
+  );
+
+  const renderAddButton = () => (
+    <TouchableOpacity
+      style={styles.addImageButton}
+      onPress={addImageToGallery}
+    >
+      <MaterialIcons name="add" size={30} color="#2B2E83" />
+      <Text style={styles.addImageText}>Ajouter une photo</Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -159,7 +352,7 @@ export default function ChefChantiersScreen({ navigation }: Props) {
       />
 
       <View style={styles.statsHeader}>
-        <Text style={styles.statsText}>{mockProjects.length} projets</Text>
+        <Text style={styles.statsText}>{projects.length} projets</Text>
       </View>
 
       <ScrollView
@@ -167,7 +360,7 @@ export default function ChefChantiersScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {mockProjects.map((project) => (
+        {projects.map((project) => (
           <TouchableOpacity
             key={project.id}
             style={styles.projectCard}
@@ -286,23 +479,48 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                       </View>
                       <Text style={styles.phaseProgress}>{phase.progress}%</Text>
                     </View>
-                    {phase.status === 'in-progress' && (
-                      <View style={styles.phaseProgressBar}>
-                        <View
-                          style={[
-                            styles.phaseProgressFill,
-                            { width: `${phase.progress}%` }
-                          ]}
-                        />
-                      </View>
-                    )}
+
+                    <View style={styles.sliderContainer}>
+                      <Slider
+                        style={styles.phaseSlider}
+                        minimumValue={0}
+                        maximumValue={100}
+                        value={phase.progress}
+                        onValueChange={(value) => handleProgressChange(phase.id, value)}
+                        step={5}
+                        minimumTrackTintColor="#E96C2E"
+                        maximumTrackTintColor="#E5E7EB"
+                      />
+                    </View>
+
+                    <View style={styles.phaseStatusContainer}>
+                      <Text style={[
+                        styles.phaseStatusText,
+                        { color: getPhaseStatusColor(phase.status) }
+                      ]}>
+                        {phase.status === 'completed'
+                          ? 'Terminé'
+                          : phase.status === 'in-progress'
+                          ? 'En cours'
+                          : 'En attente'}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
 
-              {selectedProject.gallery.length > 0 && (
-                <View style={styles.gallerySection}>
+              <View style={styles.gallerySection}>
+                <View style={styles.gallerySectionHeader}>
                   <Text style={styles.sectionTitle}>Galerie photos</Text>
+                  <TouchableOpacity
+                    style={styles.addPhotoButton}
+                    onPress={addImageToGallery}
+                  >
+                    <MaterialIcons name="add-a-photo" size={20} color="#FFFFFF" />
+                    <Text style={styles.addPhotoButtonText}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
+                {selectedProject.gallery.length > 0 ? (
                   <FlatList
                     data={selectedProject.gallery}
                     renderItem={renderGalleryItem}
@@ -311,22 +529,120 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.galleryContainer}
                   />
-                </View>
-              )}
+                ) : (
+                  <View style={styles.emptyGallery}>
+                    <MaterialIcons name="photo-library" size={48} color="#E0E0E0" />
+                    <Text style={styles.emptyGalleryText}>Aucune photo pour le moment</Text>
+                    <Text style={styles.emptyGallerySubtext}>Ajoutez des photos pour documenter l'avancement</Text>
+                  </View>
+                )}
+              </View>
 
               <View style={styles.teamSection}>
-                <Text style={styles.sectionTitle}>Équipe</Text>
-                {selectedProject.team.map((member, index) => (
-                  <View key={index} style={styles.teamMember}>
-                    <MaterialIcons name="person" size={20} color="#6B7280" />
-                    <Text style={styles.memberName}>{member}</Text>
+                <View style={styles.teamSectionHeader}>
+                  <Text style={styles.sectionTitle}>Équipe</Text>
+                  <TouchableOpacity
+                    style={styles.addMemberButton}
+                    onPress={() => setShowAddMemberForm(!showAddMemberForm)}
+                  >
+                    <MaterialIcons name="person-add" size={20} color="#FFFFFF" />
+                    <Text style={styles.addMemberButtonText}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Formulaire d'ajout de membre */}
+                {showAddMemberForm && (
+                  <View style={styles.addMemberForm}>
+                    <View style={styles.formHeader}>
+                      <Text style={styles.formTitle}>Nouveau membre</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowAddMemberForm(false);
+                          setNewMember({ name: '', role: '', phone: '', experience: '' });
+                        }}
+                      >
+                        <MaterialIcons name="close" size={20} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.formRow}>
+                      <View style={styles.formField}>
+                        <Text style={styles.fieldLabel}>Nom complet *</Text>
+                        <TextInput
+                          style={styles.fieldInput}
+                          value={newMember.name}
+                          onChangeText={(text) => setNewMember({...newMember, name: text})}
+                          placeholder="Ex: Amadou Ba"
+                          autoCapitalize="words"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.formRow}>
+                      <View style={styles.formField}>
+                        <Text style={styles.fieldLabel}>Fonction</Text>
+                        <TextInput
+                          style={styles.fieldInput}
+                          value={newMember.role}
+                          onChangeText={(text) => setNewMember({...newMember, role: text})}
+                          placeholder="Ex: Maçon"
+                          autoCapitalize="words"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.formButtons}>
+                      <TouchableOpacity
+                        style={styles.cancelFormButton}
+                        onPress={() => {
+                          setShowAddMemberForm(false);
+                          setNewMember({ name: '', role: '', phone: '', experience: '' });
+                        }}
+                      >
+                        <Text style={styles.cancelFormText}>Annuler</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.submitFormButton, !newMember.name.trim() && styles.disabledFormButton]}
+                        onPress={addTeamMember}
+                        disabled={!newMember.name.trim()}
+                      >
+                        <Text style={styles.submitFormText}>Ajouter</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                ))}
+                )}
+
+                {selectedProject.team.length > 0 ? (
+                  selectedProject.team.map((member, index) => (
+                    <View key={index} style={styles.teamMember}>
+                      <View style={styles.memberInfo}>
+                        <MaterialIcons name="person" size={20} color="#6B7280" />
+                        <Text style={styles.memberName}>{member}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removeMemberButton}
+                        onPress={() => removeMember(index)}
+                      >
+                        <MaterialIcons name="remove-circle-outline" size={18} color="#F44336" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                ) : (
+                  !showAddMemberForm && (
+                    <View style={styles.emptyTeam}>
+                      <MaterialIcons name="group" size={48} color="#E0E0E0" />
+                      <Text style={styles.emptyTeamText}>Aucun membre dans l'équipe</Text>
+                      <Text style={styles.emptyTeamSubtext}>Ajoutez des membres pour ce projet</Text>
+                    </View>
+                  )
+                )}
               </View>
             </ScrollView>
           </View>
         )}
       </Modal>
+
     </View>
   );
 }
@@ -557,13 +873,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   phaseItem: {
-    marginBottom: 16,
+    marginBottom: 20,
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   phaseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   phaseInfo: {
     flexDirection: 'row',
@@ -577,21 +898,25 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   phaseProgress: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 18,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  sliderContainer: {
+    marginVertical: 8,
+  },
+  phaseSlider: {
+    width: '100%',
+    height: 40,
+  },
+  phaseStatusContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  phaseStatusText: {
+    fontSize: 12,
     fontFamily: 'FiraSans_600SemiBold',
-  },
-  phaseProgressBar: {
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-    marginLeft: 32,
-    overflow: 'hidden',
-  },
-  phaseProgressFill: {
-    height: '100%',
-    backgroundColor: '#E0B043',
-    borderRadius: 2,
+    textTransform: 'uppercase',
   },
   gallerySection: {
     padding: 20,
@@ -611,15 +936,226 @@ const styles = StyleSheet.create({
   teamSection: {
     padding: 20,
   },
+  teamSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addMemberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2B2E83',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addMemberButtonText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 4,
+  },
   teamMember: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   memberName: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_400Regular',
+    fontFamily: 'FiraSans_500Medium',
     marginLeft: 12,
+  },
+  removeMemberButton: {
+    padding: 4,
+  },
+  emptyTeam: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  emptyTeamText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptyTeamSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+  // Styles pour formulaire intégré
+  addMemberForm: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#E96C2E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  formTitle: {
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  formRow: {
+    marginBottom: 12,
+  },
+  formField: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginBottom: 6,
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_400Regular',
+    backgroundColor: '#F9FAFB',
+  },
+  formButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  cancelFormButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelFormText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  submitFormButton: {
+    flex: 1,
+    backgroundColor: '#2B2E83',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitFormText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  disabledFormButton: {
+    backgroundColor: '#9CA3AF',
+  },
+  gallerySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addPhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E96C2E',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#E96C2E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addPhotoButtonText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 4,
+  },
+  emptyGallery: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  emptyGalleryText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptyGallerySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+  addImageButton: {
+    width: 120,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addImageText: {
+    fontSize: 10,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_500Medium',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

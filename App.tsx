@@ -4,6 +4,7 @@ import 'react-native-gesture-handler';
 
 import AppNavigator from './src/navigation/AppNavigator';
 import useCustomFonts from './src/hooks/useFonts';
+import ToastManager from 'toastify-react-native';
 
 export default function App() {
   const fontsLoaded = useCustomFonts();
@@ -16,6 +17,7 @@ export default function App() {
     <>
       <AppNavigator />
       <StatusBar style="light" />
+      <ToastManager />
     </>
   );
 }
