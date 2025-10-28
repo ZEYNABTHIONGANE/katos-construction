@@ -16,6 +16,8 @@ import ChatScreen from '../screens/main/ChatScreen';
 import FinitionsScreen from '../screens/main/FinitionsScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
 import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
+import HelpSupportScreen from '../screens/main/HelpSupportScreen';
+import AboutScreen from '../screens/main/AboutScreen';
 
 // Chef Screens
 import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
@@ -423,6 +425,16 @@ export default function AppNavigator() {
                 <Stack.Screen
                   name="ClientProjects"
                   component={ClientProjectsScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="HelpSupport"
+                  component={HelpSupportScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="About"
+                  component={AboutScreen}
                   options={{ headerShown: false }}
                 />
               </>

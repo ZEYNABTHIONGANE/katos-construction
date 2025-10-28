@@ -86,13 +86,13 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
       id: '2',
       title: 'Aide et support',
       icon: 'help',
-      onPress: () => {},
+      onPress: () => navigation.navigate('HelpSupport'),
     },
     {
       id: '3',
       title: 'À propos',
       icon: 'info',
-      onPress: () => {},
+      onPress: () => navigation.navigate('About'),
     },
     {
       id: '4',
@@ -161,9 +161,6 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
             <Text style={styles.profileRole}>Client</Text>
             <Text style={styles.profileEmail}>{mockUser.email}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
-            <MaterialIcons name="edit" size={20} color="#E96C2E" />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.statsContainer}>
@@ -304,9 +301,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontFamily: 'FiraSans_400Regular',
-  },
-  editButton: {
-    padding: 8,
   },
   statsContainer: {
     backgroundColor: '#FFFFFF',

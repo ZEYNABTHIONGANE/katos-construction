@@ -5,6 +5,8 @@ export type RootStackParamList = {
   ClientTabs: undefined;
   ChefTabs: undefined;
   ClientProjects: undefined;
+  HelpSupport: undefined;
+  About: undefined;
 };
 
 export type HomeTabParamList = {
