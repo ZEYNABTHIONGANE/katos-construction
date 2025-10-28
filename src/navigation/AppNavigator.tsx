@@ -9,20 +9,20 @@ import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '..
 
 // Screens
 
-import LoginScreen from '../screens/auth/LoginScreen';
-import HomeScreen from '../screens/main/HomeScreen';
-import ChantierScreen from '../screens/main/ChantierScreen';
-import ChatScreen from '../screens/main/ChatScreen';
-import FinitionsScreen from '../screens/main/FinitionsScreen';
-import ProfilScreen from '../screens/main/ProfilScreen';
-import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
 
 // Chef Screens
 import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
 import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
-import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import HomeScreen from '../screens/Main/HomeScreen';
+import ChantierScreen from '../screens/Main/ChantierScreen';
+import ChatScreen from '../screens/Main/ChatScreen';
+import FinitionsScreen from '../screens/Main/FinitionsScreen';
+import ProfilScreen from '../screens/Main/ProfilScreen';
+import SplashScreen from '../screens/Auth/SplashScreen';
+import ClientProjectsScreen from '../screens/Main/ClientProjectsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ClientTab = createBottomTabNavigator<HomeTabParamList>();

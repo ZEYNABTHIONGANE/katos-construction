@@ -27,7 +27,7 @@ export default function SplashScreen({ navigation, onContinue }: Props) {
         <View style={styles.logoContainer}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
         </View>
-        <Text style={styles.title}>Katos Construction</Text>
+        <Text style={styles.title}>Katos Connect</Text>
         <Text style={styles.subtitle}>Votre maison, notre passion</Text>
         <Text style={styles.description}>
           Bienvenue dans l'application de suivi de chantier.

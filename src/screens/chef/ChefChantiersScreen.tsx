@@ -46,7 +46,7 @@ interface ProjectDetailed {
 const mockProjects: ProjectDetailed[] = [
   {
     id: '1',
-    name: 'Villa Moderne - Famille Diop',
+    name: 'Villa Amina F6',
     client: 'Moussa Diop',
     address: '123 Avenue Léopold Sédar Senghor, Dakar',
     progress: 65,
@@ -70,7 +70,7 @@ const mockProjects: ProjectDetailed[] = [
   },
   {
     id: '2',
-    name: 'Immeuble Commercial',
+    name: 'Villa Zahra F3',
     client: 'SARL Teranga',
     address: 'Plateau, Dakar',
     progress: 30,
@@ -91,7 +91,7 @@ const mockProjects: ProjectDetailed[] = [
   },
   {
     id: '3',
-    name: 'Rénovation Appartement',
+    name: 'Villa Kenza F3',
     client: 'Fatou Kane',
     address: 'Mermoz, Dakar',
     progress: 90,

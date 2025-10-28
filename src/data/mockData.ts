@@ -21,7 +21,7 @@ export const mockUsers: User[] = [
   },
   {
     id: '2',
-    name: 'Ibrahima Sarr',
+    name: 'Papis Sakho',
     email: 'chef@katos.com',
     phone: '+221 76 234 56 78',
     role: 'chef',
@@ -34,11 +34,11 @@ export const mockUser: User = mockUsers[0];
 // Mock Project
 export const mockProject: Project = {
   id: '1',
-  name: 'Villa Moderne - Famille Diop',
+  name: 'Villa Amina F6',
   address: '123 Avenue Léopold Sédar Senghor, Dakar',
   status: 'En cours',
   progress: 65,
-  imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop',
+  imageUrl: 'file:///C:/Users/Hp/Downloads/WhatsApp%20Image%202025-10-20%20%C3%A0%2015.31.53_d1624b71.jpg',
   startDate: '2024-01-15',
   endDate: '2024-06-30',
 };

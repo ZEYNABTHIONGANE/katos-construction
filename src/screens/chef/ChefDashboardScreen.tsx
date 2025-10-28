@@ -73,7 +73,7 @@ const mockStats: StatCard[] = [
 const mockProjects: ProjectCard[] = [
   {
     id: '1',
-    name: 'Villa Moderne - Famille Diop',
+    name: 'Villa Amina F6',
     client: 'Moussa Diop',
     progress: 65,
     status: 'En cours',
@@ -81,7 +81,7 @@ const mockProjects: ProjectCard[] = [
   },
   {
     id: '2',
-    name: 'Immeuble Commercial',
+    name: 'Villa Zahra F3',
     client: 'SARL Teranga',
     progress: 30,
     status: 'En cours',
@@ -89,7 +89,7 @@ const mockProjects: ProjectCard[] = [
   },
   {
     id: '3',
-    name: 'Rénovation Appartement',
+    name: 'Villa Kenza F3',
     client: 'Fatou Kane',
     progress: 90,
     status: 'En cours',
@@ -130,7 +130,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
           style={styles.welcomeSection}
         >
           <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>Ibrahima Sarr</Text>
+          <Text style={styles.name}>Papis Sakho</Text>
           <Text style={styles.subtitle}>Chef de chantier chez Katos Construction</Text>
         </ExpoLinearGradient>
 

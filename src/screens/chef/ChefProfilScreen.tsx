@@ -150,7 +150,7 @@ export default function ChefProfilScreen({ navigation, onLogout }: Props) {
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Ibrahima Sarr</Text>
+            <Text style={styles.profileName}>Papis Sakho</Text>
             <Text style={styles.profileRole}>Chef de chantier</Text>
             <Text style={styles.profileEmail}>chef@katos.com</Text>
           </View>

@@ -70,7 +70,7 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
           <View style={styles.logoContainer}>
             <Image source={require('../../assets/logo.png')} style={styles.logo} />
           </View>
-          <Text style={styles.title}>Katos Construction</Text>
+          <Text style={styles.title}>Katos Connect</Text>
           <Text style={styles.subtitle}>Connectez-vous à votre espace client</Text>
         </View>
 
