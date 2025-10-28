@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 14,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 2,
   },
   documentDetails: {
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
   emptyDocumentsText: {
     fontSize: 16,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginTop: 12,
     marginBottom: 4,
   },

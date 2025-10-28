@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#FFFFFF',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     opacity: 0.8,
   },
   statsContainer: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   statTitle: {
     fontSize: 12,
     color: '#64748B',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     textAlign: 'center',
   },
   projectsContainer: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 14,
     color: '#E96C2E',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   statusBadge: {
     paddingHorizontal: 14,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   dueDate: {
     fontSize: 13,
     color: '#4B5563',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   arrowContainer: {
     width: 32,

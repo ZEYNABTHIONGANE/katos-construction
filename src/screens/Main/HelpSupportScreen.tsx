@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   timeText: {
     fontSize: 16,

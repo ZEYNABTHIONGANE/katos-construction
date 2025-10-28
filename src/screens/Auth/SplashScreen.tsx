@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontStyle: 'italic',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 30,
   },
   description: {

@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   attachmentOptionText: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     flex: 1,
   },
   cancelButton: {

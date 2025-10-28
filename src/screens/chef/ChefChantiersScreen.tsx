@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 14,
     color: '#E96C2E',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 2,
   },
   projectAddress: {
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
   phaseName: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginLeft: 12,
   },
   phaseProgress: {
@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginLeft: 12,
   },
   removeMemberButton: {
@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
   emptyTeamText: {
     fontSize: 16,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginTop: 12,
     marginBottom: 4,
   },
@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 6,
   },
   fieldInput: {
@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   emptyGalleryText: {
     fontSize: 16,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginTop: 12,
     marginBottom: 4,
   },
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
   addImageText: {
     fontSize: 10,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginTop: 4,
     textAlign: 'center',
   },

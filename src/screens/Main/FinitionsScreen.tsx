@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 12,
     color: '#E96C2E',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   materialsList: {
     paddingHorizontal: 20,

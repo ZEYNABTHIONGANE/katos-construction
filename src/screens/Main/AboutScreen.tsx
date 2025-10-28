@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   serviceText: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginLeft: 16,
   },
   contactItem: {
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   footer: {
     alignItems: 'center',
