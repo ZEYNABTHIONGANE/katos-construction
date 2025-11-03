@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     color: '#2B2E83',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   footer: {
     alignItems: 'center',
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 4,
   },
   footerSubtext: {

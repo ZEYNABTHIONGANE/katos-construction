@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 14,
     color: '#333',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   progressValue: {
     fontSize: 14,

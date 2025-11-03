@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2B2E83',
     textAlign: 'center',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   selectedName: {
     color: '#fff',

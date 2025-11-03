@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   documentName: {
     marginLeft: 8,
     fontSize: 14,
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
     flex: 1,
   },
 });

@@ -23,6 +23,8 @@ import FinitionsScreen from '../screens/Main/FinitionsScreen';
 import ProfilScreen from '../screens/Main/ProfilScreen';
 import SplashScreen from '../screens/Auth/SplashScreen';
 import ClientProjectsScreen from '../screens/Main/ClientProjectsScreen';
+import HelpSupportScreen from '../screens/Main/HelpSupportScreen';
+import AboutScreen from '../screens/Main/AboutScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ClientTab = createBottomTabNavigator<HomeTabParamList>();
@@ -423,6 +425,16 @@ export default function AppNavigator() {
                 <Stack.Screen
                   name="ClientProjects"
                   component={ClientProjectsScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="HelpSupport"
+                  component={HelpSupportScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="About"
+                  component={AboutScreen}
                   options={{ headerShown: false }}
                 />
               </>

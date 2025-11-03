@@ -4,11 +4,11 @@
     "slug": "katos-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "/src/assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "/src/assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -22,14 +22,14 @@
     "android": {
       "package": "com.scylka.katos",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "/src/assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "/src/assets/logo.png"
     },
     "extra": {
       "useFirebaseEmulators": false,
@@ -37,9 +37,7 @@
         "projectId": "fbf54315-f2a4-45af-bcd8-150b8f087040"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+  "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/fbf54315-f2a4-45af-bcd8-150b8f087040"
     }

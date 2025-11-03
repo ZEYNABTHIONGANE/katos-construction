@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   messageTime: {
     fontSize: 12,
     color: '#9CA3AF',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   projectName: {
     fontSize: 13,
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   },
   messageTimestamp: {
     fontSize: 11,
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   chefTimestamp: {
     color: 'rgba(255, 255, 255, 0.8)',
