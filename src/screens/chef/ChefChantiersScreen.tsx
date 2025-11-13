@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Dimensions,
   Alert,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Slider from '@react-native-community/slider';
@@ -18,105 +19,30 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
+import { chantierService } from '../../services/chantierService';
+import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
+import { storageService } from '../../services/storageService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useChefDocuments } from '../../hooks/useDocuments';
 
 const { width, height } = Dimensions.get('window');
 
 type Props = NativeStackScreenProps<ChefTabParamList, 'ChefChantiers'>;
 
-interface ProjectDetailed {
-  id: string;
-  name: string;
-  client: string;
-  address: string;
-  progress: number;
-  status: 'En cours' | 'En retard' | 'Terminé' | 'En attente';
-  startDate: string;
-  endDate: string;
-  imageUrl: string;
-  team: string[];
-  phases: {
-    id: string;
-    name: string;
-    status: 'completed' | 'in-progress' | 'pending';
-    progress: number;
-  }[];
-  gallery: string[];
-}
-
-const mockProjects: ProjectDetailed[] = [
-  {
-    id: '1',
-    name: 'Villa Amina F6',
-    client: 'Moussa Diop',
-    address: '123 Avenue Léopold Sédar Senghor, Dakar',
-    progress: 65,
-    status: 'En cours',
-    startDate: '15 Jan 2024',
-    endDate: '30 Juin 2024',
-    imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop',
-    team: ['Amadou Ba', 'Cheikh Fall', 'Ousmane Sy'],
-    phases: [
-      { id: '1', name: 'Fondations', status: 'completed', progress: 100 },
-      { id: '2', name: 'Gros œuvre', status: 'completed', progress: 100 },
-      { id: '3', name: 'Toiture', status: 'in-progress', progress: 70 },
-      { id: '4', name: 'Électricité', status: 'pending', progress: 0 },
-      { id: '5', name: 'Finitions', status: 'pending', progress: 0 },
-    ],
-    gallery: [
-      'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=300&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=300&h=200&fit=crop',
-    ],
-  },
-  {
-    id: '2',
-    name: 'Villa Zahra F3',
-    client: 'SARL Teranga',
-    address: 'Plateau, Dakar',
-    progress: 30,
-    status: 'En cours',
-    startDate: '1 Mars 2024',
-    endDate: '15 Août 2024',
-    imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop',
-    team: ['Abdou Diallo', 'Mamadou Ndiaye'],
-    phases: [
-      { id: '1', name: 'Fondations', status: 'completed', progress: 100 },
-      { id: '2', name: 'Structure', status: 'in-progress', progress: 40 },
-      { id: '3', name: 'Façade', status: 'pending', progress: 0 },
-      { id: '4', name: 'Aménagement', status: 'pending', progress: 0 },
-    ],
-    gallery: [
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=300&h=200&fit=crop',
-    ],
-  },
-  {
-    id: '3',
-    name: 'Villa Kenza F3',
-    client: 'Fatou Kane',
-    address: 'Mermoz, Dakar',
-    progress: 90,
-    status: 'En cours',
-    startDate: '10 Fév 2024',
-    endDate: '20 Avril 2024',
-    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=300&fit=crop',
-    team: ['Serigne Mboup'],
-    phases: [
-      { id: '1', name: 'Démolition', status: 'completed', progress: 100 },
-      { id: '2', name: 'Plomberie', status: 'completed', progress: 100 },
-      { id: '3', name: 'Électricité', status: 'completed', progress: 100 },
-      { id: '4', name: 'Finitions', status: 'in-progress', progress: 80 },
-    ],
-    gallery: [
-      'https://images.unsplash.com/photo-1556909114-4f6e0ef1a414?w=300&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1585128792020-803d29415281?w=300&h=200&fit=crop',
-    ],
-  },
-];
-
-export default function ChefChantiersScreen({ navigation }: Props) {
-  const [selectedProject, setSelectedProject] = useState<ProjectDetailed | null>(null);
+export default function ChefChantiersScreen({ navigation, route }: Props) {
+  const { user, loading: authLoading } = useAuth();
+  const [selectedProject, setSelectedProject] = useState<FirebaseChantier | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [projects, setProjects] = useState<ProjectDetailed[]>(mockProjects);
+
+  // Documents hook for the selected project
+  const {
+    documents,
+    loading: documentsLoading,
+    formatFileSize,
+    getDocumentIcon,
+  } = useChefDocuments(selectedProject?.id || '');
+  const [projects, setProjects] = useState<FirebaseChantier[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',
@@ -124,6 +50,81 @@ export default function ChefChantiersScreen({ navigation }: Props) {
     phone: '',
     experience: ''
   });
+  // État local pour les valeurs des sliders (feedback immédiat)
+  const [sliderValues, setSliderValues] = useState<Record<string, number>>({});
+
+  // États pour le carousel d'images
+  const [showImageCarousel, setShowImageCarousel] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      loadChefChantiers();
+    }
+  }, [user, authLoading]);
+
+  // Gérer la sélection automatique d'un chantier si passé en paramètre
+  useEffect(() => {
+    const selectedChantierId = route?.params?.selectedChantierId;
+    if (selectedChantierId && projects.length > 0) {
+      const chantier = projects.find(p => p.id === selectedChantierId);
+      if (chantier) {
+        openProjectDetail(chantier);
+      }
+    }
+  }, [projects, route?.params?.selectedChantierId]);
+
+  // Initialiser les valeurs des sliders quand le projet sélectionné change
+  useEffect(() => {
+    if (selectedProject?.phases) {
+      const initialValues: Record<string, number> = {};
+      selectedProject.phases.forEach(phase => {
+        initialValues[phase.id] = phase.progress;
+      });
+      setSliderValues(initialValues);
+    }
+  }, [selectedProject]);
+
+  // Calculer la progression globale en temps réel
+  const getRealtimeGlobalProgress = () => {
+    if (!selectedProject?.phases) return 0;
+
+    const phasesWithRealtimeProgress = selectedProject.phases.map(phase => ({
+      ...phase,
+      progress: sliderValues[phase.id] ?? phase.progress
+    }));
+
+    return calculateGlobalProgress(phasesWithRealtimeProgress);
+  };
+
+  // Obtenir le statut d'une phase en temps réel
+  const getRealtimePhaseStatus = (phaseId: string, originalProgress: number) => {
+    const realtimeProgress = sliderValues[phaseId] ?? originalProgress;
+    return getPhaseStatus(realtimeProgress);
+  };
+
+  const loadChefChantiers = async () => {
+    try {
+      setLoading(true);
+
+      if (!user) {
+        Alert.alert('Erreur', 'Vous devez être connecté pour accéder à cette page');
+        return;
+      }
+
+      const chefId = user.uid;
+      const unsubscribe = chantierService.subscribeToChefChantiers(chefId, (chantiersData) => {
+        setProjects(chantiersData);
+        setLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Erreur lors du chargement des chantiers:', error);
+      Alert.alert('Erreur', 'Impossible de charger les chantiers');
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -153,146 +154,166 @@ export default function ChefChantiersScreen({ navigation }: Props) {
     }
   };
 
-  const openProjectDetail = (project: ProjectDetailed) => {
+  const openProjectDetail = (project: FirebaseChantier) => {
     setSelectedProject(project);
     setShowModal(true);
   };
 
-  const addImageToGallery = async () => {
-    if (!selectedProject) return;
-
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (permissionResult.granted === false) {
-      Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour ajouter des photos.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const newImageUri = result.assets[0].uri;
-
-      // Mettre à jour le projet avec la nouvelle image
-      const updatedProjects = projects.map(project => {
-        if (project.id === selectedProject.id) {
-          return {
-            ...project,
-            gallery: [...project.gallery, newImageUri]
-          };
-        }
-        return project;
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
       });
-
-      setProjects(updatedProjects);
-
-      // Mettre à jour le projet sélectionné
-      const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-      if (updatedSelectedProject) {
-        setSelectedProject(updatedSelectedProject);
-      }
-
-      Alert.alert("Succès", "Photo ajoutée à la galerie avec succès !");
+    } catch (error) {
+      return '';
     }
   };
 
-  const updatePhaseProgress = (phaseId: string, newProgressValue: number) => {
+  const addImageToGallery = async () => {
+    if (!selectedProject || !user) return;
+
+    try {
+      // Request permission silently
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour ajouter des photos.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        try {
+          const newImageUri = result.assets[0].uri;
+
+          // Upload image to Firebase Storage
+          const photoUrl = await storageService.uploadImageFromUri(
+            newImageUri,
+            `chantiers/${selectedProject.id}/gallery`
+          );
+
+          // Add photo to the chantier's gallery
+          await chantierService.addPhasePhoto(
+            selectedProject.id!,
+            '', // Empty phaseId for general gallery photos
+            photoUrl,
+            'Photo ajoutée depuis l\'application mobile',
+            user.uid
+          );
+
+          // Refresh project data to show new image immediately
+          const updatedProject = await chantierService.getChantierById(selectedProject.id!);
+          if (updatedProject) {
+            setSelectedProject(updatedProject);
+
+            // Update projects list too
+            setProjects(prevProjects =>
+              prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
+            );
+          }
+
+        } catch (uploadError) {
+          console.error('Erreur lors de l\'upload de la photo:', uploadError);
+          Alert.alert('Erreur', 'Impossible d\'ajouter la photo');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur générale lors de l\'ajout de photo:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection de l\'image');
+    }
+  };
+
+  // Function to open image carousel
+  const openImageCarousel = (index: number) => {
+    setSelectedImageIndex(index);
+    setShowImageCarousel(true);
+  };
+
+  const updatePhaseProgress = async (phaseId: string, newProgressValue: number) => {
     if (!selectedProject) return;
 
-    const updatedProjects = projects.map(project => {
-      if (project.id === selectedProject.id) {
-        const updatedPhases = project.phases.map(phase => {
-          if (phase.id === phaseId) {
-            let newStatus = phase.status;
-            if (newProgressValue === 0) {
-              newStatus = 'pending';
-            } else if (newProgressValue === 100) {
-              newStatus = 'completed';
-            } else {
-              newStatus = 'in-progress';
-            }
-
-            return {
-              ...phase,
-              progress: newProgressValue,
-              status: newStatus as 'completed' | 'in-progress' | 'pending'
-            };
-          }
-          return phase;
-        });
-
-        // Calculer la progression globale du projet
-        const totalProgress = updatedPhases.reduce((sum, phase) => sum + phase.progress, 0);
-        const overallProgress = Math.round(totalProgress / updatedPhases.length);
-
-        return {
-          ...project,
-          phases: updatedPhases,
-          progress: overallProgress
-        };
+    try {
+      if (!user) {
+        Alert.alert('Erreur', 'Utilisateur non authentifié');
+        return;
       }
-      return project;
-    });
 
-    setProjects(updatedProjects);
+      await chantierService.updatePhaseProgress(
+        selectedProject.id!,
+        phaseId,
+        newProgressValue,
+        undefined, // Pas de note automatique
+        user.uid
+      );
 
-    // Mettre à jour le projet sélectionné
-    const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-    if (updatedSelectedProject) {
-      setSelectedProject(updatedSelectedProject);
+      // The real-time listener will automatically update the UI
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la progression:', error);
+      Alert.alert('Erreur', 'Impossible de mettre à jour la progression. Veuillez réessayer.');
     }
   };
 
   const handleProgressChange = (phaseId: string, newProgress: number) => {
+    // Mise à jour immédiate de la valeur locale pour un feedback visuel
+    setSliderValues(prev => ({
+      ...prev,
+      [phaseId]: Math.round(newProgress)
+    }));
+
+    // Mise à jour en base de données (peut être asynchrone)
     updatePhaseProgress(phaseId, Math.round(newProgress));
   };
 
-  const addTeamMember = () => {
+  const addTeamMember = async () => {
     if (!selectedProject || !newMember.name.trim()) {
       Alert.alert("Erreur", "Veuillez saisir au minimum le nom du membre");
       return;
     }
 
-    // Créer le nom d'affichage avec le rôle si spécifié
-    const displayName = newMember.role.trim()
-      ? `${newMember.name.trim()} (${newMember.role.trim()})`
-      : newMember.name.trim();
-
-    const updatedProjects = projects.map(project => {
-      if (project.id === selectedProject.id) {
-        return {
-          ...project,
-          team: [...project.team, displayName]
-        };
+    try {
+      if (!user) {
+        Alert.alert('Erreur', 'Utilisateur non authentifié');
+        return;
       }
-      return project;
-    });
 
-    setProjects(updatedProjects);
+      const memberData: Omit<TeamMember, 'id' | 'addedAt' | 'addedBy'> = {
+        name: newMember.name.trim(),
+        role: newMember.role.trim() || 'Ouvrier',
+        phone: newMember.phone.trim(),
+        experience: newMember.experience.trim()
+      };
 
-    // Mettre à jour le projet sélectionné
-    const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-    if (updatedSelectedProject) {
-      setSelectedProject(updatedSelectedProject);
+      await chantierService.addTeamMember(
+        selectedProject.id!,
+        memberData,
+        user.uid
+      );
+
+      // Reset form
+      setNewMember({
+        name: '',
+        role: '',
+        phone: '',
+        experience: ''
+      });
+      setShowAddMemberForm(false);
+      Alert.alert("Succès", "Membre ajouté à l'équipe avec succès !");
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du membre:', error);
+      Alert.alert('Erreur', 'Impossible d\'ajouter le membre. Veuillez réessayer.');
     }
-
-    // Reset form
-    setNewMember({
-      name: '',
-      role: '',
-      phone: '',
-      experience: ''
-    });
-    setShowAddMemberForm(false);
-    Alert.alert("Succès", "Membre ajouté à l'équipe avec succès !");
   };
 
-  const removeMember = (memberIndex: number) => {
+  const removeMember = (member: TeamMember) => {
     if (!selectedProject) return;
 
     Alert.alert(
@@ -303,25 +324,13 @@ export default function ChefChantiersScreen({ navigation }: Props) {
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: () => {
-            const updatedProjects = projects.map(project => {
-              if (project.id === selectedProject.id) {
-                const newTeam = [...project.team];
-                newTeam.splice(memberIndex, 1);
-                return {
-                  ...project,
-                  team: newTeam
-                };
-              }
-              return project;
-            });
-
-            setProjects(updatedProjects);
-
-            // Mettre à jour le projet sélectionné
-            const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-            if (updatedSelectedProject) {
-              setSelectedProject(updatedSelectedProject);
+          onPress: async () => {
+            try {
+              await chantierService.removeTeamMember(selectedProject.id!, member.id);
+              Alert.alert("Succès", "Membre retiré de l'équipe");
+            } catch (error) {
+              console.error('Erreur lors de la suppression du membre:', error);
+              Alert.alert('Erreur', 'Impossible de supprimer le membre');
             }
           }
         }
@@ -343,6 +352,22 @@ export default function ChefChantiersScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
+  if (authLoading || loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <AppHeader
+          title="Mes Chantiers"
+          showNotification={true}
+          onNotificationPress={() => {}}
+        />
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#2B2E83" />
+          <Text style={styles.loadingText}>Chargement en cours...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <AppHeader
@@ -360,58 +385,76 @@ export default function ChefChantiersScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {projects.map((project) => (
-          <TouchableOpacity
-            key={project.id}
-            style={styles.projectCard}
-            onPress={() => openProjectDetail(project)}
-          >
-            <Image source={{ uri: project.imageUrl }} style={styles.projectImage} />
-
-            <View style={styles.projectContent}>
-              <View style={styles.projectHeader}>
-                <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{project.name}</Text>
-                  <Text style={styles.clientName}>{project.client}</Text>
-                  <Text style={styles.projectAddress}>{project.address}</Text>
+        {projects.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="domain" size={64} color="#E0E0E0" />
+            <Text style={styles.emptyStateText}>Aucun chantier assigné</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Vous n'avez pas encore de chantiers assignés
+            </Text>
+          </View>
+        ) : (
+          projects.map((project) => (
+            <TouchableOpacity
+              key={project.id}
+              style={styles.projectCard}
+              onPress={() => openProjectDetail(project)}
+            >
+              {project.gallery.length > 0 && (
+                <Image source={{ uri: project.gallery[0].url }} style={styles.projectImage} />
+              )}
+              {project.gallery.length === 0 && (
+                <View style={[styles.projectImage, styles.placeholderImage]}>
+                  <MaterialIcons name="image" size={48} color="#E0E0E0" />
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) + '20' }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(project.status) }]}>
-                    {project.status}
-                  </Text>
+              )}
+
+              <View style={styles.projectContent}>
+                <View style={styles.projectHeader}>
+                  <View style={styles.projectInfo}>
+                    <Text style={styles.projectName}>{project.name}</Text>
+                    <Text style={styles.projectAddress}>{project.address}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) + '20' }]}>
+                    <Text style={[styles.statusText, { color: getStatusColor(project.status) }]}>
+                      {project.status}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.progressSection}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>Progression générale</Text>
+                    <Text style={styles.progressValue}>
+                      {selectedProject?.id === project.id ? getRealtimeGlobalProgress() : project.globalProgress}%
+                    </Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${selectedProject?.id === project.id ? getRealtimeGlobalProgress() : project.globalProgress}%` }
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.projectFooter}>
+                  <View style={styles.dateContainer}>
+                    <MaterialIcons name="schedule" size={16} color="#6B7280" />
+                    <Text style={styles.dateText}>
+                      {formatDate(project.startDate)} - {formatDate(project.plannedEndDate)}
+                    </Text>
+                  </View>
+                  <View style={styles.teamContainer}>
+                    <MaterialIcons name="group" size={16} color="#6B7280" />
+                    <Text style={styles.teamText}>{project.team.length} ouvriers</Text>
+                  </View>
                 </View>
               </View>
-
-              <View style={styles.progressSection}>
-                <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Progression générale</Text>
-                  <Text style={styles.progressValue}>{project.progress}%</Text>
-                </View>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${project.progress}%` }
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.projectFooter}>
-                <View style={styles.dateContainer}>
-                  <MaterialIcons name="schedule" size={16} color="#6B7280" />
-                  <Text style={styles.dateText}>
-                    {project.startDate} - {project.endDate}
-                  </Text>
-                </View>
-                <View style={styles.teamContainer}>
-                  <MaterialIcons name="group" size={16} color="#6B7280" />
-                  <Text style={styles.teamText}>{project.team.length} ouvriers</Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       <Modal
@@ -434,15 +477,21 @@ export default function ChefChantiersScreen({ navigation }: Props) {
             </View>
 
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              <Image source={{ uri: selectedProject.imageUrl }} style={styles.modalImage} />
+              {selectedProject.gallery.length > 0 ? (
+                <Image source={{ uri: selectedProject.gallery[0].url }} style={styles.modalImage} />
+              ) : (
+                <View style={[styles.modalImage, styles.placeholderImage]}>
+                  <MaterialIcons name="image" size={48} color="#E0E0E0" />
+                </View>
+              )}
 
               <View style={styles.modalInfo}>
-                <Text style={styles.modalClientName}>{selectedProject.client}</Text>
+                <Text style={styles.modalClientName}>{selectedProject.name}</Text>
                 <Text style={styles.modalAddress}>{selectedProject.address}</Text>
 
                 <View style={styles.modalStats}>
                   <View style={styles.modalStatItem}>
-                    <Text style={styles.modalStatValue}>{selectedProject.progress}%</Text>
+                    <Text style={styles.modalStatValue}>{getRealtimeGlobalProgress()}%</Text>
                     <Text style={styles.modalStatLabel}>Progression</Text>
                   </View>
                   <View style={styles.modalStatItem}>
@@ -465,19 +514,20 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                     <View style={styles.phaseHeader}>
                       <View style={styles.phaseInfo}>
                         <MaterialIcons
-                          name={
-                            phase.status === 'completed'
+                          name={(() => {
+                            const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
+                            return realtimeStatus === 'completed'
                               ? 'check-circle'
-                              : phase.status === 'in-progress'
+                              : realtimeStatus === 'in-progress'
                               ? 'radio-button-checked'
-                              : 'radio-button-unchecked'
-                          }
+                              : 'radio-button-unchecked';
+                          })()}
                           size={20}
-                          color={getPhaseStatusColor(phase.status)}
+                          color={getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress))}
                         />
                         <Text style={styles.phaseName}>{phase.name}</Text>
                       </View>
-                      <Text style={styles.phaseProgress}>{phase.progress}%</Text>
+                      <Text style={styles.phaseProgress}>{sliderValues[phase.id] ?? phase.progress}%</Text>
                     </View>
 
                     <View style={styles.sliderContainer}>
@@ -485,7 +535,7 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                         style={styles.phaseSlider}
                         minimumValue={0}
                         maximumValue={100}
-                        value={phase.progress}
+                        value={sliderValues[phase.id] ?? phase.progress}
                         onValueChange={(value) => handleProgressChange(phase.id, value)}
                         step={5}
                         minimumTrackTintColor="#E96C2E"
@@ -496,13 +546,16 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                     <View style={styles.phaseStatusContainer}>
                       <Text style={[
                         styles.phaseStatusText,
-                        { color: getPhaseStatusColor(phase.status) }
+                        { color: getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress)) }
                       ]}>
-                        {phase.status === 'completed'
-                          ? 'Terminé'
-                          : phase.status === 'in-progress'
-                          ? 'En cours'
-                          : 'En attente'}
+                        {(() => {
+                          const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
+                          return realtimeStatus === 'completed'
+                            ? 'Terminé'
+                            : realtimeStatus === 'in-progress'
+                            ? 'En cours'
+                            : 'En attente';
+                        })()}
                       </Text>
                     </View>
                   </View>
@@ -523,8 +576,12 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                 {selectedProject.gallery.length > 0 ? (
                   <FlatList
                     data={selectedProject.gallery}
-                    renderItem={renderGalleryItem}
-                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({ item, index }) => (
+                      <TouchableOpacity onPress={() => openImageCarousel(index)}>
+                        <Image source={{ uri: item.url }} style={styles.galleryImage} />
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item.id}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.galleryContainer}
@@ -535,6 +592,54 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                     <Text style={styles.emptyGalleryText}>Aucune photo pour le moment</Text>
                     <Text style={styles.emptyGallerySubtext}>Ajoutez des photos pour documenter l'avancement</Text>
                   </View>
+                )}
+              </View>
+
+              {/* Documents Section */}
+              <View style={styles.documentsSection}>
+                <Text style={styles.sectionTitle}>Documents ({documents.length})</Text>
+
+                {documentsLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#2B2E83" />
+                    <Text style={styles.loadingText}>Chargement des documents...</Text>
+                  </View>
+                ) : documents.length > 0 ? (
+                  <View style={styles.documentsGrid}>
+                    {documents.slice(0, 4).map((doc) => {
+                      const iconName = getDocumentIcon(doc.mimeType);
+                      const formattedSize = formatFileSize(doc.size);
+
+                      return (
+                        <View key={doc.id} style={styles.documentItem}>
+                          <View style={styles.documentIcon}>
+                            <MaterialIcons
+                              name={iconName as any}
+                              size={20}
+                              color="#E96C2E"
+                            />
+                          </View>
+                          <View style={styles.documentInfo}>
+                            <Text style={styles.documentName} numberOfLines={1}>
+                              {doc.originalName}
+                            </Text>
+                            <Text style={styles.documentSize}>{formattedSize}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.emptyDocuments}>
+                    <MaterialIcons name="description" size={32} color="#E0E0E0" />
+                    <Text style={styles.emptyDocumentsText}>Aucun document</Text>
+                  </View>
+                )}
+
+                {documents.length > 4 && (
+                  <Text style={styles.moreDocumentsText}>
+                    +{documents.length - 4} documents supplémentaires
+                  </Text>
                 )}
               </View>
 
@@ -614,15 +719,21 @@ export default function ChefChantiersScreen({ navigation }: Props) {
                 )}
 
                 {selectedProject.team.length > 0 ? (
-                  selectedProject.team.map((member, index) => (
-                    <View key={index} style={styles.teamMember}>
+                  selectedProject.team.map((member) => (
+                    <View key={member.id} style={styles.teamMember}>
                       <View style={styles.memberInfo}>
                         <MaterialIcons name="person" size={20} color="#6B7280" />
-                        <Text style={styles.memberName}>{member}</Text>
+                        <View style={styles.memberDetails}>
+                          <Text style={styles.memberName}>{member.name}</Text>
+                          <Text style={styles.memberRole}>{member.role}</Text>
+                          {member.phone && (
+                            <Text style={styles.memberPhone}>📞 {member.phone}</Text>
+                          )}
+                        </View>
                       </View>
                       <TouchableOpacity
                         style={styles.removeMemberButton}
-                        onPress={() => removeMember(index)}
+                        onPress={() => removeMember(member)}
                       >
                         <MaterialIcons name="remove-circle-outline" size={18} color="#F44336" />
                       </TouchableOpacity>
@@ -641,6 +752,57 @@ export default function ChefChantiersScreen({ navigation }: Props) {
             </ScrollView>
           </View>
         )}
+      </Modal>
+
+      {/* Image Carousel Modal */}
+      <Modal
+        visible={showImageCarousel}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+      >
+        <View style={styles.carouselContainer}>
+          <View style={styles.carouselHeader}>
+            <TouchableOpacity onPress={() => setShowImageCarousel(false)} style={styles.carouselCloseButton}>
+              <MaterialIcons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.carouselTitle}>
+              {selectedImageIndex + 1} / {selectedProject?.gallery?.length || 0}
+            </Text>
+          </View>
+
+          {selectedProject?.gallery && selectedProject.gallery.length > 0 && (
+            <FlatList
+              data={selectedProject.gallery}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={selectedImageIndex}
+              getItemLayout={(data, index) => ({
+                length: width,
+                offset: width * index,
+                index,
+              })}
+              onMomentumScrollEnd={(event) => {
+                const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                setSelectedImageIndex(index);
+              }}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.carouselImageContainer}>
+                  <Image
+                    source={{ uri: item.url }}
+                    style={styles.carouselImage}
+                    resizeMode="contain"
+                  />
+                  {item.description && (
+                    <Text style={styles.carouselImageDescription}>{item.description}</Text>
+                  )}
+                </View>
+              )}
+            />
+          )}
+        </View>
       </Modal>
 
     </View>
@@ -1157,5 +1319,196 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_600SemiBold',
     marginTop: 4,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  emptyStateText: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  placeholderImage: {
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  memberRole: {
+    fontSize: 12,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 2,
+  },
+  memberPhone: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 2,
+  },
+  carouselContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  carouselHeader: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  carouselCloseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  carouselTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  carouselImageContainer: {
+    width: width,
+    height: height,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  carouselImage: {
+    width: width,
+    height: height * 0.8,
+  },
+  carouselImageDescription: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 20,
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  // Documents Section Styles
+  documentsSection: {
+    marginTop: 20,
+  },
+  documentsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  documentItem: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  documentIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF7ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  documentInfo: {
+    flex: 1,
+  },
+  documentName: {
+    fontSize: 12,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 2,
+  },
+  documentSize: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  emptyDocuments: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    marginTop: 12,
+  },
+  emptyDocumentsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 8,
+  },
+  moreDocumentsText: {
+    fontSize: 12,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
   },
 });

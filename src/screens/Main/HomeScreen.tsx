@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,17 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeTabParamList, RootStackParamList } from "../../types";
-import { mockUser, mockProject, mockProjectUpdates } from "../../data/mockData";
+import { useClientSpecificData } from "../../hooks/useClientSpecificData";
+import { useClientChantier } from "../../hooks/useClientChantier";
+import AppHeader from "../../components/AppHeader";
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
 // Mock data pour les documents - à remplacer par des données réelles plus tard
 const mockDocumentsData = {
@@ -25,8 +29,6 @@ const mockDocumentsData = {
     photos: 3
   }
 };
-import AppHeader from "../../components/AppHeader";
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -36,19 +38,72 @@ type Props = CompositeScreenProps<
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen({ navigation }: Props) {
+  const {
+    isAuthenticated,
+    clientInfo
+  } = useClientSpecificData();
+
+  const {
+    chantier,
+    loading: chantierLoading,
+    error: chantierError,
+    hasChantier,
+    currentPhase,
+    globalProgress,
+    status,
+    name: chantierName,
+    address: chantierAddress,
+    startDate,
+    recentUpdates
+  } = useClientChantier();
+
+
   const handleProjectPress = () => {
-    navigation.navigate("Chantier");
+    if (chantier?.id) {
+      navigation.navigate("Chantier", { chantierId: chantier.id });
+    } else {
+      navigation.navigate("Chantier", {});
+    }
   };
 
   const handleChatPress = () => {
     navigation.navigate("Chat");
   };
 
+  // Show loading state
+  if (chantierLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#2B2E83" />
+        <Text style={styles.loadingText}>Chargement de votre chantier...</Text>
+      </View>
+    );
+  }
+
+  // Show error state
+  if (chantierError || (!chantierLoading && !hasChantier)) {
+    const errorTitle = !hasChantier
+      ? "Aucun chantier assigné"
+      : "Erreur de chargement";
+
+    const errorMessage = !hasChantier
+      ? "Aucun chantier n'a été assigné à votre compte. Votre chantier apparaîtra ici une fois créé par l'administration."
+      : chantierError;
+
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <MaterialIcons name="home-work" size={48} color="#E96C2E" />
+        <Text style={[styles.errorText, { color: '#E96C2E' }]}>{errorTitle}</Text>
+        <Text style={styles.errorSubtext}>{errorMessage}</Text>
+      </View>
+    );
+  }
+
   const statisticsData = [
     {
       id: "1",
-      title: "Avancement projet",
-      value: `${mockProject.progress}%`,
+      title: "Avancement chantier",
+      value: `${globalProgress}%`,
       icon: "trending-up",
       color: "#2B2E83",
       backgroundColor: "#F8F9FF",
@@ -56,7 +111,7 @@ export default function HomeScreen({ navigation }: Props) {
     {
       id: "2",
       title: "Phase actuelle",
-      value: "Toiture",
+      value: currentPhase,
       icon: "construction",
       color: "#E96C2E",
       backgroundColor: "#FFF7ED",
@@ -130,7 +185,7 @@ export default function HomeScreen({ navigation }: Props) {
           style={styles.welcomeSection}
         >
           <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>{mockUser.name.split(" ")[0]}</Text>
+          <Text style={styles.name}>{clientInfo?.firstName || 'Client'}</Text>
           <Text style={styles.subtitle}>Client chez Katos Construction</Text>
         </ExpoLinearGradient>
 
@@ -148,55 +203,73 @@ export default function HomeScreen({ navigation }: Props) {
 
         <View style={styles.projectsContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mon projet</Text>
+            <Text style={styles.sectionTitle}>Mon chantier</Text>
             <TouchableOpacity onPress={handleProjectPress}>
               <Text style={styles.seeAllText}>Voir détails</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.projectCard} onPress={handleProjectPress}>
-            <View style={styles.projectCardInner}>
-              <View style={styles.projectHeader}>
-                <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{mockProject.name}</Text>
-                  <Text style={styles.clientName}>{mockProject.address}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: '#E0B043' }]}>
-                  <Text style={styles.statusText}>En cours</Text>
-                </View>
-              </View>
-
-              <View style={styles.progressContainer}>
-                <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Progression</Text>
-                  <Text style={styles.progressValue}>{mockProject.progress}%</Text>
-                </View>
-                <View style={styles.progressBar}>
-                  <ExpoLinearGradient
-                    colors={['#2B2E83', '#E96C2E']}
-                    start={[0, 0]}
-                    end={[1, 0]}
-                    style={[
-                      styles.progressFill,
-                      { width: `${mockProject.progress}%` }
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.projectFooter}>
-                <View style={styles.dueDateContainer}>
-                  <View style={styles.iconContainer}>
-                    <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+          {hasChantier ? (
+            <TouchableOpacity
+              style={styles.projectCard}
+              onPress={handleProjectPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.projectCardInner} pointerEvents="none">
+                <View style={styles.projectHeader}>
+                  <View style={styles.projectInfo}>
+                    <Text style={styles.projectName}>{chantierName}</Text>
+                    <Text style={styles.clientName}>{chantierAddress}</Text>
                   </View>
-                  <Text style={styles.dueDate}>Début: Janvier 2024</Text>
+                  <View style={[styles.statusBadge, {
+                    backgroundColor: status === 'En cours' ? '#4CAF50' :
+                                   status === 'Terminé' ? '#2196F3' :
+                                   status === 'En retard' ? '#F44336' : '#E0B043'
+                  }]}>
+                    <Text style={styles.statusText}>{status}</Text>
+                  </View>
                 </View>
-                <View style={styles.arrowContainer}>
-                  <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
+
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>Progression</Text>
+                    <Text style={styles.progressValue}>{globalProgress}%</Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <ExpoLinearGradient
+                      colors={['#2B2E83', '#E96C2E']}
+                      start={[0, 0]}
+                      end={[1, 0]}
+                      style={[
+                        styles.progressFill,
+                        { width: `${globalProgress}%` }
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.projectFooter}>
+                  <View style={styles.dueDateContainer}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+                    </View>
+                    <Text style={styles.dueDate}>Début: {startDate}</Text>
+                  </View>
+                  <View style={styles.arrowContainer}>
+                    <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
+                  </View>
                 </View>
               </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.emptyProjectCard}>
+              <MaterialIcons name="home-work" size={48} color="#E0E0E0" />
+              <Text style={styles.emptyProjectText}>Aucun chantier assigné</Text>
+              <Text style={styles.emptyProjectSubtext}>
+                Votre chantier apparaîtra ici une fois créé par l'administration
+              </Text>
             </View>
-          </TouchableOpacity>
+          )}
         </View>
 
         {/* Section Documents */}
@@ -253,35 +326,7 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Mises à jour récentes */}
-        <View style={styles.projectsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mises à jour récentes</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Chantier")}>
-              <Text style={styles.seeAllText}>Voir plus</Text>
-            </TouchableOpacity>
-          </View>
-
-          {mockProjectUpdates.slice(0, 3).map((update) => (
-            <TouchableOpacity key={update.id} style={styles.projectCard}>
-              <View style={styles.projectCardInner}>
-                <View style={styles.projectHeader}>
-                  <View style={styles.projectInfo}>
-                    <Text style={styles.projectName}>{update.title}</Text>
-                    <Text style={styles.clientName}>{update.date}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, {
-                    backgroundColor: update.status === 'completed' ? '#4CAF50' : '#E96C2E'
-                  }]}>
-                    <Text style={styles.statusText}>
-                      {update.status === 'completed' ? 'Terminé' : 'En cours'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+  
       </ScrollView>
     </View>
   );
@@ -417,7 +462,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   secondaryStatValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: 'FiraSans_700Bold',
     marginBottom: 2,
   },
@@ -452,6 +497,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
     overflow: 'hidden',
+    minHeight: 120, // S'assurer qu'il y a assez de zone tactile
   },
   projectCardInner: {
     backgroundColor: '#FFFFFF',
@@ -647,5 +693,62 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontFamily: 'FiraSans_600SemiBold',
     marginLeft: 6,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  emptyProjectCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    marginHorizontal: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  emptyProjectText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyProjectSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+  updateDescription: {
+    fontSize: 13,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#F44336',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
   },
 });

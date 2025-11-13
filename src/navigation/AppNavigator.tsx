@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '../types';
+import { authService } from '../services/authService';
 
 // Screens
 
@@ -15,16 +16,17 @@ import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
 import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
-import LoginScreen from '../screens/Auth/LoginScreen';
-import HomeScreen from '../screens/Main/HomeScreen';
-import ChantierScreen from '../screens/Main/ChantierScreen';
-import ChatScreen from '../screens/Main/ChatScreen';
-import FinitionsScreen from '../screens/Main/FinitionsScreen';
-import ProfilScreen from '../screens/Main/ProfilScreen';
-import SplashScreen from '../screens/Auth/SplashScreen';
-import ClientProjectsScreen from '../screens/Main/ClientProjectsScreen';
-import HelpSupportScreen from '../screens/Main/HelpSupportScreen';
-import AboutScreen from '../screens/Main/AboutScreen';
+import ChantierScreen from '../screens/main/ChantierScreen';
+import ChatScreen from '../screens/main/ChatScreen';
+import FinitionsScreen from '../screens/main/FinitionsScreen';
+import ProfilScreen from '../screens/main/ProfilScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
+import HelpSupportScreen from '../screens/main/HelpSupportScreen';
+import AboutScreen from '../screens/main/AboutScreen';
+import HomeScreen from '../screens/main/HomeScreen';
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ClientTab = createBottomTabNavigator<HomeTabParamList>();
@@ -382,6 +384,56 @@ export default function AppNavigator() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  // Détecter le rôle de l'utilisateur
+  const getUserRole = async (user: any): Promise<'client' | 'chef'> => {
+    try {
+      const userData = await authService.getUserData(user.uid);
+      if (userData?.role === 'chef' || userData?.role === 'admin') {
+        return 'chef';
+      }
+
+      // Si l'utilisateur a un username avec format CLI, c'est un client
+      if (userData?.username && userData.username.match(/^CLI\d{9}$/)) {
+        return 'client';
+      }
+
+      // Par défaut, considérer comme chef si pas de username CLI
+      return userData?.email ? 'chef' : 'client';
+    } catch (error) {
+      console.error('Erreur lors de la détection du rôle:', error);
+      return 'client';
+    }
+  };
+
+  // Écouter les changements d'état d'authentification Firebase
+  useEffect(() => {
+    const unsubscribe = authService.onAuthStateChange(async (user) => {
+      if (user) {
+        // Utilisateur connecté avec Firebase
+        const userData = await authService.getUserData(user.uid);
+        const userRole = await getUserRole(user);
+
+        if (userData) {
+          setCurrentUser({
+            id: user.uid,
+            email: user.email!,
+            name: userData.displayName,
+            role: userRole,
+            phone: userData.phoneNumber || undefined
+          });
+          setIsAuthenticated(true);
+        }
+      } else {
+        // Utilisateur déconnecté
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleContinueFromSplash = () => {
     setIsLoading(false);
   };
@@ -391,9 +443,14 @@ export default function AppNavigator() {
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await authService.signOutAll();
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   };
 
   if (isLoading) {
@@ -412,9 +469,7 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
-          <Stack.Screen name="Login">
-            {(props) => <LoginScreen {...props} onLogin={handleLogin} />}
-          </Stack.Screen>
+          <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>
             {currentUser?.role === 'client' ? (

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+import { chantierService } from '../../services/chantierService';
+import { FirebaseChantier } from '../../types/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -26,78 +31,126 @@ interface StatCard {
   backgroundColor: string;
 }
 
-interface ProjectCard {
-  id: string;
-  name: string;
-  client: string;
-  progress: number;
-  status: 'En cours' | 'En retard' | 'Terminé';
-  dueDate: string;
-}
-
-const mockStats: StatCard[] = [
-  {
-    id: '1',
-    title: 'Projets actifs',
-    value: '12',
-    icon: 'domain',
-    color: '#2B2E83',
-    backgroundColor: '#F8F9FF',
-  },
-  {
-    id: '2',
-    title: 'Terminés ce mois',
-    value: '8',
-    icon: 'check-circle',
-    color: '#E96C2E',
-    backgroundColor: '#FFF7ED',
-  },
-  {
-    id: '3',
-    title: 'Clients satisfaits',
-    value: '98%',
-    icon: 'sentiment-very-satisfied',
-    color: '#2B2E83',
-    backgroundColor: '#F8F9FF',
-  },
-  {
-    id: '4',
-    title: 'Messages non lus',
-    value: '5',
-    icon: 'chat-bubble',
-    color: '#E96C2E',
-    backgroundColor: '#FFF7ED',
-  },
-];
-
-const mockProjects: ProjectCard[] = [
-  {
-    id: '1',
-    name: 'Villa Amina F6',
-    client: 'Moussa Diop',
-    progress: 65,
-    status: 'En cours',
-    dueDate: '30 Juin 2024',
-  },
-  {
-    id: '2',
-    name: 'Villa Zahra F3',
-    client: 'SARL Teranga',
-    progress: 30,
-    status: 'En cours',
-    dueDate: '15 Août 2024',
-  },
-  {
-    id: '3',
-    name: 'Villa Kenza F3',
-    client: 'Fatou Kane',
-    progress: 90,
-    status: 'En cours',
-    dueDate: '20 Avril 2024',
-  },
-];
-
 export default function ChefDashboardScreen({ navigation }: Props) {
+  const { user, userData, loading: authLoading } = useAuth();
+  const [chantiers, setChantiers] = useState<FirebaseChantier[]>([]);
+  const [stats, setStats] = useState<StatCard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      loadChefData();
+    }
+  }, [user, authLoading]);
+
+  const loadChefData = async () => {
+    try {
+      setLoading(true);
+
+      if (!user) {
+        Alert.alert('Erreur', 'Vous devez être connecté pour accéder à cette page');
+        return;
+      }
+
+      // Use the authenticated user's ID as the chef ID
+      const chefId = user.uid;
+
+      // Set up real-time listener for chef chantiers
+      const unsubscribe = chantierService.subscribeToChefChantiers(chefId, (chantiersData) => {
+        setChantiers(chantiersData);
+        updateStats(chantiersData);
+        setLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      Alert.alert('Erreur', 'Impossible de charger les données');
+      setLoading(false);
+    }
+  };
+
+  const updateStats = (chantiersData: FirebaseChantier[]) => {
+    const totalChantiers = chantiersData.length;
+    const chantiersActifs = chantiersData.filter(c => c.status === 'En cours').length;
+    const chantiersTermines = chantiersData.filter(c => c.status === 'Terminé').length;
+    const chantiersEnRetard = chantiersData.filter(c => c.status === 'En retard').length;
+
+    const newStats: StatCard[] = [
+      {
+        id: '1',
+        title: 'Projets actifs',
+        value: chantiersActifs.toString(),
+        icon: 'domain',
+        color: '#2B2E83',
+        backgroundColor: '#F8F9FF',
+      },
+      {
+        id: '2',
+        title: 'Terminés',
+        value: chantiersTermines.toString(),
+        icon: 'check-circle',
+        color: '#4CAF50',
+        backgroundColor: '#F1F8E9',
+      },
+      {
+        id: '3',
+        title: 'En retard',
+        value: chantiersEnRetard.toString(),
+        icon: 'warning',
+        color: '#F44336',
+        backgroundColor: '#FFEBEE',
+      },
+      {
+        id: '4',
+        title: 'Total projets',
+        value: totalChantiers.toString(),
+        icon: 'assessment',
+        color: '#E96C2E',
+        backgroundColor: '#FFF7ED',
+      },
+    ];
+
+    setStats(newStats);
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return '';
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <AppHeader
+          title="Tableau de bord"
+          showNotification={true}
+          onNotificationPress={() => {}}
+        />
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#2B2E83" />
+          <Text style={styles.loadingText}>Chargement en cours...</Text>
+        </View>
+      </View>
+    );
+  }
+  const handleProjectPress = (chantier: FirebaseChantier) => {
+    if (chantier.id) {
+      navigation.navigate('ChefChantiers', { selectedChantierId: chantier.id });
+    } else {
+      navigation.navigate('ChefChantiers', {});
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'En cours':
@@ -130,14 +183,14 @@ export default function ChefDashboardScreen({ navigation }: Props) {
           style={styles.welcomeSection}
         >
           <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>Papis Sakho</Text>
+          <Text style={styles.name}>{userData?.displayName || user?.displayName || 'Chef'}</Text>
           <Text style={styles.subtitle}>Chef de chantier chez Katos Construction</Text>
         </ExpoLinearGradient>
 
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>Aperçu général</Text>
           <View style={styles.statsGrid}>
-            {mockStats.map((stat) => (
+            {stats.map((stat) => (
               <TouchableOpacity key={stat.id} style={styles.statCard}>
                 <View style={[styles.statCardContent, { backgroundColor: stat.backgroundColor }]}>
                   <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
@@ -161,23 +214,28 @@ export default function ChefDashboardScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {mockProjects.map((project) => (
-          <TouchableOpacity key={project.id} style={styles.projectCard}>
+        {chantiers.slice(0, 3).map((chantier) => (
+          <TouchableOpacity
+            key={chantier.id}
+            style={styles.projectCard}
+            onPress={() => handleProjectPress(chantier)}
+            activeOpacity={0.7}
+          >
             <View style={styles.projectCardInner}>
               <View style={styles.projectHeader}>
                 <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{project.name}</Text>
-                  <Text style={styles.clientName}>{project.client}</Text>
+                  <Text style={styles.projectName}>{chantier.name}</Text>
+                  <Text style={styles.clientName}>{chantier.address}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
-                  <Text style={styles.statusText}>{project.status}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(chantier.status) }]}>
+                  <Text style={styles.statusText}>{chantier.status}</Text>
                 </View>
               </View>
 
               <View style={styles.progressContainer}>
                 <View style={styles.progressHeader}>
                   <Text style={styles.progressLabel}>Progression</Text>
-                  <Text style={styles.progressValue}>{project.progress}%</Text>
+                  <Text style={styles.progressValue}>{chantier.globalProgress}%</Text>
                 </View>
                 <View style={styles.progressBar}>
                   <ExpoLinearGradient
@@ -186,7 +244,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
                     end={[1, 0]}
                     style={[
                       styles.progressFill,
-                      { width: `${project.progress}%` }
+                      { width: `${chantier.globalProgress}%` }
                     ]}
                   />
                 </View>
@@ -197,7 +255,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
                   <View style={styles.iconContainer}>
                     <MaterialIcons name="schedule" size={18} color="#2B2E83" />
                   </View>
-                  <Text style={styles.dueDate}>Échéance: {project.dueDate}</Text>
+                  <Text style={styles.dueDate}>Échéance: {formatDate(chantier.plannedEndDate)}</Text>
                 </View>
                 <View style={styles.arrowContainer}>
                   <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
@@ -206,6 +264,16 @@ export default function ChefDashboardScreen({ navigation }: Props) {
             </View>
           </TouchableOpacity>
         ))}
+
+        {chantiers.length === 0 && (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="domain" size={64} color="#E0E0E0" />
+            <Text style={styles.emptyStateText}>Aucun chantier assigné</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Vous n'avez pas encore de chantiers assignés
+            </Text>
+          </View>
+        )}
       </View>
       </ScrollView>
     </View>
@@ -329,6 +397,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
     overflow: 'hidden',
+    minHeight: 120,
   },
   projectCardInner: {
     backgroundColor: '#FFFFFF',
@@ -437,5 +506,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F2FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  emptyStateText: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });

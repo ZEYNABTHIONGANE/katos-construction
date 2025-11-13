@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Toast } from 'toastify-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,14 +16,32 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList, Category, Material, Selection } from '../../types';
 import CategoryButton from '../../components/CategoryButton';
 import MaterialCard from '../../components/MaterialCard';
-import { mockCategories, mockSelections } from '../../data/mockData';
+import { useClientSpecificData } from '../../hooks/useClientSpecificData';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Finitions'>;
 
 export default function FinitionsScreen({ navigation }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(mockCategories[0] || null);
-  const [userSelections, setUserSelections] = useState<Selection[]>(mockSelections);
+  const { materialCategories, loading, error } = useClientSpecificData();
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [userSelections, setUserSelections] = useState<Selection[]>([]);
   const [showSelectionsModal, setShowSelectionsModal] = useState(false);
+
+  // Set first category as selected when categories are loaded
+  useEffect(() => {
+    if (!selectedCategory && materialCategories.length > 0) {
+      setSelectedCategory(materialCategories[0]);
+    }
+  }, [materialCategories]);
+
+  // Update selected category if categories change
+  useEffect(() => {
+    if (selectedCategory && materialCategories.length > 0) {
+      const updatedCategory = materialCategories.find(cat => cat.id === selectedCategory.id);
+      if (updatedCategory) {
+        setSelectedCategory(updatedCategory);
+      }
+    }
+  }, [materialCategories]);
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
@@ -86,6 +105,27 @@ export default function FinitionsScreen({ navigation }: Props) {
     />
   );
 
+  // Show loading state
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#2B2E83" />
+        <Text style={styles.loadingText}>Chargement des matériaux...</Text>
+      </View>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <MaterialIcons name="error-outline" size={48} color="#F44336" />
+        <Text style={styles.errorText}>Erreur de chargement</Text>
+        <Text style={styles.errorSubtext}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
@@ -105,14 +145,20 @@ export default function FinitionsScreen({ navigation }: Props) {
         {/* Categories */}
         <View style={styles.categoriesSection}>
           <Text style={styles.sectionTitle}>Catégories</Text>
-          <FlatList
-            data={mockCategories}
-            renderItem={renderCategory}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesList}
-          />
+          {materialCategories.length > 0 ? (
+            <FlatList
+              data={materialCategories}
+              renderItem={renderCategory}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesList}
+            />
+          ) : (
+            <View style={styles.emptyCategoriesContainer}>
+              <Text style={styles.emptyCategoriesText}>Aucune catégorie disponible</Text>
+            </View>
+          )}
         </View>
 
         {/* Materials or Selections */}
@@ -144,10 +190,10 @@ export default function FinitionsScreen({ navigation }: Props) {
             <View style={styles.emptyState}>
               <MaterialIcons name="construction" size={48} color="#E0E0E0" />
               <Text style={styles.emptyStateText}>
-                {selectedCategory ? 'Aucun matériau disponible dans cette catégorie' : 'Aucune catégorie disponible'}
+                {selectedCategory ? 'Aucun matériau disponible dans cette catégorie' : materialCategories.length === 0 ? 'Chargement des matériaux...' : 'Sélectionnez une catégorie'}
               </Text>
               <Text style={styles.emptyStateSubtext}>
-                {selectedCategory ? 'Cette section sera bientôt mise à jour' : 'Veuillez vérifier votre connexion'}
+                {selectedCategory ? 'Les matériaux de cette catégorie seront bientôt disponibles' : materialCategories.length === 0 ? 'Veuillez patienter' : 'Explorez nos catégories de matériaux'}
               </Text>
             </View>
           )}
@@ -374,5 +420,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontFamily: 'FiraSans_700Bold',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#F44336',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+  emptyCategoriesContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  emptyCategoriesText: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
   },
 });

@@ -1,220 +1,90 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Modal,
-  FlatList,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
+import { useClientChantier } from '../../hooks/useClientChantier';
+import ProgressBar from '../../components/ProgressBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClientProjects'>;
 
-interface ProjectDocument {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  dateAdded: string;
-  uri: string;
-}
-
-interface ClientProject {
-  id: string;
-  name: string;
-  address: string;
-  status: 'En cours' | 'Terminé' | 'En attente';
-  progress: number;
-  imageUrl: string;
-  startDate: string;
-  endDate?: string;
-  description: string;
-  documents: ProjectDocument[];
-}
-
-const mockClientProjects: ClientProject[] = [
-  {
-    id: '1',
-    name: 'Villa Moderne - Famille Diop',
-    address: '123 Avenue Léopold Sédar Senghor, Dakar',
-    status: 'En cours',
-    progress: 65,
-    imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop',
-    startDate: '15 Jan 2024',
-    endDate: '30 Juin 2024',
-    description: 'Construction d\'une villa moderne de 4 chambres avec piscine et jardin paysager.',
-    documents: [
-      {
-        id: '1',
-        name: 'Contrat de construction.pdf',
-        type: 'PDF',
-        size: '2.3 MB',
-        dateAdded: '15 Jan 2024',
-        uri: '',
-      },
-      {
-        id: '2',
-        name: 'Plans architecturaux.pdf',
-        type: 'PDF',
-        size: '5.1 MB',
-        dateAdded: '16 Jan 2024',
-        uri: '',
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Rénovation Appartement',
-    address: 'Mermoz, Dakar',
-    status: 'En cours',
-    progress: 90,
-    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=300&fit=crop',
-    startDate: '10 Fév 2024',
-    endDate: '20 Avril 2024',
-    description: 'Rénovation complète d\'un appartement de 3 pièces avec modernisation de la cuisine et salle de bains.',
-    documents: [
-      {
-        id: '3',
-        name: 'Devis rénovation.pdf',
-        type: 'PDF',
-        size: '1.8 MB',
-        dateAdded: '10 Fév 2024',
-        uri: '',
-      },
-    ],
-  },
-];
-
 export default function ClientProjectsScreen({ navigation }: Props) {
-  const [projects, setProjects] = useState<ClientProject[]>(mockClientProjects);
-  const [selectedProject, setSelectedProject] = useState<ClientProject | null>(null);
-  const [showProjectModal, setShowProjectModal] = useState(false);
+  const {
+    loading,
+    error,
+    hasChantier,
+    name,
+    address,
+    globalProgress,
+    status,
+    photos,
+    startDate,
+    plannedEndDate,
+    phases
+  } = useClientChantier();
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'En cours':
-        return '#E0B043';
-      case 'Terminé':
         return '#4CAF50';
-      case 'En attente':
-        return '#9CA3AF';
+      case 'Terminé':
+        return '#2196F3';
+      case 'En retard':
+        return '#F44336';
       default:
-        return '#9CA3AF';
+        return '#E0B043';
     }
   };
 
-  const openProjectDetail = (project: ClientProject) => {
-    setSelectedProject(project);
-    setShowProjectModal(true);
+  const handleViewChantier = () => {
+    // Navigate into the ClientTabs navigator and open the Chantier tab
+    navigation.navigate('ClientTabs', { screen: 'Chantier' });
   };
 
-  const addDocument = async () => {
-    if (!selectedProject) return;
-
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        const newDocument: ProjectDocument = {
-          id: `${Date.now()}`,
-          name: asset.name || 'Document sans nom',
-          type: asset.mimeType?.includes('pdf') ? 'PDF' : asset.mimeType?.includes('image') ? 'Image' : 'Document',
-          size: `${(asset.size || 0 / (1024 * 1024)).toFixed(1)} MB`,
-          dateAdded: new Date().toLocaleDateString('fr-FR'),
-          uri: asset.uri,
-        };
-
-        const updatedProjects = projects.map(project => {
-          if (project.id === selectedProject.id) {
-            return {
-              ...project,
-              documents: [...project.documents, newDocument]
-            };
-          }
-          return project;
-        });
-
-        setProjects(updatedProjects);
-
-        const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-        if (updatedSelectedProject) {
-          setSelectedProject(updatedSelectedProject);
-        }
-
-        Alert.alert('Succès', 'Document ajouté avec succès !');
-      }
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter le document');
-    }
-  };
-
-  const removeDocument = (documentId: string) => {
-    if (!selectedProject) return;
-
-    Alert.alert(
-      'Supprimer le document',
-      'Êtes-vous sûr de vouloir supprimer ce document ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            const updatedProjects = projects.map(project => {
-              if (project.id === selectedProject.id) {
-                return {
-                  ...project,
-                  documents: project.documents.filter(doc => doc.id !== documentId)
-                };
-              }
-              return project;
-            });
-
-            setProjects(updatedProjects);
-
-            const updatedSelectedProject = updatedProjects.find(p => p.id === selectedProject.id);
-            if (updatedSelectedProject) {
-              setSelectedProject(updatedSelectedProject);
-            }
-          }
-        }
-      ]
+  // Show loading state
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#2B2E83" />
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </View>
     );
-  };
+  }
 
-  const renderDocument = ({ item }: { item: ProjectDocument }) => (
-    <View style={styles.documentItem}>
-      <View style={styles.documentIcon}>
-        <MaterialIcons
-          name={item.type === 'PDF' ? 'picture-as-pdf' : item.type === 'Image' ? 'image' : 'description'}
-          size={24}
-          color="#E96C2E"
-        />
+  // Show error state
+  if (error || !hasChantier) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Mon chantier</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <View style={styles.errorContent}>
+            <MaterialIcons name="home-work" size={64} color="#E96C2E" />
+            <Text style={styles.errorText}>Aucun chantier disponible</Text>
+            <Text style={styles.errorSubtext}>
+              {error || 'Votre chantier apparaîtra ici une fois créé par l\'administration'}
+            </Text>
+          </View>
+        </SafeAreaView>
       </View>
-      <View style={styles.documentInfo}>
-        <Text style={styles.documentName}>{item.name}</Text>
-        <Text style={styles.documentDetails}>{item.type} • {item.size} • {item.dateAdded}</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.deleteDocumentButton}
-        onPress={() => removeDocument(item.id)}
-      >
-        <MaterialIcons name="delete" size={20} color="#F44336" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -227,7 +97,7 @@ export default function ClientProjectsScreen({ navigation }: Props) {
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mes projets</Text>
+          <Text style={styles.headerTitle}>Mon chantier</Text>
           <View style={styles.headerRight} />
         </View>
 
@@ -236,136 +106,140 @@ export default function ClientProjectsScreen({ navigation }: Props) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.statsCard}>
-            <Text style={styles.statsText}>{projects.length} projet(s) actif(s)</Text>
+          {/* Chantier Overview Card */}
+          <View style={styles.chantierCard}>
+            <View style={styles.chantierHeader}>
+              <View style={styles.chantierInfo}>
+                <Text style={styles.chantierName}>{name}</Text>
+                <Text style={styles.chantierAddress}>{address}</Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
+                <Text style={styles.statusText}>{status}</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressSection}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Progression globale</Text>
+                <Text style={styles.progressValue}>{globalProgress}%</Text>
+              </View>
+              <ProgressBar progress={globalProgress} height={8} />
+            </View>
+
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="calendar-today" size={20} color="#2B2E83" />
+                <Text style={styles.infoLabel}>Début</Text>
+                <Text style={styles.infoValue}>{startDate}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="event" size={20} color="#2B2E83" />
+                <Text style={styles.infoLabel}>Fin prévue</Text>
+                <Text style={styles.infoValue}>{plannedEndDate}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="photo-library" size={20} color="#2B2E83" />
+                <Text style={styles.infoLabel}>Photos</Text>
+                <Text style={styles.infoValue}>{photos.length}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="construction" size={20} color="#2B2E83" />
+                <Text style={styles.infoLabel}>Phases</Text>
+                <Text style={styles.infoValue}>{phases.length}</Text>
+              </View>
+            </View>
           </View>
 
-          {projects.map((project) => (
-            <TouchableOpacity
-              key={project.id}
-              style={styles.projectCard}
-              onPress={() => openProjectDetail(project)}
-            >
-              <Image source={{ uri: project.imageUrl }} style={styles.projectImage} />
+          {/* Quick Actions */}
+          <View style={styles.actionsSection}>
+            <Text style={styles.sectionTitle}>Actions rapides</Text>
 
-              <View style={styles.projectContent}>
-                <View style={styles.projectHeader}>
-                  <View style={styles.projectInfo}>
-                    <Text style={styles.projectName}>{project.name}</Text>
-                    <Text style={styles.projectAddress}>{project.address}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) + '20' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(project.status) }]}>
-                      {project.status}
-                    </Text>
-                  </View>
-                </View>
+            <TouchableOpacity style={styles.actionCard} onPress={handleViewChantier}>
+              <View style={styles.actionIcon}>
+                <MaterialIcons name="visibility" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Voir le détail du chantier</Text>
+                <Text style={styles.actionSubtitle}>Photos, phases et mises à jour</Text>
+              </View>
+              <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
+            </TouchableOpacity>
 
-                <View style={styles.progressSection}>
-                  <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progression</Text>
-                    <Text style={styles.progressValue}>{project.progress}%</Text>
-                  </View>
-                  <View style={styles.progressBar}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ClientTabs', { screen: 'Chat' })}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E96C2E' }]}>
+                <MaterialIcons name="chat" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Contacter l'équipe</Text>
+                <Text style={styles.actionSubtitle}>Messages avec le chef de chantier</Text>
+              </View>
+              <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIcon, { backgroundColor: '#4CAF50' }]}>
+                <MaterialIcons name="description" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Mes documents</Text>
+                <Text style={styles.actionSubtitle}>Contrats, plans et factures</Text>
+              </View>
+              <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Phases Overview */}
+          <View style={styles.phasesSection}>
+            <Text style={styles.sectionTitle}>Phases du projet</Text>
+
+            {phases.slice(0, 3).map((phase, index) => {
+              const getPhaseStatusColor = (status: string) => {
+                switch (status) {
+                  case 'completed':
+                    return '#4CAF50';
+                  case 'in-progress':
+                    return '#E96C2E';
+                  case 'pending':
+                    return '#9CA3AF';
+                  default:
+                    return '#9CA3AF';
+                }
+              };
+
+              return (
+                <View key={phase.id} style={styles.phaseCard}>
+                  <View style={styles.phaseHeader}>
                     <View
                       style={[
-                        styles.progressFill,
-                        { width: `${project.progress}%` }
+                        styles.phaseIcon,
+                        { backgroundColor: getPhaseStatusColor(phase.status) + '20' }
                       ]}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.projectFooter}>
-                  <View style={styles.dateContainer}>
-                    <MaterialIcons name="schedule" size={16} color="#6B7280" />
-                    <Text style={styles.dateText}>
-                      {project.startDate} - {project.endDate || 'En cours'}
-                    </Text>
-                  </View>
-                  <View style={styles.documentsContainer}>
-                    <MaterialIcons name="description" size={16} color="#6B7280" />
-                    <Text style={styles.documentsText}>{project.documents.length} document(s)</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Project Detail Modal */}
-        <Modal
-          visible={showProjectModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowProjectModal(false)}
-        >
-          {selectedProject && (
-            <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowProjectModal(false)}
-                >
-                  <MaterialIcons name="close" size={24} color="#003366" />
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>{selectedProject.name}</Text>
-                <View style={styles.placeholder} />
-              </View>
-
-              <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-                <Image source={{ uri: selectedProject.imageUrl }} style={styles.modalImage} />
-
-                <View style={styles.modalInfo}>
-                  <Text style={styles.modalAddress}>{selectedProject.address}</Text>
-                  <Text style={styles.modalDescription}>{selectedProject.description}</Text>
-
-                  <View style={styles.modalStats}>
-                    <View style={styles.modalStatItem}>
-                      <Text style={styles.modalStatValue}>{selectedProject.progress}%</Text>
-                      <Text style={styles.modalStatLabel}>Progression</Text>
-                    </View>
-                    <View style={styles.modalStatItem}>
-                      <Text style={[styles.modalStatValue, { color: getStatusColor(selectedProject.status) }]}>
-                        {selectedProject.status}
-                      </Text>
-                      <Text style={styles.modalStatLabel}>Statut</Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Documents Section */}
-                <View style={styles.documentsSection}>
-                  <View style={styles.documentsSectionHeader}>
-                    <Text style={styles.sectionTitle}>Documents du projet</Text>
-                    <TouchableOpacity
-                      style={styles.addDocumentButton}
-                      onPress={addDocument}
                     >
-                      <MaterialIcons name="add" size={20} color="#FFFFFF" />
-                      <Text style={styles.addDocumentButtonText}>Ajouter</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {selectedProject.documents.length > 0 ? (
-                    <FlatList
-                      data={selectedProject.documents}
-                      renderItem={renderDocument}
-                      keyExtractor={(item) => item.id}
-                      scrollEnabled={false}
-                    />
-                  ) : (
-                    <View style={styles.emptyDocuments}>
-                      <MaterialIcons name="description" size={48} color="#E0E0E0" />
-                      <Text style={styles.emptyDocumentsText}>Aucun document</Text>
-                      <Text style={styles.emptyDocumentsSubtext}>Ajoutez des documents pour ce projet</Text>
+                      <MaterialIcons
+                        name={phase.status === 'completed' ? 'check-circle' :
+                              phase.status === 'in-progress' ? 'schedule' : 'radio-button-unchecked'}
+                        size={20}
+                        color={getPhaseStatusColor(phase.status)}
+                      />
                     </View>
-                  )}
+                    <View style={styles.phaseInfo}>
+                      <Text style={styles.phaseName}>{phase.name}</Text>
+                      <Text style={styles.phaseProgress}>{phase.progress}%</Text>
+                    </View>
+                  </View>
+                  <ProgressBar progress={phase.progress} height={4} />
                 </View>
-              </ScrollView>
-            </View>
-          )}
-        </Modal>
+              );
+            })}
+
+            {phases.length > 3 && (
+              <TouchableOpacity style={styles.viewAllPhases} onPress={handleViewChantier}>
+                <Text style={styles.viewAllText}>Voir toutes les phases ({phases.length})</Text>
+                <MaterialIcons name="arrow-forward" size={16} color="#E96C2E" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -388,7 +262,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingTop: 80,
     borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,    marginBottom: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 20,
   },
   backButton: {
     padding: 8,
@@ -410,65 +285,34 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 120,
   },
-  statsCard: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 30,
-    marginHorizontal: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  statsText: {
-    fontSize: 14,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-    backgroundColor: '#F0F1FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  projectCard: {
+  chantierCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 30,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    overflow: 'hidden',
   },
-  projectImage: {
-    width: '100%',
-    height: 160,
-    resizeMode: 'cover',
-  },
-  projectContent: {
-    padding: 20,
-  },
-  projectHeader: {
+  chantierHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  projectInfo: {
+  chantierInfo: {
     flex: 1,
   },
-  projectName: {
+  chantierName: {
     fontSize: 18,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 4,
   },
-  projectAddress: {
+  chantierAddress: {
     fontSize: 14,
     color: '#6B7280',
     fontFamily: 'FiraSans_400Regular',
@@ -480,10 +324,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
+    color: '#FFFFFF',
     fontFamily: 'FiraSans_600SemiBold',
   },
   progressSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -497,200 +342,170 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
   },
   progressValue: {
-    fontSize: 14,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#E0B043',
-    borderRadius: 3,
-  },
-  projectFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    marginLeft: 4,
-  },
-  documentsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  documentsText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    marginLeft: 4,
-  },
-  modal: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalTitle: {
-    fontSize: 18,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-    textAlign: 'center',
-    flex: 1,
-  },
-  placeholder: {
-    width: 32,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-  },
-  modalInfo: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalAddress: {
     fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    marginBottom: 12,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  modalStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  modalStatItem: {
-    alignItems: 'center',
-  },
-  modalStatValue: {
-    fontSize: 24,
     color: '#2B2E83',
     fontFamily: 'FiraSans_700Bold',
-    marginBottom: 4,
   },
-  modalStatLabel: {
-    fontSize: 12,
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  infoItem: {
+    width: '48%',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: 11,
     color: '#6B7280',
     fontFamily: 'FiraSans_400Regular',
+    marginTop: 4,
   },
-  documentsSection: {
-    padding: 20,
+  infoValue: {
+    fontSize: 13,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 2,
   },
-  documentsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  actionsSection: {
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 18,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 16,
   },
-  addDocumentButton: {
+  actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E96C2E',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  addDocumentButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginLeft: 4,
-  },
-  documentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  documentIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2B2E83',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  documentInfo: {
+  actionContent: {
     flex: 1,
   },
-  documentName: {
+  actionTitle: {
     fontSize: 14,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
     marginBottom: 2,
   },
-  documentDetails: {
+  actionSubtitle: {
     fontSize: 12,
     color: '#6B7280',
     fontFamily: 'FiraSans_400Regular',
   },
-  deleteDocumentButton: {
-    padding: 8,
+  phasesSection: {
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
-  emptyDocuments: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    backgroundColor: '#F9FAFB',
+  phaseCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  emptyDocumentsText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginTop: 12,
-    marginBottom: 4,
+  phaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  emptyDocumentsSubtext: {
+  phaseIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  phaseInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  phaseName: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  phaseProgress: {
+    fontSize: 14,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  viewAllPhases: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginRight: 8,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  errorContainer: {
+    flex: 1,
+  },
+  errorContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
     fontFamily: 'FiraSans_400Regular',
     textAlign: 'center',
   },

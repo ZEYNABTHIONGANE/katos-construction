@@ -7,24 +7,35 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList } from '../../types';
-import AppHeader from '../../components/AppHeader';
 import ProgressBar from '../../components/ProgressBar';
-import {
-  mockProject,
-  mockProjectPhases,
-  mockProjectUpdates,
-} from '../../data/mockData';
+import { useClientChantier } from '../../hooks/useClientChantier';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Chantier'>;
 
 const { width } = Dimensions.get('window');
 
-export default function ChantierScreen({ navigation }: Props) {
+export default function ChantierScreen({ navigation, route }: Props) {
+  const chantierId = route?.params?.chantierId;
+  const {
+    chantier,
+    loading,
+    error,
+    hasChantier,
+    name,
+    address,
+    globalProgress,
+    status,
+    photos,
+    phases,
+    recentUpdates
+  } = useClientChantier(chantierId);
+
   const getPhaseStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -33,6 +44,8 @@ export default function ChantierScreen({ navigation }: Props) {
         return '#E96C2E';
       case 'pending':
         return '#6c757d';
+      case 'blocked':
+        return '#F44336';
       default:
         return '#6c757d';
     }
@@ -46,17 +59,54 @@ export default function ChantierScreen({ navigation }: Props) {
         return 'schedule';
       case 'pending':
         return 'radio-button-unchecked';
+      case 'blocked':
+        return 'block';
       default:
         return 'radio-button-unchecked';
     }
   };
 
-  const projectImages = [
-    'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=400&h=300&fit=crop',
-  ];
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'Terminé';
+      case 'in-progress':
+        return 'En cours';
+      case 'pending':
+        return 'En attente';
+      case 'blocked':
+        return 'Bloqué';
+      default:
+        return 'En attente';
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#2B2E83" />
+        <Text style={styles.loadingText}>Chargement du chantier...</Text>
+      </View>
+    );
+  }
+
+  if (error || !hasChantier) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <MaterialIcons name="home-work" size={48} color="#E96C2E" />
+        <Text style={styles.errorText}>Aucun chantier disponible</Text>
+        <Text style={styles.errorSubtext}>
+          {error || 'Votre chantier apparaîtra ici une fois créé par l\'administration'}
+        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -64,7 +114,7 @@ export default function ChantierScreen({ navigation }: Props) {
         {/* Header moderne */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
@@ -76,39 +126,62 @@ export default function ChantierScreen({ navigation }: Props) {
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Project Info */}
         <View style={styles.projectInfo}>
-          <Text style={styles.projectName}>{mockProject.name}</Text>
-          <Text style={styles.projectAddress}>{mockProject.address}</Text>
+          <Text style={styles.projectName}>{name}</Text>
+          <Text style={styles.projectAddress}>{address}</Text>
+
+          <View style={[styles.statusBadge, {
+            backgroundColor: status === 'En cours' ? '#4CAF50' :
+                           status === 'Terminé' ? '#2196F3' :
+                           status === 'En retard' ? '#F44336' : '#E0B043',
+            alignSelf: 'flex-start',
+            marginBottom: 15
+          }]}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
 
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Avancement global</Text>
-              <Text style={styles.progressValue}>{mockProject.progress}%</Text>
+              <Text style={styles.progressValue}>{globalProgress}%</Text>
             </View>
-            <ProgressBar progress={mockProject.progress} height={12} />
+            <ProgressBar progress={globalProgress} height={12} />
           </View>
         </View>
 
         {/* Photo Gallery */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Photos du chantier</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.galleryContainer}
-          >
-            {projectImages.map((imageUrl, index) => (
-              <TouchableOpacity key={index} style={styles.galleryItem}>
-                <Image source={{ uri: imageUrl }} style={styles.galleryImage} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <Text style={styles.sectionTitle}>Photos du chantier ({photos.length})</Text>
+          {photos.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.galleryContainer}
+            >
+              {photos.map((photo, index) => (
+                <TouchableOpacity key={photo.id} style={styles.galleryItem}>
+                  <Image source={{ uri: photo.url }} style={styles.galleryImage} />
+                  <View style={styles.photoOverlay}>
+                    <Text style={styles.photoDescription} numberOfLines={2}>
+                      {photo.description}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyGallery}>
+              <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
+              <Text style={styles.emptyGalleryText}>Aucune photo disponible</Text>
+              <Text style={styles.emptyGallerySubtext}>Les photos du chantier apparaîtront ici</Text>
+            </View>
+          )}
         </View>
 
         {/* Timeline */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline du projet</Text>
+          <Text style={styles.sectionTitle}>Phases du chantier</Text>
           <View style={styles.timeline}>
-            {mockProjectPhases.map((phase, index) => (
+            {phases.map((phase, index) => (
               <View key={phase.id} style={styles.timelineItem}>
                 <View style={styles.timelineLeft}>
                   <View
@@ -123,13 +196,17 @@ export default function ChantierScreen({ navigation }: Props) {
                       color="#fff"
                     />
                   </View>
-                  {index < mockProjectPhases.length - 1 && (
+                  {index < phases.length - 1 && (
                     <View style={styles.timelineLine} />
                   )}
                 </View>
 
                 <View style={styles.timelineContent}>
-                  <Text style={styles.phaseName}>{phase.name}</Text>
+                  <View style={styles.phaseHeader}>
+                    <Text style={styles.phaseName}>{phase.name}</Text>
+                    <Text style={styles.phaseProgress}>{phase.progress}%</Text>
+                  </View>
+
                   <Text style={styles.phaseDescription}>{phase.description}</Text>
 
                   {phase.startDate && (
@@ -139,6 +216,10 @@ export default function ChantierScreen({ navigation }: Props) {
                     </Text>
                   )}
 
+                  <View style={styles.phaseProgressContainer}>
+                    <ProgressBar progress={phase.progress} height={6} />
+                  </View>
+
                   <View style={styles.phaseStatus}>
                     <Text
                       style={[
@@ -146,11 +227,7 @@ export default function ChantierScreen({ navigation }: Props) {
                         { color: getPhaseStatusColor(phase.status) },
                       ]}
                     >
-                      {phase.status === 'completed'
-                        ? 'Terminé'
-                        : phase.status === 'in-progress'
-                        ? 'En cours'
-                        : 'En attente'}
+                      {getStatusText(phase.status)}
                     </Text>
                   </View>
                 </View>
@@ -162,23 +239,28 @@ export default function ChantierScreen({ navigation }: Props) {
         {/* Recent Updates */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mises à jour récentes</Text>
-          {mockProjectUpdates.map((update) => (
-            <View key={update.id} style={styles.updateCard}>
-              <View style={styles.updateHeader}>
-                <MaterialIcons
-                  name={update.status === 'completed' ? 'check-circle' : 'schedule'}
-                  size={20}
-                  color={update.status === 'completed' ? '#4CAF50' : '#E96C2E'}
-                />
-                <Text style={styles.updateDate}>{update.date}</Text>
+          {recentUpdates.length > 0 ? (
+            recentUpdates.map((update) => (
+              <View key={update.id} style={styles.updateCard}>
+                <View style={styles.updateHeader}>
+                  <MaterialIcons
+                    name={update.status === 'completed' ? 'check-circle' : 'schedule'}
+                    size={20}
+                    color={update.status === 'completed' ? '#4CAF50' : '#E96C2E'}
+                  />
+                  <Text style={styles.updateDate}>{update.date}</Text>
+                </View>
+                <Text style={styles.updateTitle}>{update.title}</Text>
+                <Text style={styles.updateDescription}>{update.description}</Text>
               </View>
-              <Text style={styles.updateTitle}>{update.title}</Text>
-              <Text style={styles.updateDescription}>{update.description}</Text>
-              {update.imageUrl && (
-                <Image source={{ uri: update.imageUrl }} style={styles.updateImage} />
-              )}
+            ))
+          ) : (
+            <View style={styles.emptyUpdates}>
+              <MaterialIcons name="update" size={32} color="#E0E0E0" />
+              <Text style={styles.emptyUpdatesText}>Aucune mise à jour</Text>
+              <Text style={styles.emptyUpdatesSubtext}>Les mises à jour apparaîtront ici</Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Contact Button */}
@@ -421,5 +503,117 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 130, // Espace pour la navigation flottante
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+
+  backButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#fff',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 8,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  photoDescription: {
+    fontSize: 10,
+    color: '#fff',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  emptyGallery: {
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 20,
+  },
+  emptyGalleryText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  emptyGallerySubtext: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#999',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+  phaseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  phaseProgress: {
+    fontSize: 14,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  phaseProgressContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  emptyUpdates: {
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 20,
+  },
+  emptyUpdatesText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  emptyUpdatesSubtext: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#999',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,47 +10,199 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Animated,
 } from 'react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, User } from '../../types';
-import { mockUsers } from '../../data/mockData';
+// Import removed - we'll use authService instead
+import { authService } from '../../services/authService';
+import { Toast } from 'toastify-react-native';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Login'> & {
-  onLogin: (user: User) => void;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-export default function LoginScreen({ navigation, onLogin }: Props) {
-  const [email, setEmail] = useState('');
+export default function LoginScreen({ navigation }: Props) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [usernameValid, setUsernameValid] = useState<boolean | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [isChefMode, setIsChefMode] = useState(false);
+
+  // Animation references
+  const usernameInputAnimation = useRef(new Animated.Value(0)).current;
+  const passwordInputAnimation = useRef(new Animated.Value(0)).current;
+  const buttonAnimation = useRef(new Animated.Value(1)).current;
+  const successAnimation = useRef(new Animated.Value(0)).current;
+
+  // Real-time username validation
+  const validateUsername = (text: string) => {
+    if (text.length === 0) {
+      setUsernameValid(null);
+      return;
+    }
+
+    if (isChefMode) {
+      // For chef mode, validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(text);
+      setUsernameValid(isValid);
+    } else {
+      // For client mode, validate CLI format
+      const usernameRegex = /^CLI\d{9}$/;
+      const isValid = usernameRegex.test(text);
+      setUsernameValid(isValid);
+    }
+  };
+
+  // Animation handlers
+  const animateInput = (animation: Animated.Value, toValue: number) => {
+    Animated.spring(animation, {
+      toValue,
+      useNativeDriver: false,
+      tension: 100,
+      friction: 8,
+    }).start();
+  };
+
+  const animateButton = (toValue: number) => {
+    Animated.spring(buttonAnimation, {
+      toValue,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  };
+
+  const handleUsernameFocus = () => {
+    setUsernameFocused(true);
+    animateInput(usernameInputAnimation, 1);
+  };
+
+  const handleUsernameBlur = () => {
+    setUsernameFocused(false);
+    animateInput(usernameInputAnimation, 0);
+  };
+
+  const handlePasswordFocus = () => {
+    setPasswordFocused(true);
+    animateInput(passwordInputAnimation, 1);
+  };
+
+  const handlePasswordBlur = () => {
+    setPasswordFocused(false);
+    animateInput(passwordInputAnimation, 0);
+  };
+
+  const handleUsernameChange = (text: string) => {
+    setUsername(text);
+    validateUsername(text);
+  };
+
+  const toggleMode = () => {
+    setIsChefMode(!isChefMode);
+    setUsername('');
+    setPassword('');
+    setUsernameValid(null);
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!username || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
     }
 
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-
-      // Mock validation - check all users
-      const user = mockUsers.find(u => u.email === email && password === '1234');
-
-      if (user) {
-        onLogin(user);
-      } else {
+    // Validate input format based on mode
+    if (isChefMode) {
+      // Chef mode - validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(username)) {
         Alert.alert(
-          'Erreur de connexion',
-          'Email ou mot de passe incorrect'
+          'Format invalide',
+          'Veuillez entrer une adresse email valide'
         );
+        return;
       }
-    }, 1500);
+    } else {
+      // Client mode - validate CLI format
+      const usernameRegex = /^CLI\d{9}$/;
+      if (!usernameRegex.test(username)) {
+        Alert.alert(
+          'Format invalide',
+          'Le nom d\'utilisateur doit suivre le format CLI123456789 (CLI suivi de 9 chiffres)'
+        );
+        return;
+      }
+    }
+
+    setLoading(true);
+    animateButton(0.95);
+
+    try {
+      if (isChefMode) {
+        // Chef login with email
+        await authService.signIn(username, password);
+      } else {
+        // Client login with username
+        await authService.signInWithUsername(username, password);
+      }
+
+      setLoginSuccess(true);
+
+      // Success animation
+      Animated.sequence([
+        Animated.timing(successAnimation, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.delay(800),
+        Animated.timing(successAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start();
+
+      Toast.success('Connexion réussie');
+      // La navigation sera gérée automatiquement par onAuthStateChanged
+    } catch (error: any) {
+      console.error('Erreur de connexion:', error);
+
+      let errorMessage = isChefMode
+        ? 'Email ou mot de passe incorrect'
+        : 'Nom d\'utilisateur ou mot de passe incorrect';
+
+      if (!isChefMode) {
+        if (error.message === 'USERNAME_NOT_FOUND') {
+          errorMessage = 'Nom d\'utilisateur introuvable. Vérifiez le format (ex: CLI123456789)';
+        } else if (error.message === 'USER_BLOCKED') {
+          errorMessage = 'Ce compte a été bloqué. Contactez le support';
+        }
+      }
+
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'Aucun compte trouvé';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Mot de passe incorrect';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Compte invalide';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'Ce compte a été désactivé';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Trop de tentatives de connexion. Réessayez plus tard';
+      }
+
+      Alert.alert('Erreur de connexion', errorMessage);
+    } finally {
+      setLoading(false);
+      setLoginSuccess(false);
+      animateButton(1);
+    }
   };
 
   return (
@@ -71,37 +223,120 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
             <Image source={require('../../assets/logo.png')} style={styles.logo} />
           </View>
           <Text style={styles.title}>Katos Connect</Text>
-          <Text style={styles.subtitle}>Connectez-vous à votre espace client</Text>
+          <Text style={styles.subtitle}>
+            {isChefMode
+              ? 'Connexion chef de chantier'
+              : 'Connexion client - Utilisez vos identifiants'}
+          </Text>
+
+          {/* Mode Toggle Button */}
+          <TouchableOpacity style={styles.modeToggle} onPress={toggleMode}>
+            <MaterialIcons
+              name={isChefMode ? 'person' : 'engineering'}
+              size={16}
+              color="#E96C2E"
+            />
+            <Text style={styles.modeToggleText}>
+              {isChefMode ? 'Mode Client' : 'Mode Chef'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Form Section */}
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="email" size={20} color="#6B7280" style={styles.inputIcon} />
+            <Animated.View style={[
+              styles.inputWrapper,
+              {
+                borderColor: usernameInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [
+                    usernameValid === true ? '#10B981' :
+                    usernameValid === false ? '#EF4444' : '#E5E7EB',
+                    '#2B2E83'
+                  ]
+                }),
+                borderWidth: usernameInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1.5, 2]
+                }),
+                shadowOpacity: usernameInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.1]
+                })
+              }
+            ]}>
+              <MaterialIcons
+                name="person"
+                size={20}
+                color={usernameFocused ? '#2B2E83' : usernameValid === true ? '#10B981' : usernameValid === false ? '#EF4444' : '#6B7280'}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
-                placeholder="Adresse email"
+                placeholder={isChefMode ? "email@exemple.com" : "CLI••••••••"}
                 placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                value={username}
+                onChangeText={handleUsernameChange}
+                onFocus={handleUsernameFocus}
+                onBlur={handleUsernameBlur}
+                keyboardType={isChefMode ? "email-address" : "default"}
+                autoCapitalize={isChefMode ? "none" : "characters"}
                 autoCorrect={false}
                 editable={!loading}
+                maxLength={isChefMode ? 50 : 12}
               />
-            </View>
+              {usernameValid === true && (
+                <MaterialIcons
+                  name="check-circle"
+                  size={18}
+                  color="#10B981"
+                  style={styles.validationIcon}
+                />
+              )}
+              {usernameValid === false && username.length > 0 && (
+                <MaterialIcons
+                  name="error"
+                  size={18}
+                  color="#EF4444"
+                  style={styles.validationIcon}
+                />
+              )}
+            </Animated.View>
           </View>
 
           <View style={styles.inputContainer}>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="lock" size={20} color="#6B7280" style={styles.inputIcon} />
+            <Animated.View style={[
+              styles.inputWrapper,
+              {
+                borderColor: passwordInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['#E5E7EB', '#2B2E83']
+                }),
+                borderWidth: passwordInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1.5, 2]
+                }),
+                shadowOpacity: passwordInputAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.1]
+                })
+              }
+            ]}>
+              <MaterialIcons
+                name="lock"
+                size={20}
+                color={passwordFocused ? '#2B2E83' : '#6B7280'}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Mot de passe"
                 placeholderTextColor="#9CA3AF"
                 value={password}
                 onChangeText={setPassword}
+                onFocus={handlePasswordFocus}
+                onBlur={handlePasswordBlur}
                 secureTextEntry={!showPassword}
                 editable={!loading}
               />
@@ -112,26 +347,57 @@ export default function LoginScreen({ navigation, onLogin }: Props) {
                 <MaterialIcons
                   name={showPassword ? 'visibility' : 'visibility-off'}
                   size={20}
-                  color="#6B7280"
+                  color={passwordFocused ? '#2B2E83' : '#6B7280'}
                 />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.loginButtonText}>Se connecter</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Demo Account Info */}
-    
+          <Animated.View style={{
+            transform: [{ scale: buttonAnimation }]
+          }}>
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                loading && styles.loginButtonDisabled,
+                loginSuccess && styles.loginButtonSuccess
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
+                    Connexion...
+                  </Text>
+                </View>
+              ) : loginSuccess ? (
+                <Animated.View
+                  style={[
+                    styles.buttonContent,
+                    {
+                      opacity: successAnimation,
+                      transform: [{
+                        scale: successAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1]
+                        })
+                      }]
+                    }
+                  ]}
+                >
+                  <MaterialIcons name="check" color="#FFFFFF" size={20} />
+                  <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
+                    Connecté
+                  </Text>
+                </Animated.View>
+              ) : (
+                <Text style={styles.loginButtonText}>Se connecter</Text>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
         </View>
         </View>
       </KeyboardAvoidingView>
@@ -149,20 +415,25 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 56,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: '#f7f7f9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   logo: {
     width: 50,
@@ -186,39 +457,65 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontFamily: 'FiraSans_400Regular',
+    marginBottom: 16,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  modeToggleText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 6,
   },
   form: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 32,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-    marginHorizontal: 4,
+    shadowRadius: 24,
+    elevation: 12,
+    marginHorizontal: 6,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: '#FBFCFD',
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 14,
   },
   input: {
     flex: 1,
-    height: 52,
+    height: 56,
     fontSize: 16,
     color: '#1A1A1A',
     fontFamily: 'FiraSans_400Regular',
+  },
+  validationIcon: {
+    marginLeft: 8,
   },
   eyeIcon: {
     padding: 4,
@@ -226,25 +523,37 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#2B2E83',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: 16,
     shadowColor: '#2B2E83',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+    minHeight: 56,
   },
   loginButtonDisabled: {
-    opacity: 0.6,
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.7,
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  loginButtonSuccess: {
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontFamily: 'FiraSans_600SemiBold',
+    letterSpacing: 0.5,
   },
   demoContainer: {
     marginTop: 24,
@@ -269,6 +578,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
+    fontFamily: 'FiraSans_400Regular',
+  },
+  pinTitle: {
+    fontSize: 20,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  pinSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  pinInputContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  pinInput: {
+    width: 120,
+    height: 56,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    textAlign: 'center',
+    fontSize: 24,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: '#F9FAFB',
+    letterSpacing: 8,
+  },
+  switchModeButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  switchModeText: {
+    fontSize: 14,
+    color: '#2B2E83',
     fontFamily: 'FiraSans_400Regular',
   },
 });

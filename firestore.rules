@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Collection users - Allow queries for username lookup
+    match /users/{document=**} {
+      // Allow unauthenticated list operations for username lookup during authentication
+      // This is required for mobile app username-based login using query().where('username', '==', ...)
+      // Security note: This allows querying user documents during login process
+      allow list: if true;
+    }
+
+    // Collection users - Accès authentifié uniquement
+    match /users/{userId} {
+      // Allow users to read/write their own document when authenticated
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow authenticated users to read any user document for admin purposes
+      allow read: if request.auth != null;
+
+      // Special rule: Allow unauthenticated read for username lookup during login
+      // This is necessary for mobile app username-based authentication
+      // Only allow if the document has a username field (indicating it's a client account)
+      allow read: if resource.data.keys().hasAll(['username', 'email']) &&
+                     resource.data.username is string &&
+                     resource.data.username.matches('^CLI[0-9]{9}$');
+    }
+
+    // Collection clients - Accès limité pour les utilisateurs mobiles
+    match /clients/{clientId} {
+      // Les utilisateurs peuvent lire les données client auxquelles ils sont liés
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.userId;
+
+      // Les utilisateurs peuvent mettre à jour certains champs de leur client
+      allow update: if request.auth != null &&
+                      request.auth.uid == resource.data.userId &&
+                      // Limiter les champs modifiables
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'acceptedAt', 'invitationStatus']);
+
+      // Permettre aux utilisateurs de mettre à jour leur statut d'invitation même s'ils ne sont pas encore liés
+      // Ceci est nécessaire pour le premier login où userId n'est pas encore défini sur le client
+      allow update: if request.auth != null &&
+                      request.auth.token.email == resource.data.email &&
+                      // Seulement autoriser la modification du statut d'invitation et dates
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['invitationStatus', 'acceptedAt']);
+    }
+
+    // Collection projects - Lecture seule pour les projets du client
+    match /projects/{projectId} {
+      allow read: if request.auth != null;
+      // Les clients ne peuvent pas modifier les projets
+    }
+
+    // Collection materials - Lecture seule
+    match /materials/{materialId} {
+      allow read: if request.auth != null;
+      // Les clients ne peuvent pas modifier les matériaux
+    }
+
+    // Collection invitations - Accès spécial pour les invitations
+    match /invitations/{invitationId} {
+      // Les utilisateurs peuvent lire leurs propres invitations
+      allow read: if request.auth != null &&
+                     request.auth.token.email == resource.data.email;
+
+      // Les utilisateurs peuvent mettre à jour le statut de leurs invitations
+      allow update: if request.auth != null &&
+                      request.auth.token.email == resource.data.email &&
+                      // Seulement autoriser la modification du statut et dates
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'acceptedAt']);
+    }
+
+    // Collection pour les documents/fichiers - Lecture seule pour les clients
+    match /client_documents/{documentId} {
+      allow read: if request.auth != null;
+      // Les clients ne peuvent pas modifier/supprimer les documents
+    }
+
+    // Collection chantiers - Accès pour chefs et clients
+    match /chantiers/{chantierId} {
+      // Les chefs peuvent lire et modifier les chantiers qui leur sont assignés
+      allow read, write: if request.auth != null &&
+                           resource.data.assignedChefId == request.auth.uid;
+
+      // Les clients peuvent lire les chantiers qui leur sont assignés
+      allow read: if request.auth != null &&
+                    resource.data.clientId == request.auth.uid;
+
+      // Permettre aux utilisateurs authentifiés de lire les chantiers (pour les requêtes de liste)
+      allow list: if request.auth != null;
+
+      // Permettre aux chefs de créer des chantiers
+      allow create: if request.auth != null &&
+                      request.resource.data.assignedChefId == request.auth.uid;
+    }
+  }
+}

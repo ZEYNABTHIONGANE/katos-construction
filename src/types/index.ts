@@ -1,17 +1,24 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
+
 // Navigation types
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
-  ClientTabs: undefined;
-  ChefTabs: undefined;
+  InvitationAuth: { token: string };
+  CreatePIN: undefined;
+  ChangePassword: undefined;
+  ClientProfile: undefined;
+  ClientTabs: NavigatorScreenParams<HomeTabParamList> | undefined;
+  ChefTabs: NavigatorScreenParams<ChefTabParamList> | undefined;
   ClientProjects: undefined;
   HelpSupport: undefined;
   About: undefined;
+  Main: undefined;
 };
 
 export type HomeTabParamList = {
   Home: undefined;
-  Chantier: undefined;
+  Chantier: { chantierId?: string };
   Chat: undefined;
   Finitions: undefined;
   Profil: undefined;
@@ -19,7 +26,7 @@ export type HomeTabParamList = {
 
 export type ChefTabParamList = {
   ChefDashboard: undefined;
-  ChefChantiers: undefined;
+  ChefChantiers: { selectedChantierId?: string };
   ChefChat: undefined;
   ChefProfil: undefined;
 };
