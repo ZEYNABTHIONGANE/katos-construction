@@ -18,6 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, User } from '../../types';
 // Import removed - we'll use authService instead
 import { authService } from '../../services/authService';
+import { useClientAuth } from '../../hooks/useClientAuth';
 import { Toast } from 'toastify-react-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -26,6 +27,9 @@ export default function LoginScreen({ navigation }: Props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Use the client auth hook for mobile clients
+  const clientAuth = useClientAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -149,6 +153,18 @@ export default function LoginScreen({ navigation }: Props) {
       } else {
         // Client login with username
         await authService.signInWithUsername(username, password);
+        // Force the client auth hook to detect the new session
+        await clientAuth.forceRefresh();
+        console.log('✅ Client auth completed');
+
+        // Force immediate navigation to ClientTabs
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'ClientTabs' }],
+          });
+        }, 100);
+        return; // Exit early to prevent normal flow
       }
 
       setLoginSuccess(true);

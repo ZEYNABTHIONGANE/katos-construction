@@ -152,7 +152,7 @@ export const useFirebaseMaterial = (id: string) => {
     const fetchMaterial = async () => {
       try {
         setError(null);
-        setLoading(true);
+        if (!material) setLoading(true);
         const materialData = await materialService.getMaterialById(id);
         setMaterial(materialData);
       } catch (err: any) {

@@ -14,8 +14,8 @@ import {
 } from '../utils/dataTransformers';
 
 export const useClientSpecificData = () => {
-  const { session, isAuthenticated } = useClientAuth();
-  const { clientData } = useClientData(session?.clientId || null);
+  const { session, isAuthenticated, refreshKey } = useClientAuth();
+  const { clientData } = useClientData(session?.clientId || null, refreshKey);
   const { projects: allProjects, loading: projectsLoading, error: projectsError } = useFirebaseProjects();
   const { materials: allMaterials, loading: materialsLoading, error: materialsError } = useFirebaseMaterials();
 

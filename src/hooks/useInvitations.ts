@@ -19,7 +19,7 @@ export const useInvitations = () => {
   const loadUserInvitations = useCallback(async () => {
     if (!user?.email) return;
 
-    setLoading(true);
+    if (!loading) setLoading(true);
     setError(null);
 
     try {
@@ -53,7 +53,7 @@ export const useInvitations = () => {
 
   // Valider une invitation par token
   const validateInvitation = useCallback(async (token: string) => {
-    setLoading(true);
+    if (!loading) setLoading(true);
     setError(null);
 
     try {
@@ -93,7 +93,7 @@ export const useInvitations = () => {
       return { success: false, reason: 'Utilisateur non connecté' };
     }
 
-    setLoading(true);
+    if (!loading) setLoading(true);
     setError(null);
 
     try {
@@ -119,7 +119,7 @@ export const useInvitations = () => {
 
   // Décliner une invitation
   const declineInvitation = useCallback(async (token: string) => {
-    setLoading(true);
+    if (!loading) setLoading(true);
     setError(null);
 
     try {

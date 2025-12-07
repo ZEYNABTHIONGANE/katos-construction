@@ -15,7 +15,9 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeTabParamList, RootStackParamList } from '../../types';
-import { mockUser, mockProject } from '../../data/mockData';
+import { useClientAuth } from '../../hooks/useClientAuth';
+import { useClientChantier } from '../../hooks/useClientChantier';
+import { useClientData } from '../../hooks/useClientData';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, 'Profil'>,
@@ -35,6 +37,11 @@ interface ProfileOption {
 
 export default function ProfilScreen({ navigation, onLogout }: Props) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  // Récupérer les vraies données
+  const { session, isAuthenticated, logout } = useClientAuth();
+  const { clientData, loading: clientDataLoading } = useClientData(session?.clientId || null);
+  const { chantier, globalProgress, hasChantier } = useClientChantier();
 
   const handleNotificationToggle = (value: boolean) => {
     setNotificationsEnabled(value);
@@ -65,7 +72,8 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
         {
           text: 'Déconnexion',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            await logout();
             if (onLogout) {
               onLogout();
             }
@@ -152,30 +160,35 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
 
       <View style={styles.profileSection}>
         <View style={styles.profileCard}>
-          <Image
-            source={{ uri: mockUser.avatar }}
-            style={styles.profileImage}
-          />
+          <View style={styles.profileImagePlaceholder}>
+            <Text style={styles.profileImageText}>
+              {clientData ? `${clientData.prenom.charAt(0)}${clientData.nom.charAt(0)}` : 'CL'}
+            </Text>
+          </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{mockUser.name}</Text>
+            <Text style={styles.profileName}>
+              {clientData ? `${clientData.prenom} ${clientData.nom}` : 'Chargement...'}
+            </Text>
             <Text style={styles.profileRole}>Client</Text>
-            <Text style={styles.profileEmail}>{mockUser.email}</Text>
+            <Text style={styles.profileEmail}>
+              {clientData?.email || session?.clientData?.email || 'Email non disponible'}
+            </Text>
           </View>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1</Text>
+            <Text style={styles.statValue}>{hasChantier ? '1' : '0'}</Text>
             <Text style={styles.statLabel}>Projet actif</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{mockProject.progress}%</Text>
+            <Text style={styles.statValue}>{globalProgress || 0}%</Text>
             <Text style={styles.statLabel}>Avancement</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statValue}>-</Text>
             <Text style={styles.statLabel}>Messages non lus</Text>
           </View>
         </View>
@@ -281,6 +294,20 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     marginRight: 16,
+  },
+  profileImagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
+    backgroundColor: '#2B2E83',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImageText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontFamily: 'FiraSans_700Bold',
   },
   profileInfo: {
     flex: 1,

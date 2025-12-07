@@ -105,7 +105,7 @@ export class AuthService {
 
       // After successful login, update client invitation status and create session if this is a client
       try {
-        const updateResult = await clientService.acceptClientInvitationByEmail(email);
+        const updateResult = await clientService.acceptClientInvitationByEmail(email, result.user.uid);
         if (updateResult.success) {
           console.log('Client invitation status updated to accepted for:', email);
 
@@ -154,7 +154,7 @@ export class AuthService {
 
       // Only update client status if user has username (indicating client account)
       if (userData?.username && userData.username.match(/^CLI\d{9}$/)) {
-        const updateResult = await clientService.acceptClientInvitationByEmail(email);
+        const updateResult = await clientService.acceptClientInvitationByEmail(email, result.user.uid);
         if (updateResult.success) {
           console.log('Client invitation status updated to accepted for:', email);
 

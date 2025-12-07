@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList } from '../../types';
 import ProgressBar from '../../components/ProgressBar';
+import ImageZoomModal from '../../components/ImageZoomModal';
 import { useClientChantier } from '../../hooks/useClientChantier';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Chantier'>;
@@ -22,6 +23,9 @@ const { width } = Dimensions.get('window');
 
 export default function ChantierScreen({ navigation, route }: Props) {
   const chantierId = route?.params?.chantierId;
+  const [selectedImage, setSelectedImage] = useState<{uri: string, description: string} | null>(null);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+
   const {
     chantier,
     loading,
@@ -31,10 +35,20 @@ export default function ChantierScreen({ navigation, route }: Props) {
     address,
     globalProgress,
     status,
+    mainImage,
     photos,
-    phases,
-    recentUpdates
+    phases
   } = useClientChantier(chantierId);
+
+  const handleImagePress = (imageUri: string, description: string) => {
+    setSelectedImage({ uri: imageUri, description });
+    setIsImageModalVisible(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setIsImageModalVisible(false);
+    setSelectedImage(null);
+  };
 
   const getPhaseStatusColor = (status: string) => {
     switch (status) {
@@ -139,6 +153,25 @@ export default function ChantierScreen({ navigation, route }: Props) {
             <Text style={styles.statusText}>{status}</Text>
           </View>
 
+          {/* Image principale du chantier */}
+          {mainImage && (
+            <TouchableOpacity
+              style={styles.mainImageContainer}
+              onPress={() => handleImagePress(mainImage.url, mainImage.description || 'Image principale du chantier')}
+              activeOpacity={0.8}
+            >
+              <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
+              <View style={styles.mainImageOverlay}>
+                <MaterialIcons
+                  name="zoom-in"
+                  size={24}
+                  color="#fff"
+                  style={styles.mainImageZoomIcon}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Avancement global</Text>
@@ -158,12 +191,23 @@ export default function ChantierScreen({ navigation, route }: Props) {
               contentContainerStyle={styles.galleryContainer}
             >
               {photos.map((photo, index) => (
-                <TouchableOpacity key={photo.id} style={styles.galleryItem}>
+                <TouchableOpacity
+                  key={photo.id}
+                  style={styles.galleryItem}
+                  onPress={() => handleImagePress(photo.url, photo.description || '')}
+                  activeOpacity={0.8}
+                >
                   <Image source={{ uri: photo.url }} style={styles.galleryImage} />
                   <View style={styles.photoOverlay}>
                     <Text style={styles.photoDescription} numberOfLines={2}>
                       {photo.description}
                     </Text>
+                    <MaterialIcons
+                      name="zoom-in"
+                      size={16}
+                      color="#fff"
+                      style={styles.zoomIcon}
+                    />
                   </View>
                 </TouchableOpacity>
               ))}
@@ -236,32 +280,6 @@ export default function ChantierScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* Recent Updates */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mises à jour récentes</Text>
-          {recentUpdates.length > 0 ? (
-            recentUpdates.map((update) => (
-              <View key={update.id} style={styles.updateCard}>
-                <View style={styles.updateHeader}>
-                  <MaterialIcons
-                    name={update.status === 'completed' ? 'check-circle' : 'schedule'}
-                    size={20}
-                    color={update.status === 'completed' ? '#4CAF50' : '#E96C2E'}
-                  />
-                  <Text style={styles.updateDate}>{update.date}</Text>
-                </View>
-                <Text style={styles.updateTitle}>{update.title}</Text>
-                <Text style={styles.updateDescription}>{update.description}</Text>
-              </View>
-            ))
-          ) : (
-            <View style={styles.emptyUpdates}>
-              <MaterialIcons name="update" size={32} color="#E0E0E0" />
-              <Text style={styles.emptyUpdatesText}>Aucune mise à jour</Text>
-              <Text style={styles.emptyUpdatesSubtext}>Les mises à jour apparaîtront ici</Text>
-            </View>
-          )}
-        </View>
 
         {/* Contact Button */}
         <View style={styles.section}>
@@ -274,6 +292,14 @@ export default function ChantierScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal de zoom d'image */}
+      <ImageZoomModal
+        visible={isImageModalVisible}
+        imageUri={selectedImage?.uri || ''}
+        description={selectedImage?.description}
+        onClose={handleCloseImageModal}
+      />
       </SafeAreaView>
     </View>
   );
@@ -445,47 +471,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontFamily: 'FiraSans_600SemiBold',
   },
-  updateCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  updateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  updateDate: {
-    marginLeft: 8,
-    fontSize: 12,
-    color: '#666',
-    fontFamily: 'FiraSans_400Regular',
-  },
-  updateTitle: {
-    fontSize: 16,
-    color: '#2B2E83',
-    marginBottom: 5,
-    fontFamily: 'FiraSans_700Bold',
-  },
-  updateDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 10,
-    fontFamily: 'FiraSans_400Regular',
-  },
-  updateImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-  },
   contactButton: {
     backgroundColor: '#E96C2E',
     flexDirection: 'row',
@@ -555,11 +540,44 @@ const styles = StyleSheet.create({
     padding: 8,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   photoDescription: {
     fontSize: 10,
     color: '#fff',
     fontFamily: 'FiraSans_400Regular',
+    flex: 1,
+  },
+  zoomIcon: {
+    marginLeft: 8,
+  },
+  mainImageContainer: {
+    position: 'relative',
+    marginTop: 15,
+    marginBottom: 15,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mainImage: {
+    width: '100%',
+    height: 200,
+  },
+  mainImageOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  mainImageZoomIcon: {
+    opacity: 0.9,
   },
   emptyGallery: {
     alignItems: 'center',
@@ -595,25 +613,5 @@ const styles = StyleSheet.create({
   phaseProgressContainer: {
     marginTop: 8,
     marginBottom: 8,
-  },
-  emptyUpdates: {
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 20,
-  },
-  emptyUpdatesText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-    fontFamily: 'FiraSans_600SemiBold',
-  },
-  emptyUpdatesSubtext: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#999',
-    fontFamily: 'FiraSans_400Regular',
-    textAlign: 'center',
   },
 });

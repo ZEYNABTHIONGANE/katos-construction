@@ -91,6 +91,22 @@ export class ChantierService {
     }
   }
 
+  // Récupérer tous les chantiers (pour les tests et diagnostics)
+  async getAllChantiers(): Promise<FirebaseChantier[]> {
+    try {
+      const chantiersRef = collection(db, this.COLLECTION_NAME);
+      const snapshot = await getDocs(chantiersRef);
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as FirebaseChantier));
+    } catch (error) {
+      console.error('Erreur lors de la récupération de tous les chantiers:', error);
+      return [];
+    }
+  }
+
   // Mettre à jour la progression d'une phase
   async updatePhaseProgress(
     chantierId: string,
@@ -327,17 +343,40 @@ export class ChantierService {
 
   // Écouter le chantier d'un client
   subscribeToClientChantier(clientId: string, callback: (chantier: FirebaseChantier | null) => void): () => void {
+    console.log('🔍 Searching for chantier with clientId:', clientId);
     const chantiersRef = collection(db, this.COLLECTION_NAME);
     const q = query(chantiersRef, where('clientId', '==', clientId));
 
     return onSnapshot(q, (snapshot) => {
+      console.log('📊 Query snapshot result:', {
+        empty: snapshot.empty,
+        size: snapshot.size,
+        clientId,
+        collection: this.COLLECTION_NAME
+      });
+
       if (!snapshot.empty) {
         const chantierDoc = snapshot.docs[0];
+        const chantierData = chantierDoc.data();
+        console.log('✅ Found chantier for client:', {
+          chantierId: chantierDoc.id,
+          clientId: chantierData.clientId,
+          name: chantierData.name
+        });
         callback({
           id: chantierDoc.id,
-          ...chantierDoc.data()
+          ...chantierData
         } as FirebaseChantier);
       } else {
+        console.log('❌ No chantier found for clientId:', clientId);
+        // Let's also try to list all chantiers to debug
+        getDocs(collection(db, this.COLLECTION_NAME)).then((allSnapshot) => {
+          console.log('🔍 All chantiers in database:');
+          allSnapshot.docs.forEach((doc, index) => {
+            const data = doc.data();
+            console.log(`  ${index + 1}. ID: ${doc.id}, clientId: ${data.clientId}, name: ${data.name || 'N/A'}`);
+          });
+        }).catch(console.error);
         callback(null);
       }
     }, (error) => {

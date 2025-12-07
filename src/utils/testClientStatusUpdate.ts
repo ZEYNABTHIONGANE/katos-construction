@@ -24,6 +24,7 @@ export const testClientStatusUpdate = async (email: string): Promise<void> => {
     console.log('📋 Client status before update:', {
       id: clientBefore.id,
       email: clientBefore.email,
+      status: clientBefore.status,
       invitationStatus: clientBefore.invitationStatus,
       acceptedAt: clientBefore.acceptedAt?.toDate().toISOString() || 'null'
     });
@@ -42,17 +43,25 @@ export const testClientStatusUpdate = async (email: string): Promise<void> => {
     console.log('📋 Client status after update:', {
       id: clientAfter.id,
       email: clientAfter.email,
+      status: clientAfter.status,
       invitationStatus: clientAfter.invitationStatus,
       acceptedAt: clientAfter.acceptedAt?.toDate().toISOString() || 'null'
     });
 
     // 4. Verify the update
     if (clientBefore.invitationStatus === 'pending' && clientAfter.invitationStatus === 'accepted') {
-      console.log('✅ Status successfully updated from pending to accepted');
+      console.log('✅ Invitation status successfully updated from pending to accepted');
     } else if (clientAfter.invitationStatus === 'accepted') {
-      console.log('✅ Status already accepted (expected for subsequent logins)');
+      console.log('✅ Invitation status already accepted (expected for subsequent logins)');
     } else {
-      console.error('❌ Status update failed - unexpected state');
+      console.error('❌ Invitation status update failed - unexpected state');
+    }
+
+    // 5. Verify project status update
+    if (clientAfter.status === 'En cours') {
+      console.log('✅ Project status set to "En cours" (active project)');
+    } else {
+      console.log('ℹ️ Project status:', clientAfter.status);
     }
 
     console.log('=== Test Complete ===');

@@ -16,6 +16,7 @@ import {
 import { db } from '../config/firebase';
 import type { FirebaseClient } from '../types/firebase';
 import { COLLECTIONS } from '../types/firebase';
+import { credentialGeneratorService, type GeneratedCredentials } from './credentialGeneratorService';
 
 export class ClientService {
   private collectionName = COLLECTIONS.clients;
@@ -32,6 +33,53 @@ export class ClientService {
 
     const docRef = await addDoc(clientRef, newClient);
     return docRef.id;
+  }
+
+  /**
+   * Add a new client with automatic credential generation
+   */
+  async addClientWithCredentials(clientData: Omit<FirebaseClient, 'id' | 'createdAt'>): Promise<{
+    clientId: string;
+    credentials: {
+      username: string;
+      password: string;
+      loginUrl: string;
+    };
+  }> {
+    try {
+      console.log('🔄 Création du client avec génération automatique des credentials...');
+
+      // 1. Créer le client dans Firestore
+      const clientId = await this.addClient(clientData);
+      console.log('✅ Client créé avec ID:', clientId);
+
+      // 2. Récupérer les données complètes du client (avec ID)
+      const completeClientData = await this.getClientById(clientId);
+      if (!completeClientData) {
+        throw new Error('Impossible de récupérer les données du client créé');
+      }
+
+      // 3. Générer les credentials automatiquement
+      const credentialsResult = await credentialGeneratorService.generateAndFormatCredentials(
+        completeClientData,
+        clientId
+      );
+
+      if (!credentialsResult.success || !credentialsResult.credentials) {
+        throw new Error(credentialsResult.error || 'Erreur lors de la génération des credentials');
+      }
+
+      console.log('✅ Credentials générés avec succès pour:', credentialsResult.credentials.username);
+
+      return {
+        clientId,
+        credentials: credentialsResult.credentials
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur lors de la création du client avec credentials:', error);
+      throw error;
+    }
   }
 
   /**
@@ -235,7 +283,7 @@ export class ClientService {
   /**
    * Find client by user email and update their status to accepted (first login)
    */
-  async acceptClientInvitationByEmail(email: string): Promise<{ success: boolean; clientId?: string }> {
+  async acceptClientInvitationByEmail(email: string, userId?: string): Promise<{ success: boolean; clientId?: string }> {
     try {
       // Find the client by email
       const client = await this.getClientByEmail(email);
@@ -245,16 +293,24 @@ export class ClientService {
         return { success: false };
       }
 
-      // Only update if status is still pending (avoid updating on every login)
-      if (client.invitationStatus !== 'pending') {
-        console.log('Client invitation already processed:', client.invitationStatus);
-        return { success: true, clientId: client.id };
+      // Prepare updates
+      const updates: Partial<FirebaseClient> = {
+        invitationStatus: 'accepted',
+        acceptedAt: Timestamp.now(),
+        status: 'En cours' // Changer le statut du projet à "En cours" lors de la première connexion
+      };
+
+      // Link Firebase Auth userId to client if provided
+      if (userId) {
+        updates.userId = userId;
+        console.log('Linking client', client.id, 'to Firebase Auth user:', userId);
       }
 
-      // Update the client status to accepted
-      await this.updateClientInvitationStatus(client.id, 'accepted');
+      // Update the client
+      const clientRef = doc(db, this.collectionName, client.id);
+      await updateDoc(clientRef, updates);
 
-      console.log('Successfully updated client invitation status to accepted for:', email);
+      console.log('Successfully updated client invitation status and linked userId for:', email);
       return { success: true, clientId: client.id };
     } catch (error) {
       console.error('Error updating client invitation status:', error);

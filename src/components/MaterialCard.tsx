@@ -13,6 +13,7 @@ interface MaterialCardProps {
   material: Material;
   onPress?: () => void;
   onSelect?: () => void;
+  onImagePress?: () => void;
   isSelected?: boolean;
   horizontal?: boolean;
 }
@@ -21,6 +22,7 @@ export default function MaterialCard({
   material,
   onPress,
   onSelect,
+  onImagePress,
   isSelected = false,
   horizontal = false,
 }: MaterialCardProps) {
@@ -39,13 +41,23 @@ export default function MaterialCard({
         onPress={onPress}
       >
         <View style={styles.horizontalCardInner}>
-          <View style={styles.horizontalImageContainer}>
+          <TouchableOpacity
+            style={styles.horizontalImageContainer}
+            onPress={onImagePress}
+            activeOpacity={0.8}
+          >
             <Image source={{ uri: material.imageUrl }} style={styles.horizontalImage} />
 
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>{material.category}</Text>
             </View>
-          </View>
+
+            {onImagePress && (
+              <View style={styles.horizontalZoomOverlay}>
+                <MaterialIcons name="zoom-in" size={16} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={styles.horizontalContent}>
             <View style={styles.horizontalHeader}>
@@ -97,7 +109,11 @@ export default function MaterialCard({
       onPress={onPress}
     >
       <View style={styles.cardInner}>
-        <View style={styles.imageContainer}>
+        <TouchableOpacity
+          style={styles.imageContainer}
+          onPress={onImagePress}
+          activeOpacity={0.8}
+        >
           <Image source={{ uri: material.imageUrl }} style={styles.image} />
 
           <View style={styles.categoryBadge}>
@@ -113,7 +129,13 @@ export default function MaterialCard({
           <View style={styles.priceBadge}>
             <Text style={styles.priceText}>{formatPrice(material.price)}</Text>
           </View>
-        </View>
+
+          {onImagePress && (
+            <View style={styles.zoomOverlay}>
+              <MaterialIcons name="zoom-in" size={20} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
 
         <View style={styles.content}>
           <Text style={styles.name} numberOfLines={2}>
@@ -304,6 +326,14 @@ const styles = StyleSheet.create({
   selectedButtonText: {
     color: '#FFFFFF',
   },
+  zoomOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 16,
+    padding: 6,
+  },
 
   // Styles horizontaux
   horizontalContainer: {
@@ -398,5 +428,13 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginLeft: 4,
     fontFamily: 'FiraSans_400Regular',
+  },
+  horizontalZoomOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    padding: 4,
   },
 });

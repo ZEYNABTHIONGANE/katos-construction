@@ -26,6 +26,16 @@ export const useFirebaseClients = () => {
     }
   };
 
+  const addClientWithCredentials = async (clientData: Omit<FirebaseClient, 'id' | 'createdAt'>) => {
+    try {
+      setError(null);
+      return await clientService.addClientWithCredentials(clientData);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const updateClient = async (id: string, updates: Partial<Omit<FirebaseClient, 'id' | 'createdAt'>>) => {
     try {
       setError(null);
@@ -71,6 +81,7 @@ export const useFirebaseClients = () => {
     loading,
     error,
     addClient,
+    addClientWithCredentials,
     updateClient,
     deleteClient,
     searchClients,

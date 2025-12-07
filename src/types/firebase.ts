@@ -220,6 +220,29 @@ export interface FirebaseDocument {
   deletedBy?: string;
 }
 
+// Firebase client selection interface
+export interface FirebaseClientSelection {
+  id?: string;
+  clientId: string;
+  chantierId?: string; // Optional since some clients might not have a chantier yet
+  selections: {
+    materialId: string;
+    materialName: string;
+    materialCategory: string;
+    materialPrice: number;
+    materialImageUrl: string;
+    selectedAt: Timestamp;
+  }[];
+  totalAmount: number;
+  status: 'submitted' | 'under_review' | 'approved' | 'rejected';
+  submittedAt: Timestamp;
+  reviewedAt?: Timestamp;
+  reviewedBy?: string;
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 // Firebase collections - updated to include chantiers and documents
 export interface FirebaseCollections {
   users: 'users';
@@ -229,6 +252,7 @@ export interface FirebaseCollections {
   invitations: 'invitations';
   chantiers: 'chantiers';
   documents: 'documents';
+  clientSelections: 'clientSelections';
 }
 
 // Collection names constant for easy reference
@@ -239,7 +263,8 @@ export const COLLECTIONS: FirebaseCollections = {
   projects: 'projects',
   invitations: 'invitations',
   chantiers: 'chantiers',
-  documents: 'documents'
+  documents: 'documents',
+  clientSelections: 'clientSelections'
 };
 
 // Utility functions for chantier calculations

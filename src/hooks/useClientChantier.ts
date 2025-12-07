@@ -1,42 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { chantierService } from '../services/chantierService';
 import { useClientAuth } from './useClientAuth';
 import type { FirebaseChantier } from '../types/firebase';
 
 export const useClientChantier = (specificChantierId?: string) => {
-  const { session, isAuthenticated } = useClientAuth();
+  const { session, isAuthenticated, refreshKey } = useClientAuth();
   const [chantier, setChantier] = useState<FirebaseChantier | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔄 useClientChantier useEffect triggered:', {
+      isAuthenticated,
+      clientId: session?.clientId,
+      specificChantierId,
+      refreshKey,
+      hasSession: !!session
+    });
+
     if (!isAuthenticated || !session?.clientId) {
+      console.log('❌ useClientChantier: Not authenticated or no clientId');
       setChantier(null);
       setLoading(false);
       setError(null);
       return;
     }
 
-    setLoading(true);
+    console.log('✅ useClientChantier: Starting subscription for clientId:', session.clientId);
+    // Only set loading to true if we don't already have data
+    if (!chantier) {
+      setLoading(true);
+    }
     setError(null);
 
     let unsubscribe: () => void;
 
     if (specificChantierId) {
+      console.log('🎯 useClientChantier: Using specific chantier ID:', specificChantierId);
       // Si un ID spécifique est fourni, récupérer ce chantier directement
       unsubscribe = chantierService.subscribeToChantier(
         specificChantierId,
         (chantierData) => {
+          console.log('📦 useClientChantier (specific): Received chantier data:', chantierData?.id || null);
           setChantier(chantierData);
           setLoading(false);
           setError(chantierData === null ? 'Chantier non trouvé' : null);
         }
       );
     } else {
+      console.log('🏠 useClientChantier: Using client chantier for clientId:', session.clientId);
       // Sinon, récupérer le chantier du client connecté
       unsubscribe = chantierService.subscribeToClientChantier(
         session.clientId,
         (chantierData) => {
+          console.log('📦 useClientChantier (client): Received chantier data:', chantierData?.id || null);
           setChantier(chantierData);
           setLoading(false);
           setError(chantierData === null ? 'Aucun chantier assigné' : null);
@@ -45,9 +62,10 @@ export const useClientChantier = (specificChantierId?: string) => {
     }
 
     return () => {
+      console.log('🧹 useClientChantier: Cleanup subscription');
       unsubscribe();
     };
-  }, [isAuthenticated, session?.clientId, specificChantierId]);
+  }, [isAuthenticated, session?.clientId, specificChantierId]); // Remove refreshKey from dependencies to avoid multiple triggers
 
   // Calculate current phase based on phases status
   const getCurrentPhase = () => {
@@ -126,6 +144,8 @@ export const useClientChantier = (specificChantierId?: string) => {
     }));
   };
 
+  const photos = getPhotos();
+
   return {
     chantier,
     loading,
@@ -141,8 +161,11 @@ export const useClientChantier = (specificChantierId?: string) => {
     startDate: chantier?.startDate?.toDate().toLocaleDateString('fr-FR') || '',
     plannedEndDate: chantier?.plannedEndDate?.toDate().toLocaleDateString('fr-FR') || '',
 
+    // Main image (first image from the project)
+    mainImage: photos.length > 0 ? photos[0] : null,
+
     // Data arrays
-    photos: getPhotos(),
+    photos,
     recentUpdates: getRecentUpdates(),
     phases: getPhases()
   };

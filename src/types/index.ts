@@ -11,6 +11,7 @@ export type RootStackParamList = {
   ClientTabs: NavigatorScreenParams<HomeTabParamList> | undefined;
   ChefTabs: NavigatorScreenParams<ChefTabParamList> | undefined;
   ClientProjects: undefined;
+  ClientDocuments: undefined;
   HelpSupport: undefined;
   About: undefined;
   Main: undefined;
@@ -27,6 +28,7 @@ export type HomeTabParamList = {
 export type ChefTabParamList = {
   ChefDashboard: undefined;
   ChefChantiers: { selectedChantierId?: string };
+  ChefDocuments: undefined;
   ChefChat: undefined;
   ChefProfil: undefined;
 };

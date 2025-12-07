@@ -20,7 +20,8 @@ import { useClientChantier } from '../../hooks/useClientChantier';
 import { useClientDocuments } from '../../hooks/useDocuments';
 import { useAuth } from '../../hooks/useAuth';
 import ProgressBar from '../../components/ProgressBar';
-import type { DocumentCategory } from '../../types/firebase';
+import DocumentUploadModal from '../../components/DocumentUploadModal';
+import type { DocumentCategory, DocumentVisibility } from '../../types/firebase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClientProjects'>;
 
@@ -57,57 +58,40 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [selectedDocumentCategory, setSelectedDocumentCategory] = useState<DocumentCategory>('other');
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const openPhotoViewer = (photoUrl: string) => {
     setSelectedPhoto(photoUrl);
     setShowPhotoModal(true);
   };
 
-  const addDocument = async () => {
+  const handleUploadDocument = async (
+    file: { uri: string; name: string; size: number; mimeType?: string },
+    category: DocumentCategory,
+    title: string,
+    description?: string,
+    visibility: DocumentVisibility = 'both'
+  ): Promise<boolean> => {
     if (!userData || !chantier?.id) {
       Alert.alert('Erreur', 'Impossible d\'identifier l\'utilisateur ou le chantier');
-      return;
+      return false;
     }
 
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-
-        if (!asset.uri || !asset.name) {
-          Alert.alert('Erreur', 'Fichier invalide');
-          return;
+      const uploadedDoc = await uploadDocument(
+        file,
+        category,
+        userData.uid,
+        {
+          description: description || `${title} - Uploadé par le client`,
+          visibility
         }
+      );
 
-        const fileData = {
-          uri: asset.uri,
-          name: asset.name,
-          size: asset.size || 0,
-          mimeType: asset.mimeType
-        };
-
-        const uploadedDoc = await uploadDocument(
-          fileData,
-          selectedDocumentCategory,
-          userData.clientId,
-          {
-            description: `Document uploadé par le client`,
-            visibility: 'both'
-          }
-        );
-
-        if (uploadedDoc) {
-          Alert.alert('Succès', 'Document ajouté avec succès !');
-        }
-      }
+      return !!uploadedDoc;
     } catch (error) {
       console.error('Error uploading document:', error);
-      Alert.alert('Erreur', 'Impossible d\'ajouter le document');
+      return false;
     }
   };
 
@@ -123,7 +107,7 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
-            const success = await deleteDocument(documentId, userData.clientId);
+            const success = await deleteDocument(documentId, userData.uid);
             if (success) {
               Alert.alert('Succès', 'Document supprimé');
             }
@@ -310,7 +294,7 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
               <Text style={styles.sectionTitle}>Documents ({totalDocuments})</Text>
               <TouchableOpacity
                 style={[styles.addDocumentButton, uploading && styles.addDocumentButtonDisabled]}
-                onPress={addDocument}
+                onPress={() => setShowUploadModal(true)}
                 disabled={uploading}
               >
                 {uploading ? (
@@ -360,6 +344,14 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
             )}
           </View>
         </Modal>
+
+        {/* Document Upload Modal */}
+        <DocumentUploadModal
+          visible={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onUpload={handleUploadDocument}
+          uploading={uploading}
+        />
       </SafeAreaView>
     </View>
   );

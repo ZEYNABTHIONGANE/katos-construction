@@ -93,20 +93,27 @@ export class DocumentService {
    */
   async getChantierDocuments(chantierId: string, userRole?: 'client' | 'chef'): Promise<FirebaseDocument[]> {
     try {
+      console.log(`📚 Fetching documents for chantier: ${chantierId}, role: ${userRole}`);
+
       const documentsRef = collection(db, this.COLLECTION_NAME);
+
+      // Try with simplified query first
       let q = query(
         documentsRef,
         where('chantierId', '==', chantierId),
-        where('isVisible', '==', true),
-        where('isDeleted', '!=', true),
         orderBy('uploadedAt', 'desc')
       );
 
       const snapshot = await getDocs(q);
+      console.log(`📄 Retrieved ${snapshot.docs.length} documents from Firestore`);
+
       let documents = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      } as FirebaseDocument));
+      } as FirebaseDocument)).filter(doc =>
+        // Filter out deleted and invisible documents on client side
+        doc.isVisible === true && doc.isDeleted !== true
+      );
 
       // Filter by visibility based on user role
       if (userRole) {
@@ -115,10 +122,37 @@ export class DocumentService {
         );
       }
 
+      console.log(`📋 Filtered to ${documents.length} visible documents for role: ${userRole}`);
       return documents;
     } catch (error) {
       console.error('Error fetching chantier documents:', error);
-      return [];
+
+      // If compound queries fail due to permissions, try basic query
+      try {
+        console.log('🔄 Trying fallback query without compound where clauses...');
+        const documentsRef = collection(db, this.COLLECTION_NAME);
+        const basicQuery = query(documentsRef, where('chantierId', '==', chantierId));
+        const snapshot = await getDocs(basicQuery);
+
+        let documents = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as FirebaseDocument)).filter(doc =>
+          doc.isVisible === true && doc.isDeleted !== true
+        );
+
+        if (userRole) {
+          documents = documents.filter(doc =>
+            doc.visibility === 'both' || doc.visibility === `${userRole}_only`
+          );
+        }
+
+        console.log(`📚 Fallback: Retrieved ${documents.length} documents`);
+        return documents;
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        return [];
+      }
     }
   }
 
@@ -224,20 +258,27 @@ export class DocumentService {
     callback: (documents: FirebaseDocument[]) => void,
     userRole?: 'client' | 'chef'
   ): () => void {
+    console.log(`📚 Subscribing to documents for chantier: ${chantierId}, role: ${userRole}`);
+
     const documentsRef = collection(db, this.COLLECTION_NAME);
+
+    // Simplified query without compound where clauses that might cause permission issues
     const q = query(
       documentsRef,
       where('chantierId', '==', chantierId),
-      where('isVisible', '==', true),
-      where('isDeleted', '!=', true),
       orderBy('uploadedAt', 'desc')
     );
 
     return onSnapshot(q, (snapshot) => {
+      console.log(`📄 Received ${snapshot.docs.length} documents from Firestore`);
+
       let documents: FirebaseDocument[] = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      } as FirebaseDocument));
+      } as FirebaseDocument)).filter(doc =>
+        // Filter out deleted and invisible documents on client side
+        doc.isVisible === true && doc.isDeleted !== true
+      );
 
       // Filter by visibility based on user role
       if (userRole) {
@@ -246,10 +287,24 @@ export class DocumentService {
         );
       }
 
+      console.log(`📋 Filtered to ${documents.length} visible documents for role: ${userRole}`);
       callback(documents);
     }, (error) => {
       console.error('Error listening to chantier documents:', error);
-      callback([]);
+
+      // Fallback: try to fetch documents without real-time subscription
+      this.getChantierDocuments(chantierId, userRole)
+        .then(docs => {
+          console.log(`📚 Fallback: Retrieved ${docs.length} documents without subscription`);
+          callback(docs);
+        })
+        .catch(fallbackError => {
+          console.error('Fallback document fetch also failed:', fallbackError);
+          callback([]);
+        });
+
+      // Return empty unsubscribe function
+      return () => {};
     });
   }
 

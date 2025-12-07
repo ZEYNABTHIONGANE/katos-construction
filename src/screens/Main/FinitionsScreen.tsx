@@ -16,15 +16,23 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList, Category, Material, Selection } from '../../types';
 import CategoryButton from '../../components/CategoryButton';
 import MaterialCard from '../../components/MaterialCard';
+import ImageZoomModal from '../../components/ImageZoomModal';
 import { useClientSpecificData } from '../../hooks/useClientSpecificData';
+import { useClientAuth } from '../../hooks/useClientAuth';
+import { clientSelectionService } from '../../services/clientSelectionService';
+import { authService } from '../../services/authService';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Finitions'>;
 
 export default function FinitionsScreen({ navigation }: Props) {
   const { materialCategories, loading, error } = useClientSpecificData();
+  const { session } = useClientAuth();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [userSelections, setUserSelections] = useState<Selection[]>([]);
   const [showSelectionsModal, setShowSelectionsModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{uri: string, description: string} | null>(null);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [isSubmittingSelections, setIsSubmittingSelections] = useState(false);
 
   // Set first category as selected when categories are loaded
   useEffect(() => {
@@ -73,9 +81,58 @@ export default function FinitionsScreen({ navigation }: Props) {
     return userSelections.some((s) => s.materialId === materialId);
   };
 
-  const handleConfirmSelections = () => {
-    Toast.success('Sélections confirmées avec succès !');
-    setShowSelectionsModal(false);
+  const handleConfirmSelections = async () => {
+    if (!session?.clientId) {
+      Toast.error('Erreur : client non identifié');
+      return;
+    }
+
+    // Récupérer l'ID Firebase Auth de l'utilisateur connecté
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      Toast.error('Erreur : utilisateur non authentifié');
+      return;
+    }
+
+    if (userSelections.length === 0) {
+      Toast.error('Aucune sélection à confirmer');
+      return;
+    }
+
+    setIsSubmittingSelections(true);
+
+    try {
+      const selectionId = await clientSelectionService.submitSelections(
+        currentUser.uid, // Utiliser l'ID Firebase Auth au lieu de session.clientId
+        userSelections,
+        session.clientId // Passer l'ID du client comme chantierId pour référence
+      );
+
+      Toast.success(`Sélections envoyées avec succès ! (ID: ${selectionId})`);
+      setShowSelectionsModal(false);
+
+      // Optionnel : vider les sélections après envoi
+      setUserSelections([]);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi des sélections:', error);
+      Toast.error('Erreur lors de l\'envoi des sélections');
+    } finally {
+      setIsSubmittingSelections(false);
+    }
+  };
+
+  const handleImagePress = (material: Material) => {
+    setSelectedImage({
+      uri: material.imageUrl,
+      description: `${material.name} - ${material.category}`
+    });
+    setIsImageModalVisible(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setIsImageModalVisible(false);
+    setSelectedImage(null);
   };
 
   const renderCategory = ({ item }: { item: Category }) => (
@@ -91,6 +148,7 @@ export default function FinitionsScreen({ navigation }: Props) {
     <MaterialCard
       material={item}
       onSelect={() => handleMaterialSelect(item)}
+      onImagePress={() => handleImagePress(item)}
       isSelected={isSelected(item.id)}
       horizontal={true}
     />
@@ -100,6 +158,7 @@ export default function FinitionsScreen({ navigation }: Props) {
     <MaterialCard
       material={item.material}
       onSelect={() => handleMaterialSelect(item.material)}
+      onImagePress={() => handleImagePress(item.material)}
       isSelected={true}
       horizontal={true}
     />
@@ -237,17 +296,30 @@ export default function FinitionsScreen({ navigation }: Props) {
           {userSelections.length > 0 && (
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.confirmButton}
+                style={[styles.confirmButton, isSubmittingSelections && styles.confirmButtonDisabled]}
                 onPress={handleConfirmSelections}
+                disabled={isSubmittingSelections}
               >
-                <Text style={styles.confirmButtonText}>
-                  Confirmer mes sélections
-                </Text>
+                {isSubmittingSelections ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>
+                    Confirmer mes sélections
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
         </SafeAreaView>
       </Modal>
+
+      {/* Modal de zoom d'image */}
+      <ImageZoomModal
+        visible={isImageModalVisible}
+        imageUri={selectedImage?.uri || ''}
+        description={selectedImage?.description}
+        onClose={handleCloseImageModal}
+      />
       </SafeAreaView>
     </View>
   );
@@ -415,6 +487,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.7,
   },
   confirmButtonText: {
     fontSize: 16,

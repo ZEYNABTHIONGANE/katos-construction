@@ -176,7 +176,7 @@ export default function ClientProjectsScreen({ navigation }: Props) {
               <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ClientDocuments')}>
               <View style={[styles.actionIcon, { backgroundColor: '#4CAF50' }]}>
                 <MaterialIcons name="description" size={24} color="#FFFFFF" />
               </View>

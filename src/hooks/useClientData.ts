@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { clientService } from '../services/clientService';
@@ -11,7 +11,7 @@ export interface ClientDataState {
   lastUpdated: Date | null;
 }
 
-export const useClientData = (clientId: string | null) => {
+export const useClientData = (clientId: string | null, refreshKey?: number) => {
   const [state, setState] = useState<ClientDataState>({
     clientData: null,
     loading: false,
@@ -30,7 +30,11 @@ export const useClientData = (clientId: string | null) => {
       return;
     }
 
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState(prev => ({
+      ...prev,
+      loading: !prev.clientData, // Only show loading if no data yet
+      error: null
+    }));
 
     // Écouter les changements en temps réel
     const unsubscribe = onSnapshot(
@@ -65,14 +69,18 @@ export const useClientData = (clientId: string | null) => {
     );
 
     return unsubscribe;
-  }, [clientId]);
+  }, [clientId]); // Remove refreshKey from dependencies to avoid multiple triggers
 
   // Méthode pour rafraîchir manuellement
   const refresh = async (): Promise<boolean> => {
     if (!clientId) return false;
 
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setState(prev => ({
+        ...prev,
+        loading: !prev.clientData, // Only show loading if no data yet
+        error: null
+      }));
 
       const freshData = await clientService.getClientById(clientId);
       if (freshData) {

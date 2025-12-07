@@ -35,39 +35,30 @@ export const useAuth = () => {
   const signIn = async (email: string, password: string) => {
     try {
       setError(null);
-      setLoading(true);
       await authService.signIn(email, password);
     } catch (err: any) {
       setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signInWithUsername = async (username: string, password: string) => {
     try {
       setError(null);
-      setLoading(true);
       await authService.signInWithUsername(username, password);
     } catch (err: any) {
       setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
     try {
       setError(null);
-      setLoading(true);
       await authService.signUp(email, password, displayName, phoneNumber);
     } catch (err: any) {
       setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 

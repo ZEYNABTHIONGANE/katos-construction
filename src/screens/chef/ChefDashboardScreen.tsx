@@ -8,6 +8,9 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,7 +18,9 @@ import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { chantierService } from '../../services/chantierService';
-import { FirebaseChantier } from '../../types/firebase';
+import { clientSelectionService } from '../../services/clientSelectionService';
+import { clientService } from '../../services/clientService';
+import { FirebaseChantier, FirebaseClientSelection } from '../../types/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -34,8 +39,11 @@ interface StatCard {
 export default function ChefDashboardScreen({ navigation }: Props) {
   const { user, userData, loading: authLoading } = useAuth();
   const [chantiers, setChantiers] = useState<FirebaseChantier[]>([]);
+  const [clientSelections, setClientSelections] = useState<FirebaseClientSelection[]>([]);
+  const [clientNames, setClientNames] = useState<{ [key: string]: string }>({});
   const [stats, setStats] = useState<StatCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllSelectionsModal, setShowAllSelectionsModal] = useState(false);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -56,13 +64,23 @@ export default function ChefDashboardScreen({ navigation }: Props) {
       const chefId = user.uid;
 
       // Set up real-time listener for chef chantiers
-      const unsubscribe = chantierService.subscribeToChefChantiers(chefId, (chantiersData) => {
+      const unsubscribeChantiers = chantierService.subscribeToChefChantiers(chefId, (chantiersData) => {
         setChantiers(chantiersData);
         updateStats(chantiersData);
         setLoading(false);
       });
 
-      return unsubscribe;
+      // Set up real-time listener for client selections
+      const unsubscribeSelections = clientSelectionService.subscribeToAllSelections((selectionsData) => {
+        setClientSelections(selectionsData);
+        // Load client names for each selection
+        loadClientNames(selectionsData);
+      });
+
+      return () => {
+        unsubscribeChantiers();
+        unsubscribeSelections();
+      };
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
       Alert.alert('Erreur', 'Impossible de charger les données');
@@ -126,6 +144,75 @@ export default function ChefDashboardScreen({ navigation }: Props) {
     } catch (error) {
       return '';
     }
+  };
+
+  const formatDateTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const loadClientNames = async (selectionsData: FirebaseClientSelection[]) => {
+    const uniqueClientIds = [...new Set(selectionsData.map(s => s.clientId))];
+    const names: { [key: string]: string } = {};
+
+    console.log('Loading client names for IDs:', uniqueClientIds);
+
+    // Récupérons tous les clients d'un coup pour optimiser
+    try {
+      const allClients = await clientService.getClients();
+      console.log('All clients loaded:', allClients.length);
+
+      for (const clientId of uniqueClientIds) {
+        // Chercher par userId d'abord
+        let client = allClients.find(c => c.userId === clientId);
+        console.log('Client found by userId for', clientId, ':', client);
+
+        // Si pas trouvé par userId, chercher par id du document
+        if (!client) {
+          client = allClients.find(c => c.id === clientId);
+          console.log('Client found by id for', clientId, ':', client);
+        }
+
+        if (client) {
+          names[clientId] = `${client.prenom} ${client.nom}`;
+          console.log('Set client name for', clientId, ':', names[clientId]);
+        } else {
+          names[clientId] = `Client ${clientId.substring(0, 8)}...`;
+          console.log('Using fallback name for:', clientId);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading clients:', error);
+      // En cas d'erreur, utiliser des noms de fallback
+      for (const clientId of uniqueClientIds) {
+        names[clientId] = `Client ${clientId.substring(0, 8)}...`;
+      }
+    }
+
+    console.log('Final client names mapping:', names);
+    setClientNames(names);
+  };
+
+  const getClientName = (clientId: string) => {
+    return clientNames[clientId] || `Client ${clientId.substring(0, 8)}...`;
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+    }).format(price);
   };
 
   if (authLoading || loading) {
@@ -275,7 +362,272 @@ export default function ChefDashboardScreen({ navigation }: Props) {
           </View>
         )}
       </View>
+
+      {/* Section des sélections clients */}
+      <View style={styles.selectionsContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Sélections clients récentes</Text>
+          <TouchableOpacity onPress={() => setShowAllSelectionsModal(true)}>
+            <Text style={styles.seeAllText}>Voir tout</Text>
+          </TouchableOpacity>
+        </View>
+
+        {clientSelections.slice(0, 3).map((selection) => (
+          <TouchableOpacity
+            key={selection.id}
+            style={styles.selectionCard}
+            activeOpacity={0.7}
+          >
+            <View style={styles.selectionCardInner}>
+              <View style={styles.selectionHeader}>
+                <View style={styles.selectionInfo}>
+                  <Text style={styles.selectionClient}>{getClientName(selection.clientId)}</Text>
+                  <Text style={styles.selectionDate}>{formatDateTime(selection.submittedAt)}</Text>
+                </View>
+                <View style={[styles.selectionStatusBadge, {
+                  backgroundColor: selection.status === 'submitted' ? '#FFC107' :
+                                   selection.status === 'approved' ? '#4CAF50' : '#F44336'
+                }]}>
+                  <Text style={styles.selectionStatusText}>
+                    {selection.status === 'submitted' ? 'Nouveau' :
+                     selection.status === 'approved' ? 'Approuvé' : 'Rejeté'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.selectionContent}>
+                <Text style={styles.selectionItemCount}>
+                  {selection.selections.length} matériau(x) sélectionné(s)
+                </Text>
+
+                {/* Affichage détaillé de chaque matériau */}
+                <View style={styles.materialsDetailContainer}>
+                  {selection.selections.map((item, index) => (
+                    <View key={index} style={styles.materialDetailCard}>
+                      <View style={styles.materialImageContainer}>
+                        <Image
+                          source={{ uri: item.materialImageUrl }}
+                          style={styles.materialImage}
+                          onError={(e) => {
+                            (e.target as any).src = 'https://images.unsplash.com/photo-1604079628040-94301bb21b91?w=400';
+                          }}
+                        />
+                      </View>
+
+                      <View style={styles.materialDetails}>
+                        <View style={styles.materialHeader}>
+                          <Text style={styles.materialNameDetail} numberOfLines={2}>
+                            {item.materialName}
+                          </Text>
+                          <View style={styles.materialCategoryBadge}>
+                            <Text style={styles.materialCategoryText}>
+                              {item.materialCategory}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.materialPriceContainer}>
+                          <MaterialIcons name="attach-money" size={16} color="#4CAF50" />
+                          <Text style={styles.materialPrice}>
+                            {formatPrice(item.materialPrice)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.materialDateContainer}>
+                          <MaterialIcons name="access-time" size={14} color="#6B7280" />
+                          <Text style={styles.materialSelectedDate}>
+                            Sélectionné le {formatDateTime(item.selectedAt)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Statistiques de la sélection */}
+                <View style={styles.selectionStats}>
+                  <View style={styles.statItem}>
+                    <MaterialIcons name="category" size={16} color="#2B2E83" />
+                    <Text style={styles.statLabel}>Catégories:</Text>
+                    <Text style={styles.statValue}>
+                      {[...new Set(selection.selections.map(s => s.materialCategory))].length}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <MaterialIcons name="schedule" size={16} color="#E96C2E" />
+                    <Text style={styles.statLabel}>Soumis:</Text>
+                    <Text style={styles.statValue}>
+                      {formatDateTime(selection.submittedAt)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.selectionFooter}>
+                <View style={styles.totalContainer}>
+                  <Text style={styles.totalLabel}>Total:</Text>
+                  <Text style={styles.totalAmount}>
+                    {new Intl.NumberFormat('fr-FR', {
+                      style: 'currency',
+                      currency: 'XOF',
+                      minimumFractionDigits: 0,
+                    }).format(selection.totalAmount)}
+                  </Text>
+                </View>
+                <View style={styles.arrowContainer}>
+                  <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        {clientSelections.length === 0 && (
+          <View style={styles.emptySelections}>
+            <MaterialIcons name="shopping-cart" size={48} color="#E0E0E0" />
+            <Text style={styles.emptySelectionsText}>Aucune sélection client</Text>
+            <Text style={styles.emptySelectionsSubtext}>
+              Les sélections des clients apparaîtront ici
+            </Text>
+          </View>
+        )}
+      </View>
       </ScrollView>
+
+      {/* Modal pour voir toutes les sélections */}
+      <Modal
+        visible={showAllSelectionsModal}
+        animationType="slide"
+        onRequestClose={() => setShowAllSelectionsModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Toutes les sélections clients</Text>
+            <TouchableOpacity
+              onPress={() => setShowAllSelectionsModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <MaterialIcons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={clientSelections}
+            keyExtractor={(item) => item.id || ''}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalContent}
+            renderItem={({ item: selection }) => (
+              <View style={styles.fullSelectionCard}>
+                <View style={styles.selectionCardInner}>
+                  <View style={styles.selectionHeader}>
+                    <View style={styles.selectionInfo}>
+                      <Text style={styles.selectionClient}>{getClientName(selection.clientId)}</Text>
+                      <Text style={styles.selectionDate}>{formatDateTime(selection.submittedAt)}</Text>
+                    </View>
+                    <View style={[styles.selectionStatusBadge, {
+                      backgroundColor: selection.status === 'submitted' ? '#FFC107' :
+                                       selection.status === 'approved' ? '#4CAF50' : '#F44336'
+                    }]}>
+                      <Text style={styles.selectionStatusText}>
+                        {selection.status === 'submitted' ? 'Nouveau' :
+                         selection.status === 'approved' ? 'Approuvé' : 'Rejeté'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.selectionContent}>
+                    <Text style={styles.selectionItemCount}>
+                      {selection.selections.length} matériau(x) sélectionné(s)
+                    </Text>
+
+                    {/* Affichage détaillé de chaque matériau */}
+                    <View style={styles.materialsDetailContainer}>
+                      {selection.selections.map((item, index) => (
+                        <View key={index} style={styles.materialDetailCard}>
+                          <View style={styles.materialImageContainer}>
+                            <Image
+                              source={{ uri: item.materialImageUrl }}
+                              style={styles.materialImage}
+                              onError={(e) => {
+                                (e.target as any).src = 'https://images.unsplash.com/photo-1604079628040-94301bb21b91?w=400';
+                              }}
+                            />
+                          </View>
+
+                          <View style={styles.materialDetails}>
+                            <View style={styles.materialHeader}>
+                              <Text style={styles.materialNameDetail} numberOfLines={2}>
+                                {item.materialName}
+                              </Text>
+                              <View style={styles.materialCategoryBadge}>
+                                <Text style={styles.materialCategoryText}>
+                                  {item.materialCategory}
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View style={styles.materialPriceContainer}>
+                              <MaterialIcons name="attach-money" size={16} color="#4CAF50" />
+                              <Text style={styles.materialPrice}>
+                                {formatPrice(item.materialPrice)}
+                              </Text>
+                            </View>
+
+                            <View style={styles.materialDateContainer}>
+                              <MaterialIcons name="access-time" size={14} color="#6B7280" />
+                              <Text style={styles.materialSelectedDate}>
+                                Sélectionné le {formatDateTime(item.selectedAt)}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Statistiques de la sélection */}
+                    <View style={styles.selectionStats}>
+                      <View style={styles.statItem}>
+                        <MaterialIcons name="category" size={16} color="#2B2E83" />
+                        <Text style={styles.statLabel}>Catégories:</Text>
+                        <Text style={styles.statValue}>
+                          {[...new Set(selection.selections.map(s => s.materialCategory))].length}
+                        </Text>
+                      </View>
+
+                      <View style={styles.statItem}>
+                        <MaterialIcons name="schedule" size={16} color="#E96C2E" />
+                        <Text style={styles.statLabel}>Soumis:</Text>
+                        <Text style={styles.statValue}>
+                          {formatDateTime(selection.submittedAt)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.selectionFooter}>
+                    <View style={styles.totalContainer}>
+                      <Text style={styles.totalLabel}>Total:</Text>
+                      <Text style={styles.totalAmount}>
+                        {formatPrice(selection.totalAmount)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.emptySelections}>
+                <MaterialIcons name="shopping-cart" size={48} color="#E0E0E0" />
+                <Text style={styles.emptySelectionsText}>Aucune sélection client</Text>
+                <Text style={styles.emptySelectionsSubtext}>
+                  Les sélections des clients apparaîtront ici
+                </Text>
+              </View>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -545,5 +897,273 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  // Styles pour les sélections clients
+  selectionsContainer: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  selectionCard: {
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  selectionCardInner: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  selectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  selectionInfo: {
+    flex: 1,
+  },
+  selectionClient: {
+    fontSize: 16,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 4,
+  },
+  selectionDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  selectionStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  selectionStatusText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_600SemiBold',
+    textTransform: 'uppercase',
+  },
+  selectionContent: {
+    marginBottom: 12,
+  },
+  selectionItemCount: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontFamily: 'FiraSans_500Medium',
+    marginBottom: 8,
+  },
+  selectionMaterials: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E96C2E',
+  },
+  materialName: {
+    fontSize: 13,
+    color: '#374151',
+    fontFamily: 'FiraSans_400Regular',
+    marginBottom: 2,
+  },
+  moreItems: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  selectionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginRight: 8,
+  },
+  totalAmount: {
+    fontSize: 16,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  emptySelections: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  emptySelectionsText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptySelectionsSubtext: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+
+  // Styles pour l'affichage détaillé des matériaux
+  materialsDetailContainer: {
+    marginTop: 12,
+  },
+  materialDetailCard: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E96C2E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  materialImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 12,
+    backgroundColor: '#E5E7EB',
+  },
+  materialImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  materialDetails: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  materialHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  materialNameDetail: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontFamily: 'FiraSans_600SemiBold',
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 18,
+  },
+  materialCategoryBadge: {
+    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  materialCategoryText: {
+    fontSize: 10,
+    color: '#3730A3',
+    fontFamily: 'FiraSans_600SemiBold',
+    textTransform: 'uppercase',
+  },
+  materialPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  materialPrice: {
+    fontSize: 13,
+    color: '#059669',
+    fontFamily: 'FiraSans_700Bold',
+    marginLeft: 4,
+  },
+  materialDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  materialSelectedDate: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginLeft: 4,
+  },
+
+  // Styles pour les statistiques
+  selectionStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  statValue: {
+    fontSize: 12,
+    color: '#1F2937',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+
+  // Styles pour la modal "Voir tout"
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#2B2E83',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingTop: 60,
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalContent: {
+    padding: 20,
+  },
+  fullSelectionCard: {
+    borderRadius: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+    overflow: 'hidden',
   },
 });

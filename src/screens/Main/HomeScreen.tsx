@@ -16,6 +16,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeTabParamList, RootStackParamList } from "../../types";
 import { useClientSpecificData } from "../../hooks/useClientSpecificData";
 import { useClientChantier } from "../../hooks/useClientChantier";
+import { useClientAuth } from "../../hooks/useClientAuth";
 import AppHeader from "../../components/AppHeader";
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
@@ -54,8 +55,35 @@ export default function HomeScreen({ navigation }: Props) {
     name: chantierName,
     address: chantierAddress,
     startDate,
+    mainImage,
     recentUpdates
   } = useClientChantier();
+
+  // Simple loading logic: show loading only when actually loading
+  const shouldShowLoading = !isAuthenticated || chantierLoading;
+
+  // Debug: Show what's happening step by step
+  if (!isAuthenticated) {
+    console.log('🔐 HomeScreen: Not authenticated');
+  } else if (chantierLoading) {
+    console.log('⏳ HomeScreen: Chantier loading...');
+  } else if (chantierError) {
+    console.log('❌ HomeScreen: Chantier error:', chantierError);
+  } else if (!hasChantier) {
+    console.log('🏠 HomeScreen: No chantier data but no error');
+  } else {
+    console.log('✅ HomeScreen: All good - showing dashboard');
+  }
+
+  console.log('🏠 HomeScreen render:', {
+    isAuthenticated,
+    hasChantier,
+    chantierLoading,
+    chantierError,
+    chantierName,
+    shouldShowLoading,
+    clientInfo: !!clientInfo
+  });
 
 
   const handleProjectPress = () => {
@@ -80,15 +108,23 @@ export default function HomeScreen({ navigation }: Props) {
     );
   }
 
-  // Show error state
-  if (chantierError || (!chantierLoading && !hasChantier)) {
-    const errorTitle = !hasChantier
-      ? "Aucun chantier assigné"
-      : "Erreur de chargement";
+  // Show loading state when necessary
+  if (shouldShowLoading) {
+    return (
+      <View style={styles.container}>
+        <AppHeader />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E7D4A" />
+          <Text style={styles.loadingText}>Chargement de vos données...</Text>
+        </View>
+      </View>
+    );
+  }
 
-    const errorMessage = !hasChantier
-      ? "Aucun chantier n'a été assigné à votre compte. Votre chantier apparaîtra ici une fois créé par l'administration."
-      : chantierError;
+  // Show error state only for real errors
+  if (chantierError) {
+    const errorTitle = "Erreur de chargement";
+    const errorMessage = chantierError;
 
     return (
       <View style={[styles.container, styles.loadingContainer]}>
@@ -216,47 +252,61 @@ export default function HomeScreen({ navigation }: Props) {
               activeOpacity={0.7}
             >
               <View style={styles.projectCardInner} pointerEvents="none">
-                <View style={styles.projectHeader}>
-                  <View style={styles.projectInfo}>
-                    <Text style={styles.projectName}>{chantierName}</Text>
-                    <Text style={styles.clientName}>{chantierAddress}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, {
-                    backgroundColor: status === 'En cours' ? '#4CAF50' :
-                                   status === 'Terminé' ? '#2196F3' :
-                                   status === 'En retard' ? '#F44336' : '#E0B043'
-                  }]}>
-                    <Text style={styles.statusText}>{status}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progression</Text>
-                    <Text style={styles.progressValue}>{globalProgress}%</Text>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <ExpoLinearGradient
-                      colors={['#2B2E83', '#E96C2E']}
-                      start={[0, 0]}
-                      end={[1, 0]}
-                      style={[
-                        styles.progressFill,
-                        { width: `${globalProgress}%` }
-                      ]}
+                {/* Image principale du chantier */}
+                {mainImage && (
+                  <View style={styles.projectImageContainer}>
+                    <Image
+                      source={{ uri: mainImage.url }}
+                      style={styles.projectMainImage}
+                      resizeMode="cover"
                     />
+                    <View style={styles.imageOverlay} />
                   </View>
-                </View>
+                )}
 
-                <View style={styles.projectFooter}>
-                  <View style={styles.dueDateContainer}>
-                    <View style={styles.iconContainer}>
-                      <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+                <View style={styles.projectContent}>
+                  <View style={styles.projectHeader}>
+                    <View style={styles.projectInfo}>
+                      <Text style={styles.projectName}>{chantierName}</Text>
+                      <Text style={styles.clientName}>{chantierAddress}</Text>
                     </View>
-                    <Text style={styles.dueDate}>Début: {startDate}</Text>
+                    <View style={[styles.statusBadge, {
+                      backgroundColor: status === 'En cours' ? '#4CAF50' :
+                                     status === 'Terminé' ? '#2196F3' :
+                                     status === 'En retard' ? '#F44336' : '#E0B043'
+                    }]}>
+                      <Text style={styles.statusText}>{status}</Text>
+                    </View>
                   </View>
-                  <View style={styles.arrowContainer}>
-                    <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
+
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressLabel}>Progression</Text>
+                      <Text style={styles.progressValue}>{globalProgress}%</Text>
+                    </View>
+                    <View style={styles.progressBar}>
+                      <ExpoLinearGradient
+                        colors={['#2B2E83', '#E96C2E']}
+                        start={[0, 0]}
+                        end={[1, 0]}
+                        style={[
+                          styles.progressFill,
+                          { width: `${globalProgress}%` }
+                        ]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.projectFooter}>
+                    <View style={styles.dueDateContainer}>
+                      <View style={styles.iconContainer}>
+                        <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+                      </View>
+                      <Text style={styles.dueDate}>Début: {startDate}</Text>
+                    </View>
+                    <View style={styles.arrowContainer}>
+                      <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
+                    </View>
                   </View>
                 </View>
               </View>
@@ -336,6 +386,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#2E7D4A',
+    fontFamily: 'FiraSans_400Regular',
   },
   content: {
     flex: 1,
@@ -501,6 +563,26 @@ const styles = StyleSheet.create({
   },
   projectCardInner: {
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  projectImageContainer: {
+    position: 'relative',
+    height: 180,
+    width: '100%',
+  },
+  projectMainImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(43, 46, 131, 0.15)',
+  },
+  projectContent: {
     padding: 24,
   },
   projectHeader: {

@@ -7,6 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '../types';
 import { authService } from '../services/authService';
+import { useClientAuth } from '../hooks/useClientAuth';
 
 // Screens
 
@@ -14,6 +15,7 @@ import { authService } from '../services/authService';
 // Chef Screens
 import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
+import ChefDocumentsScreen from '../screens/chef/ChefDocumentsScreen';
 import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
 import ChantierScreen from '../screens/main/ChantierScreen';
@@ -23,6 +25,7 @@ import ProfilScreen from '../screens/main/ProfilScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
+import ClientDocumentsScreen from '../screens/main/ClientDocumentsScreen';
 import HelpSupportScreen from '../screens/main/HelpSupportScreen';
 import AboutScreen from '../screens/main/AboutScreen';
 import HomeScreen from '../screens/main/HomeScreen';
@@ -313,6 +316,37 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       />
       <ChefTab.Screen
+        name="ChefDocuments"
+        component={ChefDocumentsScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="description"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#003366',
+                  marginTop: 2,
+                }}>Documents</Text>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <ChefTab.Screen
         name="ChefChat"
         component={ChefChatScreen}
         options={{
@@ -383,6 +417,13 @@ export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  console.log('🏗️ AppNavigator render:', {
+    isLoading,
+    isAuthenticated,
+    currentUserRole: currentUser?.role,
+    currentUserEmail: currentUser?.email
+  });
 
   // Détecter le rôle de l'utilisateur
   const getUserRole = async (user: any): Promise<'client' | 'chef'> => {
@@ -480,6 +521,11 @@ export default function AppNavigator() {
                 <Stack.Screen
                   name="ClientProjects"
                   component={ClientProjectsScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="ClientDocuments"
+                  component={ClientDocumentsScreen}
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen

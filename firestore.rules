@@ -19,6 +19,14 @@ service cloud.firestore {
       // Allow authenticated users to read any user document for admin purposes
       allow read: if request.auth != null;
 
+      // Allow authenticated users (admins) to update user documents
+      allow update: if request.auth != null;
+
+      // Allow authenticated admin users to create new user documents (for client account creation from backoffice)
+      allow create: if request.auth != null &&
+                      request.resource.data.keys().hasAll(['role', 'clientId']) &&
+                      request.resource.data.role == 'client';
+
       // Special rule: Allow unauthenticated read for username lookup during login
       // This is necessary for mobile app username-based authentication
       // Only allow if the document has a username field (indicating it's a client account)
@@ -32,6 +40,9 @@ service cloud.firestore {
       // Les utilisateurs peuvent lire les données client auxquelles ils sont liés
       allow read: if request.auth != null &&
                      request.auth.uid == resource.data.userId;
+
+      // Permettre aux utilisateurs authentifiés de lire la liste des clients (pour les chefs de chantier)
+      allow list: if request.auth != null;
 
       // Les utilisateurs peuvent mettre à jour certains champs de leur client
       allow update: if request.auth != null &&
@@ -94,9 +105,50 @@ service cloud.firestore {
       // Permettre aux utilisateurs authentifiés de lire les chantiers (pour les requêtes de liste)
       allow list: if request.auth != null;
 
-      // Permettre aux chefs de créer des chantiers
+      // Permettre aux utilisateurs authentifiés (admins) de créer des chantiers
+      allow create: if request.auth != null;
+    }
+
+    // Collection clientSelections - Sélections de matériaux par les clients
+    match /clientSelections/{selectionId} {
+      // Les clients authentifiés peuvent créer des sélections
+      // Vérifier que le clientId dans les données correspond à l'UID de l'utilisateur authentifié
       allow create: if request.auth != null &&
-                      request.resource.data.assignedChefId == request.auth.uid;
+                      request.resource.data.clientId == request.auth.uid;
+
+      // Les clients peuvent lire leurs propres sélections
+      allow read: if request.auth != null &&
+                    resource.data.clientId == request.auth.uid;
+
+      // Permettre à tous les utilisateurs authentifiés de lire les sélections (pour le backoffice)
+      allow read: if request.auth != null;
+
+      // Permettre aux utilisateurs authentifiés de lister les sélections (pour les requêtes)
+      allow list: if request.auth != null;
+
+      // Les utilisateurs authentifiés peuvent mettre à jour le statut des sélections
+      allow update: if request.auth != null &&
+                      // Limiter aux champs de statut et révision seulement
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'reviewedAt', 'reviewedBy', 'notes', 'updatedAt']);
+    }
+
+    // Collection documents - Gestion complète des documents
+    match /documents/{documentId} {
+      // Permettre à tous les utilisateurs authentifiés de lire tous les documents
+      allow read: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de lister les documents
+      allow list: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de créer des documents
+      allow create: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de mettre à jour les documents
+      allow update: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de supprimer les documents
+      allow delete: if request.auth != null;
     }
   }
 }

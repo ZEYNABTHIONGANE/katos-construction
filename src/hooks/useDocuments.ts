@@ -153,7 +153,12 @@ export function useDocuments({ chantierId, userRole, autoSubscribe = true }: Use
 
   // Effect to handle auto-subscription or manual fetch
   useEffect(() => {
-    if (!chantierId) return;
+    if (!chantierId) {
+      // No chantierId, set loading to false and clear documents
+      setLoading(false);
+      setDocuments([]);
+      return;
+    }
 
     if (autoSubscribe) {
       // Subscribe to real-time updates

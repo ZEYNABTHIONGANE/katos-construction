@@ -119,7 +119,7 @@ export const useFirebaseProject = (id: string) => {
     const fetchProject = async () => {
       try {
         setError(null);
-        setLoading(true);
+        if (!project) setLoading(true);
         const projectData = await projectService.getProjectById(id);
         setProject(projectData);
       } catch (err: any) {
