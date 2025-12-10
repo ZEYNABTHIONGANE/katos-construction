@@ -94,9 +94,6 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  const handleChatPress = () => {
-    navigation.navigate("Chat");
-  };
 
   // Show loading state
   if (chantierLoading) {

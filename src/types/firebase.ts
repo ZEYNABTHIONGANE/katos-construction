@@ -17,7 +17,8 @@ export interface FirebaseUser {
   phoneNumber?: string | null;
   clientId?: string;
   isTemporaryPassword?: boolean;
-  role?: UserRole; // Add role field to match backoffice
+  role: UserRole; // Required field to match backoffice (not optional)
+  isChef?: boolean; // Permet aux admins d'avoir aussi le rôle de chef
   createdAt: Timestamp;
   createdBy?: string; // UID de l'utilisateur qui a créé ce compte
   isBlocked?: boolean;
@@ -130,10 +131,13 @@ export interface TeamMember {
 export interface ProgressPhoto {
   id: string;
   url: string;
+  type: 'image' | 'video'; // Media type
   phaseId?: string; // Optional: link to specific phase
   description?: string;
   uploadedAt: Timestamp;
   uploadedBy: string;
+  duration?: number; // Video duration in seconds (for videos only)
+  thumbnailUrl?: string; // Video thumbnail URL (for videos only)
   location?: {
     latitude: number;
     longitude: number;

@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [usernameValid, setUsernameValid] = useState<boolean | null>(null);
   const [loginSuccess, setLoginSuccess] = useState(false);
-  const [isChefMode, setIsChefMode] = useState(false);
+  const [detectedUserType, setDetectedUserType] = useState<'chef' | 'client' | null>(null);
 
   // Animation references
   const usernameInputAnimation = useRef(new Animated.Value(0)).current;
@@ -43,23 +43,37 @@ export default function LoginScreen({ navigation }: Props) {
   const buttonAnimation = useRef(new Animated.Value(1)).current;
   const successAnimation = useRef(new Animated.Value(0)).current;
 
-  // Real-time username validation
+  // Auto-detect user type and validate
   const validateUsername = (text: string) => {
     if (text.length === 0) {
       setUsernameValid(null);
+      setDetectedUserType(null);
       return;
     }
 
-    if (isChefMode) {
-      // For chef mode, validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isValid = emailRegex.test(text);
-      setUsernameValid(isValid);
+    // Auto-detect user type based on input format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameRegex = /^CLI\d{9}$/;
+
+    if (emailRegex.test(text)) {
+      // Email format detected → Chef
+      setDetectedUserType('chef');
+      setUsernameValid(true);
+    } else if (usernameRegex.test(text)) {
+      // CLI format detected → Client
+      setDetectedUserType('client');
+      setUsernameValid(true);
     } else {
-      // For client mode, validate CLI format
-      const usernameRegex = /^CLI\d{9}$/;
-      const isValid = usernameRegex.test(text);
-      setUsernameValid(isValid);
+      // Invalid format
+      setUsernameValid(false);
+      // Try to detect intended type based on partial input
+      if (text.includes('@') || text.includes('.')) {
+        setDetectedUserType('chef');
+      } else if (text.startsWith('CLI')) {
+        setDetectedUserType('client');
+      } else {
+        setDetectedUserType(null);
+      }
     }
   };
 
@@ -107,11 +121,12 @@ export default function LoginScreen({ navigation }: Props) {
     validateUsername(text);
   };
 
-  const toggleMode = () => {
-    setIsChefMode(!isChefMode);
+  // Plus besoin de toggle mode - détection automatique
+  const clearForm = () => {
     setUsername('');
     setPassword('');
     setUsernameValid(null);
+    setDetectedUserType(null);
   };
 
   const handleLogin = async () => {
@@ -120,9 +135,16 @@ export default function LoginScreen({ navigation }: Props) {
       return;
     }
 
-    // Validate input format based on mode
-    if (isChefMode) {
-      // Chef mode - validate email format
+    // Validate input format based on detected type
+    if (!detectedUserType) {
+      Alert.alert(
+        'Format invalide',
+        'Utilisez un email (chef@exemple.com) ou un identifiant client (CLI123456789)'
+      );
+      return;
+    }
+
+    if (detectedUserType === 'chef') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(username)) {
         Alert.alert(
@@ -132,12 +154,11 @@ export default function LoginScreen({ navigation }: Props) {
         return;
       }
     } else {
-      // Client mode - validate CLI format
       const usernameRegex = /^CLI\d{9}$/;
       if (!usernameRegex.test(username)) {
         Alert.alert(
           'Format invalide',
-          'Le nom d\'utilisateur doit suivre le format CLI123456789 (CLI suivi de 9 chiffres)'
+          'L\'identifiant client doit suivre le format CLI123456789'
         );
         return;
       }
@@ -147,7 +168,7 @@ export default function LoginScreen({ navigation }: Props) {
     animateButton(0.95);
 
     try {
-      if (isChefMode) {
+      if (detectedUserType === 'chef') {
         // Chef login with email
         await authService.signIn(username, password);
       } else {
@@ -189,13 +210,13 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
 
-      let errorMessage = isChefMode
+      let errorMessage = detectedUserType === 'chef'
         ? 'Email ou mot de passe incorrect'
-        : 'Nom d\'utilisateur ou mot de passe incorrect';
+        : 'Identifiant ou mot de passe incorrect';
 
-      if (!isChefMode) {
+      if (detectedUserType === 'client') {
         if (error.message === 'USERNAME_NOT_FOUND') {
-          errorMessage = 'Nom d\'utilisateur introuvable. Vérifiez le format (ex: CLI123456789)';
+          errorMessage = 'Identifiant introuvable. Vérifiez le format (ex: CLI123456789)';
         } else if (error.message === 'USER_BLOCKED') {
           errorMessage = 'Ce compte a été bloqué. Contactez le support';
         }
@@ -240,22 +261,22 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
           <Text style={styles.title}>Katos Connect</Text>
           <Text style={styles.subtitle}>
-            {isChefMode
-              ? 'Connexion chef de chantier'
-              : 'Connexion client - Utilisez vos identifiants'}
+            Connectez-vous avec votre email ou identifiant client
           </Text>
 
-          {/* Mode Toggle Button */}
-          <TouchableOpacity style={styles.modeToggle} onPress={toggleMode}>
-            <MaterialIcons
-              name={isChefMode ? 'person' : 'engineering'}
-              size={16}
-              color="#E96C2E"
-            />
-            <Text style={styles.modeToggleText}>
-              {isChefMode ? 'Mode Client' : 'Mode Chef'}
-            </Text>
-          </TouchableOpacity>
+          {/* Indicateur de type détecté */}
+          {detectedUserType && (
+            <View style={styles.userTypeIndicator}>
+              <MaterialIcons
+                name={detectedUserType === 'chef' ? 'engineering' : 'person'}
+                size={16}
+                color="#10B981"
+              />
+              <Text style={styles.userTypeText}>
+                {detectedUserType === 'chef' ? 'Chef de chantier' : 'Client'}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Form Section */}
@@ -290,17 +311,17 @@ export default function LoginScreen({ navigation }: Props) {
               />
               <TextInput
                 style={styles.input}
-                placeholder={isChefMode ? "email@exemple.com" : "CLI••••••••"}
+                placeholder="email@exemple.com ou CLI123456789"
                 placeholderTextColor="#9CA3AF"
                 value={username}
                 onChangeText={handleUsernameChange}
                 onFocus={handleUsernameFocus}
                 onBlur={handleUsernameBlur}
-                keyboardType={isChefMode ? "email-address" : "default"}
-                autoCapitalize={isChefMode ? "none" : "characters"}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 autoCorrect={false}
                 editable={!loading}
-                maxLength={isChefMode ? 50 : 12}
+                maxLength={50}
               />
               {usernameValid === true && (
                 <MaterialIcons
@@ -475,22 +496,23 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
     marginBottom: 16,
   },
-  modeToggle: {
+  userTypeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    marginTop: 12,
   },
-  modeToggleText: {
-    fontSize: 14,
-    color: '#FFFFFF',
+  userTypeText: {
+    fontSize: 12,
+    color: '#10B981',
     fontFamily: 'FiraSans_600SemiBold',
-    marginLeft: 6,
+    marginLeft: 4,
   },
   form: {
     backgroundColor: '#FFFFFF',

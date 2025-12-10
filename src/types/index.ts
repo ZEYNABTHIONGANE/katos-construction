@@ -20,7 +20,6 @@ export type RootStackParamList = {
 export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
-  Chat: undefined;
   Finitions: undefined;
   Profil: undefined;
 };
@@ -28,8 +27,7 @@ export type HomeTabParamList = {
 export type ChefTabParamList = {
   ChefDashboard: undefined;
   ChefChantiers: { selectedChantierId?: string };
-  ChefDocuments: undefined;
-  ChefChat: undefined;
+  ChefGallery: undefined;
   ChefProfil: undefined;
 };
 

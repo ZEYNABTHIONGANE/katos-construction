@@ -16,7 +16,6 @@ import { RootStackParamList } from '../../types';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { useClientDocuments } from '../../hooks/useDocuments';
 import { useClientAuth } from '../../hooks/useClientAuth';
-import DocumentUploadModal from '../../components/DocumentUploadModal';
 import type { DocumentCategory, DocumentVisibility, FirebaseDocument } from '../../types/firebase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClientDocuments'>;
@@ -25,14 +24,11 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
   const { session } = useClientAuth();
   const { chantier, hasChantier, name: chantierName } = useClientChantier();
 
-  // Get documents using the hook
+  // Get documents using the hook (read-only for clients)
   const {
     documents,
     loading: documentsLoading,
-    uploading,
     error: documentsError,
-    uploadDocument,
-    deleteDocument,
     formatFileSize,
     getDocumentIcon,
     totalDocuments,
@@ -40,82 +36,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
     clearError
   } = useClientDocuments(chantier?.id || '');
 
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>('all');
-
-  const handleUploadDocument = async (
-    file: { uri: string; name: string; size: number; mimeType?: string },
-    category: DocumentCategory,
-    title: string,
-    description?: string,
-    visibility: DocumentVisibility = 'both'
-  ): Promise<boolean> => {
-    if (!session || !chantier?.id) {
-      Alert.alert('Erreur', 'Impossible d\'identifier l\'utilisateur ou le chantier');
-      return false;
-    }
-
-    try {
-      console.log('📤 Starting document upload:', {
-        title,
-        category,
-        visibility,
-        chantierId: chantier.id,
-        clientId: session.clientId
-      });
-
-      // Create a new file object with the title as the name
-      const fileWithTitle = {
-        ...file,
-        name: title + (file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '')
-      };
-
-      const uploadedDoc = await uploadDocument(
-        fileWithTitle,
-        category,
-        session.clientId,
-        {
-          description: description || `${title} - Uploadé par le client`,
-          visibility
-        }
-      );
-
-      console.log('📤 Document upload result:', uploadedDoc);
-
-      if (uploadedDoc) {
-        console.log('✅ Document uploaded successfully:', uploadedDoc.id);
-        return true;
-      } else {
-        console.log('❌ Upload failed - no document returned');
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Error uploading document:', error);
-      return false;
-    }
-  };
-
-  const handleDeleteDocument = (document: FirebaseDocument) => {
-    if (!session) return;
-
-    Alert.alert(
-      'Supprimer le document',
-      `Êtes-vous sûr de vouloir supprimer "${document.originalName}" ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            const success = await deleteDocument(document.id, session.clientId);
-            if (success) {
-              Alert.alert('Succès', 'Document supprimé');
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const filteredDocuments = () => {
     if (selectedCategory === 'all') {
@@ -150,12 +71,6 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteDocument(item)}
-          >
-            <MaterialIcons name="delete" size={20} color="#F44336" />
-          </TouchableOpacity>
         </View>
 
         {/* Document Actions */}
@@ -244,12 +159,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mes documents</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowUploadModal(true)}
-          >
-            <MaterialIcons name="add" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.headerSpacer} />
         </View>
 
         {/* Project Info */}
@@ -319,29 +229,11 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
                 {selectedCategory === 'all' ? 'Aucun document' : `Aucun document de type "${getCategoryLabel(selectedCategory as DocumentCategory)}"`}
               </Text>
               <Text style={styles.emptySubtext}>
-                Ajoutez vos premiers documents en cliquant sur le bouton +
+                Les documents vous seront transmis par l'équipe de construction
               </Text>
-              <TouchableOpacity
-                style={styles.addDocumentButton}
-                onPress={() => setShowUploadModal(true)}
-              >
-                <MaterialIcons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.addDocumentButtonText}>Ajouter un document</Text>
-              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
-
-        {/* Upload Modal */}
-        <DocumentUploadModal
-          visible={showUploadModal}
-          onClose={() => {
-            console.log('🔴 ClientDocumentsScreen: Modal onClose called');
-            setShowUploadModal(false);
-          }}
-          onUpload={handleUploadDocument}
-          uploading={uploading}
-        />
       </SafeAreaView>
     </View>
   );
@@ -377,13 +269,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'FiraSans_700Bold',
   },
-  addButton: {
-    backgroundColor: '#E96C2E',
+  headerSpacer: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerRight: {
     width: 40,
@@ -556,20 +443,6 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
     textAlign: 'center',
     marginBottom: 24,
-  },
-  addDocumentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E96C2E',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  addDocumentButtonText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginLeft: 8,
   },
   errorContainer: {
     flex: 1,

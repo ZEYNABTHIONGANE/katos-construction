@@ -16,6 +16,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Video } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
@@ -23,7 +24,6 @@ import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
-import { useChefDocuments } from '../../hooks/useDocuments';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,13 +34,6 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
   const [selectedProject, setSelectedProject] = useState<FirebaseChantier | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Documents hook for the selected project
-  const {
-    documents,
-    loading: documentsLoading,
-    formatFileSize,
-    getDocumentIcon,
-  } = useChefDocuments(selectedProject?.id || '');
   const [projects, setProjects] = useState<FirebaseChantier[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
@@ -173,70 +166,13 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     }
   };
 
-  const addImageToGallery = async () => {
-    if (!selectedProject || !user) return;
-
-    try {
-      // Request permission silently
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour ajouter des photos.");
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        try {
-          const newImageUri = result.assets[0].uri;
-
-          // Upload image to Firebase Storage
-          const photoUrl = await storageService.uploadImageFromUri(
-            newImageUri,
-            `chantiers/${selectedProject.id}/gallery`
-          );
-
-          // Add photo to the chantier's gallery
-          await chantierService.addPhasePhoto(
-            selectedProject.id!,
-            '', // Empty phaseId for general gallery photos
-            photoUrl,
-            'Photo ajoutée depuis l\'application mobile',
-            user.uid
-          );
-
-          // Refresh project data to show new image immediately
-          const updatedProject = await chantierService.getChantierById(selectedProject.id!);
-          if (updatedProject) {
-            setSelectedProject(updatedProject);
-
-            // Update projects list too
-            setProjects(prevProjects =>
-              prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
-            );
-          }
-
-        } catch (uploadError) {
-          console.error('Erreur lors de l\'upload de la photo:', uploadError);
-          Alert.alert('Erreur', 'Impossible d\'ajouter la photo');
-        }
-      }
-    } catch (error) {
-      console.error('Erreur générale lors de l\'ajout de photo:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection de l\'image');
-    }
-  };
 
   // Function to open image carousel
   const openImageCarousel = (index: number) => {
     setSelectedImageIndex(index);
     setShowImageCarousel(true);
   };
+
 
   const updatePhaseProgress = async (phaseId: string, newProgressValue: number) => {
     if (!selectedProject) return;
@@ -342,15 +278,6 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     <Image source={{ uri: item }} style={styles.galleryImage} />
   );
 
-  const renderAddButton = () => (
-    <TouchableOpacity
-      style={styles.addImageButton}
-      onPress={addImageToGallery}
-    >
-      <MaterialIcons name="add" size={30} color="#2B2E83" />
-      <Text style={styles.addImageText}>Ajouter une photo</Text>
-    </TouchableOpacity>
-  );
 
   if (authLoading || loading) {
     return (
@@ -564,22 +491,45 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
 
               <View style={styles.gallerySection}>
                 <View style={styles.gallerySectionHeader}>
-                  <Text style={styles.sectionTitle}>Galerie photos</Text>
+                  <Text style={styles.sectionTitle}>Galerie médias</Text>
                   <TouchableOpacity
-                    style={styles.addPhotoButton}
-                    onPress={addImageToGallery}
+                    style={styles.galleryButton}
+                    onPress={() => navigation.navigate('ChefGallery')}
                   >
-                    <MaterialIcons name="add-a-photo" size={20} color="#FFFFFF" />
-                    <Text style={styles.addPhotoButtonText}>Ajouter</Text>
+                    <MaterialIcons name="photo-library" size={20} color="#FFFFFF" />
+                    <Text style={styles.addPhotoButtonText}>Voir galerie</Text>
                   </TouchableOpacity>
                 </View>
                 {selectedProject.gallery.length > 0 ? (
                   <FlatList
-                    data={selectedProject.gallery}
+                    data={selectedProject.gallery.slice(0, 4)}
                     renderItem={({ item, index }) => (
-                      <TouchableOpacity onPress={() => openImageCarousel(index)}>
-                        <Image source={{ uri: item.url }} style={styles.galleryImage} />
-                      </TouchableOpacity>
+                      <View style={styles.galleryImageContainer}>
+                        <TouchableOpacity onPress={() => openImageCarousel(index)}>
+                          {item.type === 'video' ? (
+                            <View style={styles.videoContainer}>
+                              <Video
+                                source={{ uri: item.thumbnailUrl || item.url }}
+                                style={styles.galleryImage}
+                                resizeMode="cover"
+                                shouldPlay={false}
+                                isLooping={false}
+                                useNativeControls={false}
+                              />
+                              <View style={styles.videoOverlay}>
+                                <MaterialIcons name="play-circle-filled" size={32} color="rgba(255,255,255,0.8)" />
+                                {item.duration && (
+                                  <Text style={styles.videoDuration}>
+                                    {Math.floor(item.duration / 60)}:{String(Math.floor(item.duration % 60)).padStart(2, '0')}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          ) : (
+                            <Image source={{ uri: item.url }} style={styles.galleryImage} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     )}
                     keyExtractor={(item) => item.id}
                     horizontal
@@ -589,59 +539,23 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                 ) : (
                   <View style={styles.emptyGallery}>
                     <MaterialIcons name="photo-library" size={48} color="#E0E0E0" />
-                    <Text style={styles.emptyGalleryText}>Aucune photo pour le moment</Text>
-                    <Text style={styles.emptyGallerySubtext}>Ajoutez des photos pour documenter l'avancement</Text>
+                    <Text style={styles.emptyGalleryText}>Aucun média pour le moment</Text>
+                    <Text style={styles.emptyGallerySubtext}>Utilisez l'onglet Galerie pour ajouter des photos et vidéos</Text>
                   </View>
+                )}
+                {selectedProject.gallery.length > 4 && (
+                  <TouchableOpacity
+                    style={styles.showMoreButton}
+                    onPress={() => navigation.navigate('ChefGallery')}
+                  >
+                    <Text style={styles.showMoreText}>
+                      +{selectedProject.gallery.length - 4} médias supplémentaires
+                    </Text>
+                    <MaterialIcons name="arrow-forward" size={16} color="#E96C2E" />
+                  </TouchableOpacity>
                 )}
               </View>
 
-              {/* Documents Section */}
-              <View style={styles.documentsSection}>
-                <Text style={styles.sectionTitle}>Documents ({documents.length})</Text>
-
-                {documentsLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#2B2E83" />
-                    <Text style={styles.loadingText}>Chargement des documents...</Text>
-                  </View>
-                ) : documents.length > 0 ? (
-                  <View style={styles.documentsGrid}>
-                    {documents.slice(0, 4).map((doc) => {
-                      const iconName = getDocumentIcon(doc.mimeType);
-                      const formattedSize = formatFileSize(doc.size);
-
-                      return (
-                        <View key={doc.id} style={styles.documentItem}>
-                          <View style={styles.documentIcon}>
-                            <MaterialIcons
-                              name={iconName as any}
-                              size={20}
-                              color="#E96C2E"
-                            />
-                          </View>
-                          <View style={styles.documentInfo}>
-                            <Text style={styles.documentName} numberOfLines={1}>
-                              {doc.originalName}
-                            </Text>
-                            <Text style={styles.documentSize}>{formattedSize}</Text>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <View style={styles.emptyDocuments}>
-                    <MaterialIcons name="description" size={32} color="#E0E0E0" />
-                    <Text style={styles.emptyDocumentsText}>Aucun document</Text>
-                  </View>
-                )}
-
-                {documents.length > 4 && (
-                  <Text style={styles.moreDocumentsText}>
-                    +{documents.length - 4} documents supplémentaires
-                  </Text>
-                )}
-              </View>
 
               <View style={styles.teamSection}>
                 <View style={styles.teamSectionHeader}>
@@ -769,6 +683,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
             <Text style={styles.carouselTitle}>
               {selectedImageIndex + 1} / {selectedProject?.gallery?.length || 0}
             </Text>
+            <View style={styles.carouselHeaderSpacer} />
           </View>
 
           {selectedProject?.gallery && selectedProject.gallery.length > 0 && (
@@ -790,11 +705,22 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.carouselImageContainer}>
-                  <Image
-                    source={{ uri: item.url }}
-                    style={styles.carouselImage}
-                    resizeMode="contain"
-                  />
+                  {item.type === 'video' ? (
+                    <Video
+                      source={{ uri: item.url }}
+                      style={styles.carouselVideo}
+                      resizeMode="contain"
+                      shouldPlay={false}
+                      isLooping={false}
+                      useNativeControls={true}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: item.url }}
+                      style={styles.carouselImage}
+                      resizeMode="contain"
+                    />
+                  )}
                   {item.description && (
                     <Text style={styles.carouselImageDescription}>{item.description}</Text>
                   )}
@@ -1088,12 +1014,55 @@ const styles = StyleSheet.create({
   galleryContainer: {
     paddingRight: 20,
   },
+  galleryImageContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
   galleryImage: {
     width: 120,
     height: 80,
     borderRadius: 8,
-    marginRight: 12,
     resizeMode: 'cover',
+  },
+  videoContainer: {
+    position: 'relative',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 8,
+  },
+  videoDuration: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  deleteImageButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
   },
   teamSection: {
     padding: 20,
@@ -1260,14 +1229,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  addPhotoButton: {
+  galleryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E96C2E',
+    backgroundColor: '#2B2E83',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    shadowColor: '#E96C2E',
+    shadowColor: '#2B2E83',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -1400,6 +1369,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
   },
+  carouselHeaderSpacer: {
+    width: 32,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  showMoreText: {
+    fontSize: 14,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginRight: 4,
+  },
   carouselTitle: {
     color: 'white',
     fontSize: 16,
@@ -1419,6 +1409,10 @@ const styles = StyleSheet.create({
     width: width,
     height: height * 0.8,
   },
+  carouselVideo: {
+    width: width,
+    height: height * 0.8,
+  },
   carouselImageDescription: {
     position: 'absolute',
     bottom: 100,
@@ -1431,84 +1425,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 10,
     borderRadius: 8,
-  },
-  // Documents Section Styles
-  documentsSection: {
-    marginTop: 20,
-  },
-  documentsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  documentItem: {
-    flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  documentIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFF7ED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  documentInfo: {
-    flex: 1,
-  },
-  documentName: {
-    fontSize: 12,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginBottom: 2,
-  },
-  documentSize: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-  },
-  emptyDocuments: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-    marginTop: 12,
-  },
-  emptyDocumentsText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginTop: 8,
-  },
-  moreDocumentsText: {
-    fontSize: 12,
-    color: '#E96C2E',
-    fontFamily: 'FiraSans_600SemiBold',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  loadingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
   },
 });

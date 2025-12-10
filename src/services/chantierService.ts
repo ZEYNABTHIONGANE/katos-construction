@@ -27,6 +27,7 @@ import {
   getPhaseStatus
 } from '../types/firebase';
 import { v4 as uuidv4 } from 'uuid';
+import { storageService } from './storageService';
 
 export class ChantierService {
   private readonly COLLECTION_NAME = 'chantiers';
@@ -150,13 +151,16 @@ export class ChantierService {
     }
   }
 
-  // Ajouter une photo à une phase ou à la galerie générale
+  // Ajouter une photo ou vidéo à une phase ou à la galerie générale
   async addPhasePhoto(
     chantierId: string,
     phaseId: string,
     photoUrl: string,
     description?: string,
-    uploadedBy?: string
+    uploadedBy?: string,
+    mediaType: 'image' | 'video' = 'image',
+    duration?: number,
+    thumbnailUrl?: string
   ): Promise<void> {
     try {
       const chantier = await this.getChantierById(chantierId);
@@ -185,8 +189,11 @@ export class ChantierService {
       const newPhoto: ProgressPhoto = {
         id: uuidv4(),
         url: photoUrl,
+        type: mediaType,
         ...(phaseId && phaseId.trim() !== '' && { phaseId }), // N'ajouter phaseId que s'il existe et n'est pas vide
         ...(description && description.trim() !== '' && { description }), // N'ajouter description que si elle existe et n'est pas vide
+        ...(duration && mediaType === 'video' && { duration }), // Ajouter duration pour les vidéos
+        ...(thumbnailUrl && mediaType === 'video' && { thumbnailUrl }), // Ajouter thumbnailUrl pour les vidéos
         uploadedAt: Timestamp.now(),
         uploadedBy: uploadedBy || 'system'
       };
@@ -198,6 +205,62 @@ export class ChantierService {
       });
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la photo:', error);
+      throw error;
+    }
+  }
+
+  // Supprimer une photo de la galerie
+  async removePhasePhoto(
+    chantierId: string,
+    photoId: string,
+    removedBy?: string
+  ): Promise<void> {
+    try {
+      const chantier = await this.getChantierById(chantierId);
+      if (!chantier) {
+        throw new Error('Chantier non trouvé');
+      }
+
+      // Trouver la photo à supprimer pour obtenir l'URL
+      const photoToRemove = chantier.gallery.find(photo => photo.id === photoId);
+      if (!photoToRemove) {
+        throw new Error('Photo non trouvée');
+      }
+
+      // Supprimer la photo de Firebase Storage
+      try {
+        await storageService.deleteImage(photoToRemove.url);
+      } catch (storageError) {
+        console.warn('Erreur lors de la suppression de l\'image du storage:', storageError);
+        // Continue même si la suppression du storage échoue
+      }
+
+      // Supprimer de la galerie générale
+      const updatedGallery = chantier.gallery.filter(photo => photo.id !== photoId);
+
+      // Supprimer aussi des phases si la photo était associée à une phase
+      let updatedPhases = chantier.phases;
+      if (photoToRemove.phaseId) {
+        updatedPhases = chantier.phases.map(phase => {
+          if (phase.id === photoToRemove.phaseId) {
+            return {
+              ...phase,
+              photos: phase.photos.filter(photoUrl => photoUrl !== photoToRemove.url),
+              lastUpdated: Timestamp.now(),
+              updatedBy: removedBy || 'system'
+            };
+          }
+          return phase;
+        });
+      }
+
+      await this.updateChantier(chantierId, {
+        phases: updatedPhases,
+        gallery: updatedGallery,
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la photo:', error);
       throw error;
     }
   }

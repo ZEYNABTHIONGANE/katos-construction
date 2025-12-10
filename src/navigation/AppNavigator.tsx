@@ -15,11 +15,9 @@ import { useClientAuth } from '../hooks/useClientAuth';
 // Chef Screens
 import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
-import ChefDocumentsScreen from '../screens/chef/ChefDocumentsScreen';
-import ChefChatScreen from '../screens/chef/ChefChatScreen';
+import ChefGalleryScreen from '../screens/chef/ChefGalleryScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
 import ChantierScreen from '../screens/main/ChantierScreen';
-import ChatScreen from '../screens/main/ChatScreen';
 import FinitionsScreen from '../screens/main/FinitionsScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -121,37 +119,6 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                   color: '#2B2E83',
                   marginTop: 2,
                 }}>Chantier</Text>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <ClientTab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              minWidth: 50,
-            }}>
-              <MaterialIcons
-                name="chat-bubble"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Messages</Text>
               )}
             </View>
           ),
@@ -316,8 +283,8 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       />
       <ChefTab.Screen
-        name="ChefDocuments"
-        component={ChefDocumentsScreen}
+        name="ChefGallery"
+        component={ChefGalleryScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={{
@@ -330,7 +297,7 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
               minWidth: 50,
             }}>
               <MaterialIcons
-                name="description"
+                name="photo-library"
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
@@ -340,38 +307,7 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                   fontFamily: 'FiraSans_600SemiBold',
                   color: '#003366',
                   marginTop: 2,
-                }}>Documents</Text>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <ChefTab.Screen
-        name="ChefChat"
-        component={ChefChatScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              minWidth: 50,
-            }}>
-              <MaterialIcons
-                name="chat-bubble"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#003366',
-                  marginTop: 2,
-                }}>Messages</Text>
+                }}>Galerie</Text>
               )}
             </View>
           ),

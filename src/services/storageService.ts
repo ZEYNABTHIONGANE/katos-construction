@@ -33,6 +33,37 @@ export class StorageService {
   }
 
   /**
+   * Upload a video from React Native URI to Firebase Storage
+   */
+  async uploadVideoFromUri(uri: string, path: string): Promise<string> {
+    try {
+      // Fetch the video from the URI
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Generate a unique filename with video extension
+      const fileName = this.generateFileName('video.mp4');
+      const fullPath = `${path}/${fileName}`;
+
+      return this.uploadImage(blob, fullPath);
+    } catch (error) {
+      console.error('Error uploading video from URI:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload media (image or video) from React Native URI
+   */
+  async uploadMediaFromUri(uri: string, path: string, mediaType: 'image' | 'video'): Promise<string> {
+    if (mediaType === 'video') {
+      return this.uploadVideoFromUri(uri, path);
+    } else {
+      return this.uploadImageFromUri(uri, path);
+    }
+  }
+
+  /**
    * Upload a project image
    */
   async uploadProjectImage(file: Blob, projectId: string, fileName: string): Promise<string> {

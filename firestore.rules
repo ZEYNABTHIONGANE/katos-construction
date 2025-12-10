@@ -37,9 +37,15 @@ service cloud.firestore {
 
     // Collection clients - Accès limité pour les utilisateurs mobiles
     match /clients/{clientId} {
+      // Permettre aux utilisateurs authentifiés de créer des clients (backoffice)
+      allow create: if request.auth != null;
+
       // Les utilisateurs peuvent lire les données client auxquelles ils sont liés
       allow read: if request.auth != null &&
                      request.auth.uid == resource.data.userId;
+
+      // Permettre aux utilisateurs authentifiés de lire tous les clients (backoffice)
+      allow read: if request.auth != null;
 
       // Permettre aux utilisateurs authentifiés de lire la liste des clients (pour les chefs de chantier)
       allow list: if request.auth != null;
@@ -58,18 +64,39 @@ service cloud.firestore {
                       // Seulement autoriser la modification du statut d'invitation et dates
                       request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['invitationStatus', 'acceptedAt']);
+
+      // Permettre aux utilisateurs authentifiés de mettre à jour les clients (backoffice)
+      allow update: if request.auth != null;
+
+      // Permettre aux utilisateurs authentifiés de supprimer les clients (backoffice)
+      allow delete: if request.auth != null;
     }
 
-    // Collection projects - Lecture seule pour les projets du client
+    // Collection projects - Accès authentifié pour le backoffice, lecture seule pour les clients
     match /projects/{projectId} {
+      // Lecture pour tous les utilisateurs authentifiés
       allow read: if request.auth != null;
-      // Les clients ne peuvent pas modifier les projets
+
+      // Écriture pour les utilisateurs authentifiés (backoffice)
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Collection materials - Lecture seule
+    // Règles pour les requêtes de collection projects
+    match /projects/{document=**} {
+      // Permettre aux utilisateurs authentifiés de lister les projets
+      allow list: if request.auth != null;
+    }
+
+    // Collection materials - Accès complet pour les utilisateurs authentifiés
     match /materials/{materialId} {
       allow read: if request.auth != null;
-      // Les clients ne peuvent pas modifier les matériaux
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Règles pour les requêtes de collection materials
+    match /materials/{document=**} {
+      // Permettre aux utilisateurs authentifiés de lister les matériaux
+      allow list: if request.auth != null;
     }
 
     // Collection invitations - Accès spécial pour les invitations
@@ -94,19 +121,10 @@ service cloud.firestore {
 
     // Collection chantiers - Accès pour chefs et clients
     match /chantiers/{chantierId} {
-      // Les chefs peuvent lire et modifier les chantiers qui leur sont assignés
-      allow read, write: if request.auth != null &&
-                           resource.data.assignedChefId == request.auth.uid;
-
-      // Les clients peuvent lire les chantiers qui leur sont assignés
-      allow read: if request.auth != null &&
-                    resource.data.clientId == request.auth.uid;
-
-      // Permettre aux utilisateurs authentifiés de lire les chantiers (pour les requêtes de liste)
-      allow list: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés (admins) de créer des chantiers
-      allow create: if request.auth != null;
+      // Permettre à tous les utilisateurs authentifiés d'accéder aux chantiers
+      // Les filtres de sécurité se feront côté application
+      allow read, write, list: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
 
     // Collection clientSelections - Sélections de matériaux par les clients

@@ -165,16 +165,6 @@ export default function ClientProjectsScreen({ navigation }: Props) {
               <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ClientTabs', { screen: 'Chat' })}>
-              <View style={[styles.actionIcon, { backgroundColor: '#E96C2E' }]}>
-                <MaterialIcons name="chat" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.actionContent}>
-                <Text style={styles.actionTitle}>Contacter l'équipe</Text>
-                <Text style={styles.actionSubtitle}>Messages avec le chef de chantier</Text>
-              </View>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#2B2E83" />
-            </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ClientDocuments')}>
               <View style={[styles.actionIcon, { backgroundColor: '#4CAF50' }]}>

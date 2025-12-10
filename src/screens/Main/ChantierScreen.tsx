@@ -279,18 +279,6 @@ export default function ChantierScreen({ navigation, route }: Props) {
             ))}
           </View>
         </View>
-
-
-        {/* Contact Button */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => navigation.navigate('Chat')}
-          >
-            <MaterialIcons name="chat" size={24} color="#fff" />
-            <Text style={styles.contactButtonText}>Contacter le chef de chantier</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       {/* Modal de zoom d'image */}
