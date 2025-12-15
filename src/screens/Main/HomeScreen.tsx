@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,17 +20,7 @@ import { useClientChantier } from "../../hooks/useClientChantier";
 import { useClientAuth } from "../../hooks/useClientAuth";
 import AppHeader from "../../components/AppHeader";
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
-
-// Mock data pour les documents - à remplacer par des données réelles plus tard
-const mockDocumentsData = {
-  totalDocuments: 8,
-  recentUploads: 3,
-  categories: {
-    contracts: 2,
-    plans: 3,
-    photos: 3
-  }
-};
+import { useClientDocuments } from "../../hooks/useDocuments";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -58,6 +49,40 @@ export default function HomeScreen({ navigation }: Props) {
     mainImage,
     recentUpdates
   } = useClientChantier();
+
+  // Documents dynamiques
+  const { 
+    documents, 
+    documentsByCategory,
+    totalDocuments,
+  } = useClientDocuments(
+    chantier?.id || ''
+  );
+
+  const newDocuments = documents.filter(doc => {
+    const uploadDate = doc.uploadedAt?.toDate?.() || new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return uploadDate > weekAgo;
+  }).length;
+
+  // Calcul des statistiques pour l'affichage
+  const documentsStats = {
+    totalDocuments: totalDocuments,
+    recentUploads: newDocuments,
+    categories: {
+      contracts: documentsByCategory['contract']?.length || 0,
+      videos: documentsByCategory['video']?.length || 0,
+      plans: documentsByCategory['plan']?.length || 0,
+      photos: documentsByCategory['photo']?.length || 0,
+      other: (documentsByCategory['invoice']?.length || 0) + 
+             (documentsByCategory['permit']?.length || 0) + 
+             (documentsByCategory['report']?.length || 0) +
+             (documentsByCategory['other']?.length || 0)
+    }
+  };
+
+  // ... rest of the code using documentsStats instead of mockDocumentsData
 
   // Simple loading logic: show loading only when actually loading
   const shouldShowLoading = !isAuthenticated || chantierLoading;
@@ -109,7 +134,7 @@ export default function HomeScreen({ navigation }: Props) {
   if (shouldShowLoading) {
     return (
       <View style={styles.container}>
-        <AppHeader />
+        <AppHeader title="Tableau de bord" showNotification={false} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D4A" />
           <Text style={styles.loadingText}>Chargement de vos données...</Text>
@@ -149,18 +174,18 @@ export default function HomeScreen({ navigation }: Props) {
       color: "#E96C2E",
       backgroundColor: "#FFF7ED",
     },
-    {
-      id: "3",
-      title: "Messages non lus",
-      value: "5",
-      icon: "chat-bubble",
-      color: "#2B2E83",
-      backgroundColor: "#F8F9FF",
-    },
+    // {
+    //   id: "3",
+    //   title: "Messages non lus",
+    //   value: "5",
+    //   icon: "chat-bubble",
+    //   color: "#2B2E83",
+    //   backgroundColor: "#F8F9FF",
+    // },
   ];
 
   const handleDocumentsPress = () => {
-    navigation.navigate('ClientProjects');
+    navigation.navigate('Documents');
   };
 
   const renderMainStatCard = (stat: (typeof statisticsData)[0]) => (
@@ -203,7 +228,7 @@ export default function HomeScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Tableau de bord"
-        showNotification={true}
+        showNotification={false}
         onNotificationPress={() => {}}
       />
       <ScrollView
@@ -223,7 +248,7 @@ export default function HomeScreen({ navigation }: Props) {
         </ExpoLinearGradient>
 
         <View style={styles.statsContainer}>
-          <Text style={styles.sectionTitle}>Tableau de bord</Text>
+          <Text style={[styles.sectionTitle, {marginBottom: 15}]}>Tableau de bord</Text>
 
           {/* Carte principale - Avancement */}
           {renderMainStatCard(statisticsData[0])}
@@ -237,9 +262,9 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.projectsContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mon chantier</Text>
-            <TouchableOpacity onPress={handleProjectPress}>
+            {/* <TouchableOpacity onPress={handleProjectPress}>
               <Text style={styles.seeAllText}>Voir détails</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {hasChantier ? (
@@ -323,9 +348,9 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.projectsContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mes documents</Text>
-            <TouchableOpacity onPress={handleDocumentsPress}>
+            {/* <TouchableOpacity onPress={handleDocumentsPress}>
               <Text style={styles.seeAllText}>Gérer</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           <TouchableOpacity style={styles.documentsCard} onPress={handleDocumentsPress}>
@@ -339,7 +364,7 @@ export default function HomeScreen({ navigation }: Props) {
                 <View style={styles.documentsCardHeader}>
                   <View style={styles.documentsMainInfo}>
                     {/* <Text style={styles.documentsTitle}>Documents</Text> */}
-                    <Text style={styles.documentsCount}>{mockDocumentsData.totalDocuments} fichiers</Text>
+                    <Text style={styles.documentsCount}>{documentsStats.totalDocuments} fichiers</Text>
                   </View>
                   <View style={styles.documentsIcon}>
                     <MaterialIcons name="folder" size={32} color="#FFFFFF" />
@@ -348,23 +373,23 @@ export default function HomeScreen({ navigation }: Props) {
 
                 <View style={styles.documentsStats}>
                   <View style={styles.documentsStat}>
-                    <MaterialIcons name="description" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{mockDocumentsData.categories.contracts} contrats</Text>
+                    <MaterialIcons name="videocam" size={16} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.documentsStatText}>{documentsStats.categories.videos} vidéos</Text>
                   </View>
                   <View style={styles.documentsStat}>
                     <MaterialIcons name="architecture" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{mockDocumentsData.categories.plans} plans</Text>
+                    <Text style={styles.documentsStatText}>{documentsStats.categories.plans} plans</Text>
                   </View>
                   <View style={styles.documentsStat}>
                     <MaterialIcons name="photo-library" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{mockDocumentsData.categories.photos} photos</Text>
+                    <Text style={styles.documentsStatText}>{documentsStats.categories.photos} photos</Text>
                   </View>
                 </View>
 
                 <View style={styles.documentsFooter}>
                   <View style={styles.recentUploads}>
                     <MaterialIcons name="upload" size={16} color="rgba(255,255,255,0.9)" />
-                    <Text style={styles.recentUploadsText}>{mockDocumentsData.recentUploads} ajoutés récemment</Text>
+                    <Text style={styles.recentUploadsText}>{documentsStats.recentUploads} ajoutés récemment</Text>
                   </View>
                   <MaterialIcons name="arrow-forward" size={20} color="rgba(255,255,255,0.9)" />
                 </View>
@@ -384,12 +409,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
+ 
   loadingText: {
     marginTop: 16,
     fontSize: 16,
@@ -440,7 +460,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#2B2E83',
     fontFamily: 'FiraSans_700Bold',
-    marginBottom: 16,
+    marginTop: 20,
   },
   // Carte principale
   mainStatCard: {
@@ -521,12 +541,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   secondaryStatValue: {
-    fontSize: 14,
+    fontSize: 18,
     fontFamily: 'FiraSans_700Bold',
     marginBottom: 2,
   },
   secondaryStatTitle: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#64748B',
     fontFamily: 'FiraSans_600SemiBold',
     flexWrap: 'wrap',
@@ -777,12 +797,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-  },
+
   emptyProjectCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,

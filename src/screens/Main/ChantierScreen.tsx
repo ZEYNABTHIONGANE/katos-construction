@@ -8,14 +8,17 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { HomeTabParamList } from '../../types';
 import ProgressBar from '../../components/ProgressBar';
-import ImageZoomModal from '../../components/ImageZoomModal';
+import VideoPlayer from '../../components/VideoPlayer';
 import { useClientChantier } from '../../hooks/useClientChantier';
+import { ResizeMode, Video } from 'expo-av';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Chantier'>;
 
@@ -23,8 +26,8 @@ const { width } = Dimensions.get('window');
 
 export default function ChantierScreen({ navigation, route }: Props) {
   const chantierId = route?.params?.chantierId;
-  const [selectedImage, setSelectedImage] = useState<{uri: string, description: string} | null>(null);
-  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [showMediaCarousel, setShowMediaCarousel] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   const {
     chantier,
@@ -40,15 +43,11 @@ export default function ChantierScreen({ navigation, route }: Props) {
     phases
   } = useClientChantier(chantierId);
 
-  const handleImagePress = (imageUri: string, description: string) => {
-    setSelectedImage({ uri: imageUri, description });
-    setIsImageModalVisible(true);
+  const openMediaCarousel = (index: number) => {
+    setSelectedMediaIndex(index);
+    setShowMediaCarousel(true);
   };
 
-  const handleCloseImageModal = () => {
-    setIsImageModalVisible(false);
-    setSelectedImage(null);
-  };
 
   const getPhaseStatusColor = (status: string) => {
     switch (status) {
@@ -157,7 +156,10 @@ export default function ChantierScreen({ navigation, route }: Props) {
           {mainImage && (
             <TouchableOpacity
               style={styles.mainImageContainer}
-              onPress={() => handleImagePress(mainImage.url, mainImage.description || 'Image principale du chantier')}
+              onPress={() => {
+                  const index = photos.findIndex(p => p.id === mainImage.id);
+                  if (index !== -1) openMediaCarousel(index);
+              }}
               activeOpacity={0.8}
             >
               <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
@@ -194,16 +196,30 @@ export default function ChantierScreen({ navigation, route }: Props) {
                 <TouchableOpacity
                   key={photo.id}
                   style={styles.galleryItem}
-                  onPress={() => handleImagePress(photo.url, photo.description || '')}
+                  onPress={() => openMediaCarousel(index)}
                   activeOpacity={0.8}
                 >
-                  <Image source={{ uri: photo.url }} style={styles.galleryImage} />
+                  {photo.type === 'video' ? (
+                       <View style={styles.galleryImage}>
+                         <Video
+                           source={{ uri: photo.thumbnailUrl || photo.url }}
+                           style={{ width: '100%', height: '100%' }}
+                           resizeMode={ResizeMode.COVER}
+                           shouldPlay={false}
+                           isLooping={false}
+                           useNativeControls={false}
+                         />
+                         <View style={styles.playIconOverlay}>
+                            <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.8)" />
+                         </View>
+                       </View>
+                  ) : (
+                      <Image source={{ uri: photo.thumbnailUrl || photo.url }} style={styles.galleryImage} resizeMode="cover" />
+                  )}
                   <View style={styles.photoOverlay}>
-                    <Text style={styles.photoDescription} numberOfLines={2}>
-                      {photo.description}
-                    </Text>
+
                     <MaterialIcons
-                      name="zoom-in"
+                      name={photo.type === 'video' ? "play-circle-filled" : "zoom-in"}
                       size={16}
                       color="#fff"
                       style={styles.zoomIcon}
@@ -225,7 +241,9 @@ export default function ChantierScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Phases du chantier</Text>
           <View style={styles.timeline}>
-            {phases.map((phase, index) => (
+            {phases
+              .filter(phase => phase.name !== 'Électricité & Plomberie')
+              .map((phase, index) => (
               <View key={phase.id} style={styles.timelineItem}>
                 <View style={styles.timelineLeft}>
                   <View
@@ -281,13 +299,66 @@ export default function ChantierScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
-      {/* Modal de zoom d'image */}
-      <ImageZoomModal
-        visible={isImageModalVisible}
-        imageUri={selectedImage?.uri || ''}
-        description={selectedImage?.description}
-        onClose={handleCloseImageModal}
-      />
+      {/* Media Carousel Modal */}
+      <Modal
+        visible={showMediaCarousel}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+        onRequestClose={() => setShowMediaCarousel(false)}
+      >
+        <View style={styles.carouselContainer}>
+          <View style={styles.carouselHeader}>
+            <TouchableOpacity onPress={() => setShowMediaCarousel(false)} style={styles.carouselCloseButton}>
+              <MaterialIcons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.carouselTitle}>
+              {selectedMediaIndex + 1} / {photos.length}
+            </Text>
+            <View style={{ width: 40 }} /> 
+          </View>
+
+          {photos.length > 0 && (
+            <FlatList
+              data={photos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={selectedMediaIndex}
+              getItemLayout={(data, index) => ({
+                length: width,
+                offset: width * index,
+                index,
+              })}
+              onMomentumScrollEnd={(event) => {
+                const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                setSelectedMediaIndex(index);
+              }}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => (
+                <View style={styles.carouselItemContainer}>
+                  {item.type === 'video' ? (
+                    <VideoPlayer
+                      source={{ uri: item.url }}
+                      style={styles.carouselVideo}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={index === selectedMediaIndex}
+                      useNativeControls={true}
+                      showCustomControls={false}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: item.url }}
+                      style={styles.carouselImage}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
       </SafeAreaView>
     </View>
   );
@@ -540,6 +611,16 @@ const styles = StyleSheet.create({
   zoomIcon: {
     marginLeft: 8,
   },
+  playIconOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
   mainImageContainer: {
     position: 'relative',
     marginTop: 15,
@@ -601,5 +682,61 @@ const styles = StyleSheet.create({
   phaseProgressContainer: {
     marginTop: 8,
     marginBottom: 8,
+  },
+  carouselContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  carouselHeader: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  carouselCloseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  carouselTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  carouselItemContainer: {
+    width: width,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  carouselImage: {
+    width: width,
+    height: Dimensions.get('window').height * 0.8,
+  },
+  carouselVideo: {
+    width: width,
+    height: Dimensions.get('window').height * 0.8,
+  },
+  carouselDescription: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 12,
+    borderRadius: 8,
   },
 });

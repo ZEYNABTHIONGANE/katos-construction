@@ -255,7 +255,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Tableau de bord"
-        showNotification={true}
+        showNotification={false}
         onNotificationPress={() => {}}
       />
       <ScrollView
@@ -294,11 +294,11 @@ export default function ChefDashboardScreen({ navigation }: Props) {
       <View style={styles.projectsContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Projets en cours</Text>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => navigation.navigate('ChefChantiers')}
           >
             <Text style={styles.seeAllText}>Voir tout</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {chantiers.slice(0, 3).map((chantier) => (
@@ -367,9 +367,9 @@ export default function ChefDashboardScreen({ navigation }: Props) {
       <View style={styles.selectionsContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Sélections clients récentes</Text>
-          <TouchableOpacity onPress={() => setShowAllSelectionsModal(true)}>
+          {/* <TouchableOpacity onPress={() => setShowAllSelectionsModal(true)}>
             <Text style={styles.seeAllText}>Voir tout</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {clientSelections.slice(0, 3).map((selection) => (
@@ -427,7 +427,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
                         </View>
 
                         <View style={styles.materialPriceContainer}>
-                          <MaterialIcons name="attach-money" size={16} color="#4CAF50" />
+                     
                           <Text style={styles.materialPrice}>
                             {formatPrice(item.materialPrice)}
                           </Text>
@@ -714,11 +714,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    fontFamily: 'FiraSans_700Bold',
-    marginBottom: 6,
   },
   statTitle: {
     fontSize: 12,

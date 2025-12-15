@@ -187,7 +187,7 @@ export default function ChefProfilScreen({ navigation, onLogout }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Profil"
-        showNotification={true}
+            showNotification={false}
         onNotificationPress={() => {}}
       />
       <ScrollView
@@ -198,8 +198,17 @@ export default function ChefProfilScreen({ navigation, onLogout }: Props) {
 
       <View style={styles.profileSection}>
         <View style={styles.profileCard}>
-          <View style={styles.profileImageContainer}>
-            <MaterialIcons name="account-circle" size={80} color="#E5E7EB" />
+          <View style={[styles.profileImageContainer, { backgroundColor: '#E0E7FF' }]}>
+            <Text style={{ fontSize: 32, fontFamily: 'FiraSans_700Bold', color: '#2B2E83' }}>
+              {user?.displayName
+                ? user.displayName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase()
+                : 'CC'}
+            </Text>
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>
@@ -284,6 +293,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 80,
     height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,

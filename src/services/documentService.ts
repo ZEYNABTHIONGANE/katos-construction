@@ -96,24 +96,59 @@ export class DocumentService {
       console.log(`📚 Fetching documents for chantier: ${chantierId}, role: ${userRole}`);
 
       const documentsRef = collection(db, this.COLLECTION_NAME);
+      const chantierRef = doc(db, 'chantiers', chantierId);
 
-      // Try with simplified query first
-      let q = query(
-        documentsRef,
-        where('chantierId', '==', chantierId),
-        orderBy('uploadedAt', 'desc')
+      // Fetch documents and chantier in parallel
+      const [docsSnapshot, chantierSnapshot] = await Promise.all([
+        getDocs(query(documentsRef, where('chantierId', '==', chantierId), orderBy('uploadedAt', 'desc'))),
+        getDoc(chantierRef)
+      ]);
+
+      console.log(`📄 Retrieved ${docsSnapshot.docs.length} documents from Firestore`);
+
+      let documents = docsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          category: data.category || data.type || 'other'
+        } as FirebaseDocument;
+      }).filter(doc =>
+        doc.isVisible !== false && doc.isDeleted !== true
       );
 
-      const snapshot = await getDocs(q);
-      console.log(`📄 Retrieved ${snapshot.docs.length} documents from Firestore`);
+      // Merge with gallery items
+      if (chantierSnapshot.exists()) {
+        const chantierData = chantierSnapshot.data();
+        const galleryItems = (chantierData.gallery || []).map((item: any) => {
+          const date = item.uploadedAt?.toDate ? item.uploadedAt.toDate() : new Date();
+          const dateStr = date.toLocaleDateString('fr-FR');
+          const typeLabel = item.type === 'video' ? 'Vidéo' : 'Photo';
 
-      let documents = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as FirebaseDocument)).filter(doc =>
-        // Filter out deleted and invisible documents on client side
-        doc.isVisible === true && doc.isDeleted !== true
-      );
+          return {
+            id: item.id,
+            chantierId: chantierId,
+            name: item.type === 'video' ? 'Vidéo Chantier' : 'Photo Chantier',
+            originalName: `${typeLabel} - ${dateStr}`,
+            category: item.type === 'video' ? 'video' : 'photo',
+            mimeType: item.type === 'video' ? 'video/mp4' : 'image/jpeg',
+            size: 0,
+            url: item.url,
+            visibility: 'both' as DocumentVisibility,
+            uploadedBy: item.uploadedBy,
+            uploadedAt: item.uploadedAt,
+            description: item.description,
+            isVisible: true,
+            isDeleted: false,
+            thumbnailUrl: item.thumbnailUrl,
+            duration: item.duration
+          } as FirebaseDocument;
+        });
+
+        documents = [...documents, ...galleryItems];
+        // Sort combined list
+        documents.sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
+      }
 
       // Filter by visibility based on user role
       if (userRole) {
@@ -126,33 +161,7 @@ export class DocumentService {
       return documents;
     } catch (error) {
       console.error('Error fetching chantier documents:', error);
-
-      // If compound queries fail due to permissions, try basic query
-      try {
-        console.log('🔄 Trying fallback query without compound where clauses...');
-        const documentsRef = collection(db, this.COLLECTION_NAME);
-        const basicQuery = query(documentsRef, where('chantierId', '==', chantierId));
-        const snapshot = await getDocs(basicQuery);
-
-        let documents = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as FirebaseDocument)).filter(doc =>
-          doc.isVisible === true && doc.isDeleted !== true
-        );
-
-        if (userRole) {
-          documents = documents.filter(doc =>
-            doc.visibility === 'both' || doc.visibility === `${userRole}_only`
-          );
-        }
-
-        console.log(`📚 Fallback: Retrieved ${documents.length} documents`);
-        return documents;
-      } catch (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError);
-        return [];
-      }
+      return [];
     }
   }
 
@@ -269,43 +278,85 @@ export class DocumentService {
       orderBy('uploadedAt', 'desc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      console.log(`📄 Received ${snapshot.docs.length} documents from Firestore`);
+    // Listen to documents collection
+    const unsubDocs = onSnapshot(q, (snapshot) => {
+      // This callback just triggers a full refresh from fetch/merge logic
+      // optimization: store docs state locally and only merge when chantier updates too?
+      // For simplicity, we delegate to a helper or just re-run the merge logic here.
+      // actually we need to listen to BOTH.
+      // Let's create a local state for docs and gallery to merge them.
+    });
 
-      let documents: FirebaseDocument[] = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as FirebaseDocument)).filter(doc =>
-        // Filter out deleted and invisible documents on client side
-        doc.isVisible === true && doc.isDeleted !== true
-      );
+    // Actually, to avoid complexity of two listeners and merging state in a sync function return,
+    // we can use a simpler approach: 
+    // Just listen to both and whenever one changes, call the callback with merged result.
+    // BUT we need to store the latest value of each.
 
-      // Filter by visibility based on user role
+    let cachedDocs: FirebaseDocument[] = [];
+    let cachedGallery: FirebaseDocument[] = [];
+    let initialLoad = true;
+
+    const mergeAndCallback = () => {
+      let combined = [...cachedDocs, ...cachedGallery];
+      combined.sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
+
       if (userRole) {
-        documents = documents.filter(doc =>
+        combined = combined.filter(doc =>
           doc.visibility === 'both' || doc.visibility === `${userRole}_only`
         );
       }
+      callback(combined);
+    };
 
-      console.log(`📋 Filtered to ${documents.length} visible documents for role: ${userRole}`);
-      callback(documents);
-    }, (error) => {
-      console.error('Error listening to chantier documents:', error);
+    const documentsUnsubscribe = onSnapshot(q, (snapshot) => {
+      cachedDocs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          category: data.category || data.type || 'other'
+        } as FirebaseDocument;
+      }).filter(doc => doc.isVisible !== false && doc.isDeleted !== true);
+      mergeAndCallback();
+    }, (error) => console.error("Docs listener error", error));
 
-      // Fallback: try to fetch documents without real-time subscription
-      this.getChantierDocuments(chantierId, userRole)
-        .then(docs => {
-          console.log(`📚 Fallback: Retrieved ${docs.length} documents without subscription`);
-          callback(docs);
-        })
-        .catch(fallbackError => {
-          console.error('Fallback document fetch also failed:', fallbackError);
-          callback([]);
+    const chantierUnsubscribe = onSnapshot(doc(db, 'chantiers', chantierId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        cachedGallery = (data.gallery || []).map((item: any) => {
+          const date = item.uploadedAt?.toDate ? item.uploadedAt.toDate() : new Date();
+          const dateStr = date.toLocaleDateString('fr-FR');
+          const typeLabel = item.type === 'video' ? 'Vidéo' : 'Photo';
+
+          return {
+            id: item.id,
+            chantierId: chantierId,
+            name: item.type === 'video' ? 'Vidéo Chantier' : 'Photo Chantier',
+            originalName: `${typeLabel} - ${dateStr}`,
+            category: item.type === 'video' ? 'video' : 'photo',
+            mimeType: item.type === 'video' ? 'video/mp4' : 'image/jpeg',
+            size: 0,
+            url: item.url,
+            visibility: 'both' as DocumentVisibility,
+            uploadedBy: item.uploadedBy,
+            uploadedAt: item.uploadedAt,
+            description: item.description,
+            isVisible: true,
+            isDeleted: false,
+            thumbnailUrl: item.thumbnailUrl,
+            duration: item.duration
+          } as FirebaseDocument;
         });
+      } else {
+        cachedGallery = [];
+      }
+      mergeAndCallback();
+    }, (error) => console.error("Chantier listener error", error));
 
-      // Return empty unsubscribe function
-      return () => {};
-    });
+    return () => {
+      documentsUnsubscribe();
+      chantierUnsubscribe();
+    };
   }
 
   /**
@@ -328,10 +379,14 @@ export class DocumentService {
       );
 
       const snapshot = await getDocs(q);
-      let documents = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as FirebaseDocument));
+      let documents = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          category: data.category || data.type || 'other'
+        } as FirebaseDocument;
+      });
 
       // Filter by visibility based on user role
       if (userRole) {
@@ -414,7 +469,7 @@ export class DocumentService {
       };
 
       // Initialize category counts
-      const categories: DocumentCategory[] = ['contract', 'plan', 'invoice', 'permit', 'photo', 'report', 'other'];
+      const categories: DocumentCategory[] = ['contract', 'plan', 'invoice', 'permit', 'photo', 'report', 'video', 'other'];
       categories.forEach(category => {
         stats.byCategory[category] = 0;
       });
@@ -474,6 +529,7 @@ export class DocumentService {
   getDocumentIcon(mimeType: string): string {
     if (mimeType.includes('pdf')) return 'picture-as-pdf';
     if (mimeType.includes('image')) return 'image';
+    if (mimeType.includes('video')) return 'videocam'; // Added video icon
     if (mimeType.includes('word')) return 'description';
     if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'table-chart';
     if (mimeType.includes('zip')) return 'folder-zip';

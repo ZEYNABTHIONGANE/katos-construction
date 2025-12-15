@@ -102,8 +102,9 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
       'plan': 'Plan',
       'invoice': 'Facture',
       'permit': 'Autorisation',
-      'photo': 'Photo',
-      'report': 'Rapport',
+      photo: 'Photos',
+      video: 'Vidéos',
+      report: 'Rapports',
       'other': 'Autre'
     };
     return labels[category] || category;

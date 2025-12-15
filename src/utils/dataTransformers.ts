@@ -145,12 +145,7 @@ export const createMockProjectPhases = (project: FirebaseProject): ProjectPhase[
       startDate: project.createdAt ? new Date(project.createdAt.seconds * 1000 + 51 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR') : undefined,
       description: 'Installation de la charpente et couverture',
     },
-    {
-      id: '4',
-      name: 'Électricité & Plomberie',
-      status: 'pending',
-      description: 'Installation des réseaux électriques et sanitaires',
-    },
+
     {
       id: '5',
       name: 'Finitions',
@@ -201,7 +196,7 @@ export const transformFirebaseProjectToClientProject = (firebaseProject: Firebas
  */
 export const getCurrentPhaseName = (progress: number): string => {
   if (progress >= 90) return 'Finitions';
-  if (progress >= 70) return 'Électricité & Plomberie';
+
   if (progress >= 50) return 'Toiture';
   if (progress >= 30) return 'Gros œuvre';
   if (progress >= 10) return 'Fondations';
@@ -255,8 +250,8 @@ export const getClientSpecificProject = (
     error: !validation.hasProjectAssignment
       ? 'Aucun projet assigné au client'
       : !validation.projectFound
-      ? `Projet "${clientData.projetAdhere}" non trouvé`
-      : null,
+        ? `Projet "${clientData.projetAdhere}" non trouvé`
+        : null,
     suggestions: validation.suggestions || []
   };
 };

@@ -31,15 +31,17 @@ export interface FirebaseClient {
   nom: string;
   prenom: string;
   email: string;
-  localisationSite: string;
-  projetAdhere: string;
   telephone: string;
   adresse: string;
-
+  localisationSite: string;
+  projetAdhere: string;
   status: 'En cours' | 'Terminé' | 'En attente';
   invitationStatus: 'pending' | 'sent' | 'accepted' | 'declined';
   invitationToken?: string;
   userId?: string; // Lié à l'utilisateur une fois qu'il accepte l'invitation
+  username?: string; // Nom d'utilisateur généré pour la connexion
+  tempPassword?: string; // Mot de passe temporaire
+  typePaiement: 'comptant' | 'echeancier'; // Type de paiement
   createdAt: Timestamp;
   invitedAt?: Timestamp;
   acceptedAt?: Timestamp;
@@ -64,6 +66,8 @@ export interface FirebaseProject {
   description: string;
   images: string[];
   type: string;
+  price: number;
+  currency: string;
   createdAt: Timestamp;
 }
 
@@ -191,10 +195,11 @@ export interface FirebaseChantier {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string; // Admin who created the chantier
+  coverImage?: string; // URL of the cover image
 }
 
 // Document types for chantier documents
-export type DocumentCategory = 'contract' | 'plan' | 'invoice' | 'permit' | 'photo' | 'report' | 'other';
+export type DocumentCategory = 'contract' | 'plan' | 'invoice' | 'permit' | 'photo' | 'report' | 'video' | 'other';
 export type DocumentVisibility = 'client_only' | 'chef_only' | 'both';
 
 export interface FirebaseDocument {
@@ -257,6 +262,8 @@ export interface FirebaseCollections {
   chantiers: 'chantiers';
   documents: 'documents';
   clientSelections: 'clientSelections';
+  invitationCodes: 'invitationCodes';
+  documentNotifications: 'documentNotifications';
 }
 
 // Collection names constant for easy reference
@@ -268,7 +275,9 @@ export const COLLECTIONS: FirebaseCollections = {
   invitations: 'invitations',
   chantiers: 'chantiers',
   documents: 'documents',
-  clientSelections: 'clientSelections'
+  clientSelections: 'clientSelections',
+  invitationCodes: 'invitationCodes',
+  documentNotifications: 'documentNotifications'
 };
 
 // Utility functions for chantier calculations

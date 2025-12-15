@@ -95,12 +95,7 @@ export const mockProjectPhases: ProjectPhase[] = [
     startDate: '2024-03-11',
     description: 'Installation de la charpente et couverture',
   },
-  {
-    id: '4',
-    name: 'Électricité & Plomberie',
-    status: 'pending',
-    description: 'Installation des réseaux électriques et sanitaires',
-  },
+
   {
     id: '5',
     name: 'Finitions',

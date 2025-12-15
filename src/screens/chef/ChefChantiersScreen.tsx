@@ -16,7 +16,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
@@ -71,9 +71,11 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (selectedProject?.phases) {
       const initialValues: Record<string, number> = {};
-      selectedProject.phases.forEach(phase => {
-        initialValues[phase.id] = phase.progress;
-      });
+      selectedProject.phases
+        .filter(phase => phase.name !== 'Électricité & Plomberie')
+        .forEach(phase => {
+          initialValues[phase.id] = phase.progress;
+        });
       setSliderValues(initialValues);
     }
   }, [selectedProject]);
@@ -284,7 +286,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
       <View style={[styles.container, styles.loadingContainer]}>
         <AppHeader
           title="Mes Chantiers"
-          showNotification={true}
+          showNotification={false}
           onNotificationPress={() => {}}
         />
         <View style={styles.loadingContent}>
@@ -299,7 +301,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Mes Chantiers"
-        showNotification={true}
+          showNotification={false}
         onNotificationPress={() => {}}
       />
 
@@ -327,10 +329,11 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
               style={styles.projectCard}
               onPress={() => openProjectDetail(project)}
             >
-              {project.gallery.length > 0 && (
+              {project.coverImage ? (
+                <Image source={{ uri: project.coverImage }} style={styles.projectImage} />
+              ) : project.gallery && project.gallery.length > 0 ? (
                 <Image source={{ uri: project.gallery[0].url }} style={styles.projectImage} />
-              )}
-              {project.gallery.length === 0 && (
+              ) : (
                 <View style={[styles.projectImage, styles.placeholderImage]}>
                   <MaterialIcons name="image" size={48} color="#E0E0E0" />
                 </View>
@@ -404,7 +407,9 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
             </View>
 
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              {selectedProject.gallery.length > 0 ? (
+              {selectedProject.coverImage ? (
+                <Image source={{ uri: selectedProject.coverImage }} style={styles.modalImage} />
+              ) : selectedProject.gallery && selectedProject.gallery.length > 0 ? (
                 <Image source={{ uri: selectedProject.gallery[0].url }} style={styles.modalImage} />
               ) : (
                 <View style={[styles.modalImage, styles.placeholderImage]}>
@@ -436,7 +441,9 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
 
               <View style={styles.phasesSection}>
                 <Text style={styles.sectionTitle}>Étapes du projet</Text>
-                {selectedProject.phases.map((phase) => (
+                {selectedProject.phases
+                  .filter(phase => phase.name !== 'Électricité & Plomberie')
+                  .map((phase) => (
                   <View key={phase.id} style={styles.phaseItem}>
                     <View style={styles.phaseHeader}>
                       <View style={styles.phaseInfo}>
@@ -488,7 +495,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                   </View>
                 ))}
               </View>
-
+{/* 
               <View style={styles.gallerySection}>
                 <View style={styles.gallerySectionHeader}>
                   <Text style={styles.sectionTitle}>Galerie médias</Text>
@@ -511,7 +518,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                               <Video
                                 source={{ uri: item.thumbnailUrl || item.url }}
                                 style={styles.galleryImage}
-                                resizeMode="cover"
+                                resizeMode={ResizeMode.COVER}
                                 shouldPlay={false}
                                 isLooping={false}
                                 useNativeControls={false}
@@ -554,7 +561,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                     <MaterialIcons name="arrow-forward" size={16} color="#E96C2E" />
                   </TouchableOpacity>
                 )}
-              </View>
+              </View> */}
 
 
               <View style={styles.teamSection}>
@@ -709,7 +716,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                     <Video
                       source={{ uri: item.url }}
                       style={styles.carouselVideo}
-                      resizeMode="contain"
+                      resizeMode={ResizeMode.CONTAIN}
                       shouldPlay={false}
                       isLooping={false}
                       useNativeControls={true}

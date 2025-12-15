@@ -79,13 +79,20 @@ export class ChantierService {
   async getChefChantiers(chefId: string): Promise<FirebaseChantier[]> {
     try {
       const chantiersRef = collection(db, this.COLLECTION_NAME);
-      const q = query(chantiersRef, where('assignedChefId', '==', chefId), orderBy('updatedAt', 'desc'));
+      const q = query(chantiersRef, where('assignedChefId', '==', chefId));
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map(doc => ({
+      const chantiers = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseChantier));
+
+      // Client-side sorting
+      return chantiers.sort((a, b) => {
+        const timeA = a.updatedAt?.toMillis() || 0;
+        const timeB = b.updatedAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
     } catch (error) {
       console.error('Erreur lors de la récupération des chantiers du chef:', error);
       return [];
@@ -389,13 +396,20 @@ export class ChantierService {
   // Écouter les changements des chantiers d'un chef
   subscribeToChefChantiers(chefId: string, callback: (chantiers: FirebaseChantier[]) => void): () => void {
     const chantiersRef = collection(db, this.COLLECTION_NAME);
-    const q = query(chantiersRef, where('assignedChefId', '==', chefId), orderBy('updatedAt', 'desc'));
+    const q = query(chantiersRef, where('assignedChefId', '==', chefId));
 
     return onSnapshot(q, (snapshot) => {
       const chantiers: FirebaseChantier[] = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseChantier));
+
+      // Client-side sorting
+      chantiers.sort((a, b) => {
+        const timeA = a.updatedAt?.toMillis() || 0;
+        const timeB = b.updatedAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
 
       callback(chantiers);
     }, (error) => {

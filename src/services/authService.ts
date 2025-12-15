@@ -10,7 +10,7 @@ import {
 import { doc, setDoc, getDoc, deleteDoc, Timestamp, query, where, collection, getDocs, limit } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import type { FirebaseUser, FirebaseClient } from '../types/firebase';
-import { COLLECTIONS } from '../types/firebase';
+import { COLLECTIONS, UserRole } from '../types/firebase';
 import { invitationService } from './invitationService';
 import { clientService } from './clientService';
 
@@ -103,29 +103,45 @@ export class AuthService {
       // Then use the email for Firebase Auth login
       const result = await signInWithEmailAndPassword(auth, email, password);
 
-      // After successful login, update client invitation status and create session if this is a client
+      // After successful login, try to find client data and create session
       try {
-        const updateResult = await clientService.acceptClientInvitationByEmail(email, result.user.uid);
-        if (updateResult.success) {
-          console.log('Client invitation status updated to accepted for:', email);
+        // Method 1: Try finding client by userId (Preferred method for new technical accounts)
+        let clientData = await clientService.getClientByUserId(result.user.uid);
 
-          // Create client session with correct clientId (from clients collection)
-          const clientData = await clientService.getClientByUserId(result.user.uid);
-          if (clientData) {
-            const session: ClientSession = {
-              clientId: clientData.id!, // Use the document ID from clients collection
-              clientData: clientData,
-              authenticatedAt: new Date().toISOString(),
-              sessionToken: this.generateSessionToken(),
-              authType: 'firebase'
-            };
-            await this.saveClientSession(session);
-            console.log('Client session created with clientId:', clientData.id);
+        // Method 2: Fallback to email lookup if userId link not established yet
+        if (!clientData) {
+          console.log('Client not found by userId, trying email lookup fallback...');
+          const updateResult = await clientService.acceptClientInvitationByEmail(email, result.user.uid);
+          if (updateResult.success) {
+            clientData = await clientService.getClientByUserId(result.user.uid);
           }
         }
+
+        if (clientData) {
+          console.log('✅ Client data found, creating session for:', clientData.id);
+
+          // Ensure invitation status is accepted
+          if (clientData.invitationStatus !== 'accepted') {
+            await clientService.updateClientInvitationStatus(clientData.id!, 'accepted');
+          }
+
+          // Create client session
+          const session: ClientSession = {
+            clientId: clientData.id!,
+            clientData: clientData,
+            authenticatedAt: new Date().toISOString(),
+            sessionToken: this.generateSessionToken(),
+            authType: 'firebase'
+          };
+          await this.saveClientSession(session);
+          console.log('✅ Client session successfully saved');
+        } else {
+          console.warn('⚠️ No client data found for user:', result.user.uid);
+        }
+
       } catch (statusUpdateError) {
         // Don't fail login if status update fails, but log the error
-        console.warn('Failed to update client status after login:', statusUpdateError);
+        console.warn('Failed to create client session after login:', statusUpdateError);
       }
 
       return result.user;
@@ -204,6 +220,7 @@ export class AuthService {
       email: user.email!,
       displayName,
       phoneNumber,
+      role: UserRole.CHEF, // Default to CHEF for in-app signups
       createdAt: Timestamp.now()
     };
 

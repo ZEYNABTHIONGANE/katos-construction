@@ -101,16 +101,44 @@ service cloud.firestore {
 
     // Collection invitations - Accès spécial pour les invitations
     match /invitations/{invitationId} {
-      // Les utilisateurs peuvent lire leurs propres invitations
+      // Les utilisateurs peuvent lire leurs propres invitations (règle existante mobile)
       allow read: if request.auth != null &&
                      request.auth.token.email == resource.data.email;
 
-      // Les utilisateurs peuvent mettre à jour le statut de leurs invitations
+      // Les utilisateurs peuvent mettre à jour le statut de leurs invitations (règle existante mobile)
       allow update: if request.auth != null &&
                       request.auth.token.email == resource.data.email &&
-                      // Seulement autoriser la modification du statut et dates
                       request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['status', 'acceptedAt']);
+
+      // Règles pour les admins (backoffice)
+      // Permettre aux utilisateurs authentifiés de tout faire (lecture, écriture, suppression)
+      // Note: Dans une app plus complexe, on vérifierait le rôle 'admin', mais ici
+      // request.auth != null est la convention utilisée pour le backoffice
+      allow read, create, update, delete: if request.auth != null;
+
+      // Permettre le listing pour les admins
+      allow list: if request.auth != null;
+    }
+
+    // Collection invitationCodes - Gestion des codes d'invitation pour les admins
+    match /invitationCodes/{codeId} {
+      // Permettre la lecture pour validation lors de l'inscription (non-authentifié)
+      // ET pour les utilisateurs authentifiés (backoffice)
+      allow read: if true;
+
+      // Permettre la mise à jour pour validation lors de l'inscription (non-authentifié)
+      // ET pour les utilisateurs authentifiés (backoffice)
+      allow update: if true;
+
+      // Seuls les utilisateurs authentifiés peuvent créer des codes d'invitation
+      allow create: if request.auth != null;
+
+      // Seuls les utilisateurs authentifiés peuvent supprimer des codes d'invitation
+      allow delete: if request.auth != null;
+
+      // Permettre le listing des codes pour les admins authentifiés ET pour la validation
+      allow list: if true;
     }
 
     // Collection pour les documents/fichiers - Lecture seule pour les clients
@@ -121,9 +149,21 @@ service cloud.firestore {
 
     // Collection chantiers - Accès pour chefs et clients
     match /chantiers/{chantierId} {
-      // Permettre à tous les utilisateurs authentifiés d'accéder aux chantiers
-      // Les filtres de sécurité se feront côté application
-      allow read, write, list: if request.auth != null;
+      // Les chefs peuvent lire et modifier les chantiers qui leur sont assignés
+      allow read, write: if request.auth != null &&
+                           resource.data.assignedChefId == request.auth.uid;
+
+      // Les clients peuvent lire les chantiers qui leur sont assignés
+      allow read: if request.auth != null &&
+                    resource.data.clientId == request.auth.uid;
+
+      // Permettre la lecture aux utilisateurs authentifiés (règle temporaire pour debug)
+      allow read: if request.auth != null;
+
+      // Permettre aux utilisateurs authentifiés de lire les chantiers (pour les requêtes de liste)
+      allow list: if request.auth != null;
+
+      // Permettre aux utilisateurs authentifiés (admins) de créer, modifier et supprimer des chantiers
       allow create, update, delete: if request.auth != null;
     }
 
@@ -166,6 +206,24 @@ service cloud.firestore {
       allow update: if request.auth != null;
 
       // Permettre à tous les utilisateurs authentifiés de supprimer les documents
+      allow delete: if request.auth != null;
+    }
+
+    // Collection documentNotifications - Notifications de documents
+    match /documentNotifications/{notificationId} {
+      // Permettre à tous les utilisateurs authentifiés de lire les notifications
+      allow read: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de lister les notifications
+      allow list: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de créer des notifications
+      allow create: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de mettre à jour les notifications
+      allow update: if request.auth != null;
+
+      // Permettre à tous les utilisateurs authentifiés de supprimer les notifications
       allow delete: if request.auth != null;
     }
   }

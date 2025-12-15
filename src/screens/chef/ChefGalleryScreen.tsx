@@ -14,10 +14,11 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
+import VideoPlayer from '../../components/VideoPlayer';
 import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,13 +37,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      loadChefChantiers();
-    }
-  }, [user, authLoading]);
-
-  const loadChefChantiers = async () => {
+  const loadChefChantiers = React.useCallback(async () => {
     try {
       setLoading(true);
 
@@ -67,7 +62,13 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       Alert.alert('Erreur', 'Impossible de charger les chantiers');
       setLoading(false);
     }
-  };
+  }, [user, selectedProject]);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      loadChefChantiers();
+    }
+  }, [user, authLoading, loadChefChantiers]);
 
   const addMediaToGallery = () => {
     if (!selectedProject) {
@@ -209,15 +210,20 @@ export default function ChefGalleryScreen({ navigation }: Props) {
     setShowImageCarousel(true);
   };
 
-  const renderMediaItem = ({ item, index }: { item: ProgressPhoto; index: number }) => (
+  const renderMediaItem = ({ item }: { item: ProgressPhoto }) => (
     <View style={styles.mediaItemContainer}>
-      <TouchableOpacity onPress={() => openImageCarousel(index)}>
+      <TouchableOpacity 
+        onPress={() => {
+          const originalIndex = selectedProject?.gallery.findIndex(g => g.id === item.id) ?? 0;
+          openImageCarousel(originalIndex);
+        }}
+      >
         {item.type === 'video' ? (
           <View style={styles.videoContainer}>
             <Video
               source={{ uri: item.thumbnailUrl || item.url }}
               style={styles.mediaItem}
-              resizeMode="cover"
+              resizeMode={ResizeMode.COVER}
               shouldPlay={false}
               isLooping={false}
               useNativeControls={false}
@@ -226,7 +232,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
               <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.9)" />
               {item.duration && (
                 <Text style={styles.videoDuration}>
-                  {Math.floor(item.duration / 60)}:{String(Math.floor(item.duration % 60)).padStart(2, '0')}
+                  {Math.floor(item.duration / 60000)}mn:{Math.floor((item.duration % 60000) / 1000)}s
                 </Text>
               )}
             </View>
@@ -241,11 +247,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         <MaterialIcons name="delete" size={20} color="#FFFFFF" />
       </TouchableOpacity>
-      {item.description && (
-        <Text style={styles.mediaDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-      )}
+  
     </View>
   );
 
@@ -269,7 +271,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Galerie"
-        showNotification={true}
+            showNotification={false}
         onNotificationPress={() => {}}
       />
 
@@ -330,15 +332,37 @@ export default function ChefGalleryScreen({ navigation }: Props) {
             <Text style={styles.emptySubtext}>Ajoutez des photos et vidéos pour documenter l'avancement</Text>
           </View>
         ) : (
-          <FlatList
-            data={selectedProject.gallery}
-            renderItem={renderMediaItem}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            scrollEnabled={false}
-            contentContainerStyle={styles.mediaGrid}
-            columnWrapperStyle={styles.mediaRow}
-          />
+          <>
+            {selectedProject.gallery.some(item => item.type === 'video') && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Vidéos</Text>
+                <FlatList
+                  data={selectedProject.gallery.filter(item => item.type === 'video')}
+                  renderItem={renderMediaItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.mediaGrid}
+                  columnWrapperStyle={styles.mediaRow}
+                />
+              </View>
+            )}
+
+            {selectedProject.gallery.some(item => item.type === 'image') && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Photos</Text>
+                <FlatList
+                  data={selectedProject.gallery.filter(item => item.type === 'image')}
+                  renderItem={renderMediaItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.mediaGrid}
+                  columnWrapperStyle={styles.mediaRow}
+                />
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -387,16 +411,16 @@ export default function ChefGalleryScreen({ navigation }: Props) {
                 setSelectedImageIndex(index);
               }}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
                 <View style={styles.carouselItemContainer}>
                   {item.type === 'video' ? (
-                    <Video
+                    <VideoPlayer
                       source={{ uri: item.url }}
                       style={styles.carouselVideo}
-                      resizeMode="contain"
-                      shouldPlay={false}
-                      isLooping={false}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={index === selectedImageIndex}
                       useNativeControls={true}
+                      showCustomControls={false}
                     />
                   ) : (
                     <Image
@@ -405,9 +429,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
                       resizeMode="contain"
                     />
                   )}
-                  {item.description && (
-                    <Text style={styles.carouselDescription}>{item.description}</Text>
-                  )}
+                
                 </View>
               )}
             />
@@ -507,7 +529,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   mediaGrid: {
-    paddingBottom: 100, // Space for tab bar
+    paddingBottom: 10, 
   },
   mediaRow: {
     justifyContent: 'space-between',
@@ -658,5 +680,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 12,
     borderRadius: 8,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+    
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'FiraSans_600SemiBold',
+    color: '#374151',
+    marginBottom: 12,
+    marginTop: 4,
   },
 });

@@ -197,7 +197,19 @@ export default function FinitionsScreen({ navigation }: Props) {
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Finitions</Text>
-          <View style={styles.headerRight} />
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => setShowSelectionsModal(true)}
+          >
+            <View>
+              <MaterialIcons name="check-circle" size={24} color="#FFFFFF" />
+              {userSelections.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{userSelections.length}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
 
       <View style={styles.content}>
@@ -226,15 +238,7 @@ export default function FinitionsScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>
               {selectedCategory ? selectedCategory.name : 'Matériaux'}
             </Text>
-            <TouchableOpacity
-              style={styles.selectionsButton}
-              onPress={() => setShowSelectionsModal(true)}
-            >
-              <MaterialIcons name="check-circle" size={20} color="#E96C2E" />
-              <Text style={styles.selectionsButtonText}>
-                Mes sélections ({userSelections.length})
-              </Text>
-            </TouchableOpacity>
+
           </View>
 
           {selectedCategory && selectedCategory.materials.length > 0 ? (
@@ -393,25 +397,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 15,
   },
-  selectionsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF9E6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E96C2E',
-  },
-  selectionsButtonText: {
-    marginLeft: 5,
-    fontSize: 12,
-    color: '#E96C2E',
-    fontFamily: 'FiraSans_600SemiBold',
-  },
   materialsList: {
     paddingHorizontal: 20,
     paddingBottom: 130, // Espace pour la navigation flottante
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#E96C2E',
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   emptyState: {
     flex: 1,

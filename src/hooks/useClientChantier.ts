@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { chantierService } from '../services/chantierService';
 import { useClientAuth } from './useClientAuth';
@@ -107,7 +108,9 @@ export const useClientChantier = (specificChantierId?: string) => {
       id: photo.id,
       url: photo.url,
       description: photo.description || 'Photo du chantier',
-      uploadedAt: photo.uploadedAt
+      uploadedAt: photo.uploadedAt,
+      type: photo.type,
+      thumbnailUrl: photo.thumbnailUrl
     }));
 
     // Add phase photos
@@ -117,7 +120,9 @@ export const useClientChantier = (specificChantierId?: string) => {
           id: `phase_${phase.id}_${photoUrl}`,
           url: photoUrl,
           description: `Photo ${phase.name}`,
-          uploadedAt: phase.lastUpdated
+          uploadedAt: phase.lastUpdated,
+          type: 'image' as const,
+          thumbnailUrl: undefined
         }))
       );
 
@@ -129,19 +134,21 @@ export const useClientChantier = (specificChantierId?: string) => {
   const getPhases = () => {
     if (!chantier?.phases) return [];
 
-    return chantier.phases.map(phase => ({
-      id: phase.id,
-      name: phase.name,
-      description: phase.description,
-      status: phase.status,
-      progress: phase.progress,
-      startDate: phase.actualStartDate
-        ? phase.actualStartDate.toDate().toLocaleDateString('fr-FR')
-        : phase.plannedStartDate?.toDate().toLocaleDateString('fr-FR'),
-      endDate: phase.actualEndDate
-        ? phase.actualEndDate.toDate().toLocaleDateString('fr-FR')
-        : phase.plannedEndDate?.toDate().toLocaleDateString('fr-FR')
-    }));
+    return chantier.phases
+      .filter(phase => phase.name !== 'Électricité & Plomberie')
+      .map(phase => ({
+        id: phase.id,
+        name: phase.name,
+        description: phase.description,
+        status: phase.status,
+        progress: phase.progress,
+        startDate: phase.actualStartDate
+          ? phase.actualStartDate.toDate().toLocaleDateString('fr-FR')
+          : phase.plannedStartDate?.toDate().toLocaleDateString('fr-FR'),
+        endDate: phase.actualEndDate
+          ? phase.actualEndDate.toDate().toLocaleDateString('fr-FR')
+          : phase.plannedEndDate?.toDate().toLocaleDateString('fr-FR')
+      }));
   };
 
   const photos = getPhotos();
@@ -161,12 +168,16 @@ export const useClientChantier = (specificChantierId?: string) => {
     startDate: chantier?.startDate?.toDate().toLocaleDateString('fr-FR') || '',
     plannedEndDate: chantier?.plannedEndDate?.toDate().toLocaleDateString('fr-FR') || '',
 
-    // Main image (first image from the project)
-    mainImage: photos.length > 0 ? photos[0] : null,
+    // Main image logic
+    mainImage: chantier?.coverImage
+      ? { id: 'cover', url: chantier.coverImage, description: 'Image de couverture', uploadedAt: chantier.updatedAt }
+      : photos.length > 0
+        ? photos[0]
+        : null,
 
     // Data arrays
     photos,
-    recentUpdates: getRecentUpdates(),
-    phases: getPhases()
+    phases: getPhases(),
+    recentUpdates: getRecentUpdates()
   };
 };

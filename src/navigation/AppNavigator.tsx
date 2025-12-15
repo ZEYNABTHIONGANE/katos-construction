@@ -24,6 +24,7 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
 import ClientDocumentsScreen from '../screens/main/ClientDocumentsScreen';
+import ClientDocumentsScreenV3 from '../screens/main/ClientDocumentsScreenV3';
 import HelpSupportScreen from '../screens/main/HelpSupportScreen';
 import AboutScreen from '../screens/main/AboutScreen';
 import HomeScreen from '../screens/main/HomeScreen';
@@ -119,6 +120,37 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                   color: '#2B2E83',
                   marginTop: 2,
                 }}>Chantier</Text>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <ClientTab.Screen
+        name="Documents"
+        component={ClientDocumentsScreenV3}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              minWidth: 53,
+            }}>
+              <MaterialIcons
+                name="description"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 10,
+                  fontFamily: 'FiraSans_600SemiBold',
+                  color: '#2B2E83',
+                  marginTop: 2,
+                }}>Documents</Text>
               )}
             </View>
           ),

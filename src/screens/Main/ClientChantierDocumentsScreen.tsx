@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { Video } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useClientChantier } from '../../hooks/useClientChantier';
@@ -21,6 +22,7 @@ import { useClientDocuments } from '../../hooks/useDocuments';
 import { useAuth } from '../../hooks/useAuth';
 import ProgressBar from '../../components/ProgressBar';
 import DocumentUploadModal from '../../components/DocumentUploadModal';
+import VideoPlayer from '../../components/VideoPlayer';
 import type { DocumentCategory, DocumentVisibility } from '../../types/firebase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClientProjects'>;
@@ -56,13 +58,36 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
     clearError
   } = useClientDocuments(chantier?.id || '');
 
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [showMediaModal, setShowMediaModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'photos' | 'videos'>('all');
 
-  const openPhotoViewer = (photoUrl: string) => {
-    setSelectedPhoto(photoUrl);
-    setShowPhotoModal(true);
+  const openMediaViewer = (mediaUrl: string, mediaType: 'image' | 'video') => {
+    setSelectedMedia({ url: mediaUrl, type: mediaType });
+    setShowMediaModal(true);
+  };
+
+  // Memoized media filtering
+  const filteredMedia = useMemo(() => {
+    const photosList = photos.filter(photo => photo.type !== 'video' || !photo.type);
+    const videosList = photos.filter(photo => photo.type === 'video');
+
+    return {
+      photos: photosList,
+      videos: videosList,
+    };
+  }, [photos]);
+
+  const getFilteredMedia = () => {
+    switch (mediaFilter) {
+      case 'photos':
+        return filteredMedia.photos;
+      case 'videos':
+        return filteredMedia.videos;
+      default:
+        return photos;
+    }
   };
 
   const handleUploadDocument = async (
@@ -250,25 +275,94 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {/* Photos Gallery */}
+          {/* Supports Gallery with Photos and Videos separation */}
           {photos.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Photos du chantier ({photos.length})</Text>
+              <Text style={styles.sectionTitle}>Supports du chantier ({photos.length})</Text>
+
+              {/* Filter buttons for Photos and Videos */}
+              <View style={styles.mediaFilterContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.mediaFilterButton,
+                    mediaFilter === 'all' && styles.mediaFilterButtonActive
+                  ]}
+                  onPress={() => setMediaFilter('all')}
+                >
+                  <MaterialIcons name="collections" size={16} color={mediaFilter === 'all' ? '#FFFFFF' : '#6B7280'} />
+                  <Text style={[
+                    styles.mediaFilterText,
+                    mediaFilter === 'all' && styles.mediaFilterTextActive
+                  ]}>
+                    Tout ({photos.length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.mediaFilterButton,
+                    mediaFilter === 'photos' && styles.mediaFilterButtonActive
+                  ]}
+                  onPress={() => setMediaFilter('photos')}
+                >
+                  <MaterialIcons name="photo" size={16} color={mediaFilter === 'photos' ? '#FFFFFF' : '#6B7280'} />
+                  <Text style={[
+                    styles.mediaFilterText,
+                    mediaFilter === 'photos' && styles.mediaFilterTextActive
+                  ]}>
+                    Photos ({filteredMedia.photos.length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.mediaFilterButton,
+                    mediaFilter === 'videos' && styles.mediaFilterButtonActive
+                  ]}
+                  onPress={() => setMediaFilter('videos')}
+                >
+                  <MaterialIcons name="videocam" size={16} color={mediaFilter === 'videos' ? '#FFFFFF' : '#6B7280'} />
+                  <Text style={[
+                    styles.mediaFilterText,
+                    mediaFilter === 'videos' && styles.mediaFilterTextActive
+                  ]}>
+                    Vidéos ({filteredMedia.videos.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.photosContainer}
               >
-                {photos.map((photo) => (
+                {getFilteredMedia().map((media) => (
                   <TouchableOpacity
-                    key={photo.id}
+                    key={media.id}
                     style={styles.photoItem}
-                    onPress={() => openPhotoViewer(photo.url)}
+                    onPress={() => openMediaViewer(media.url, media.type)}
                   >
-                    <Image source={{ uri: photo.url }} style={styles.photoImage} />
+                    {media.type === 'video' ? (
+                      <View style={styles.videoContainer}>
+                        <Image
+                          source={{ uri: media.thumbnailUrl || media.url }}
+                          style={styles.photoImage}
+                        />
+                        <View style={styles.videoOverlay}>
+                          <MaterialIcons name="play-circle-filled" size={32} color="rgba(255,255,255,0.9)" />
+                          {media.duration && (
+                            <Text style={styles.videoDuration}>
+                              {Math.floor(media.duration / 60)}:{String(Math.floor(media.duration % 60)).padStart(2, '0')}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ) : (
+                      <Image source={{ uri: media.url }} style={styles.photoImage} />
+                    )}
                     <View style={styles.photoOverlay}>
                       <Text style={styles.photoDescription} numberOfLines={2}>
-                        {photo.description}
+                        {media.description}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -325,22 +419,37 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
           </View>
         </ScrollView>
 
-        {/* Photo Modal */}
+        {/* Media Modal (Photos and Videos) */}
         <Modal
-          visible={showPhotoModal}
+          visible={showMediaModal}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setShowPhotoModal(false)}
+          onRequestClose={() => setShowMediaModal(false)}
         >
-          <View style={styles.photoModal}>
+          <View style={styles.mediaModal}>
             <TouchableOpacity
-              style={styles.photoModalClose}
-              onPress={() => setShowPhotoModal(false)}
+              style={styles.mediaModalClose}
+              onPress={() => setShowMediaModal(false)}
             >
               <MaterialIcons name="close" size={30} color="#FFFFFF" />
             </TouchableOpacity>
-            {selectedPhoto && (
-              <Image source={{ uri: selectedPhoto }} style={styles.photoModalImage} />
+            {selectedMedia && (
+              selectedMedia.type === 'video' ? (
+                <VideoPlayer
+                  source={{ uri: selectedMedia.url }}
+                  style={styles.mediaModalVideo}
+                  resizeMode="contain"
+                  shouldPlay={false}
+                  isLooping={false}
+                  useNativeControls={true}
+                  onError={(error) => {
+                    console.error('Error playing video:', error);
+                    Alert.alert('Erreur vidéo', error);
+                  }}
+                />
+              ) : (
+                <Image source={{ uri: selectedMedia.url }} style={styles.mediaModalImage} />
+              )
             )}
           </View>
         </Modal>
@@ -583,23 +692,85 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
     textAlign: 'center',
   },
-  photoModal: {
+  mediaModal: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoModalClose: {
+  mediaModalClose: {
     position: 'absolute',
     top: 60,
     right: 20,
     zIndex: 1,
     padding: 10,
   },
-  photoModalImage: {
+  mediaModalImage: {
     width: '90%',
     height: '70%',
     resizeMode: 'contain',
+  },
+  mediaModalVideo: {
+    width: '95%',
+    height: '80%',
+  },
+  // Media filter styles
+  mediaFilterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 0,
+    paddingVertical: 12,
+    justifyContent: 'space-around',
+  },
+  mediaFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minWidth: 80,
+    justifyContent: 'center',
+  },
+  mediaFilterButtonActive: {
+    backgroundColor: '#E96C2E',
+    borderColor: '#E96C2E',
+  },
+  mediaFilterText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 4,
+  },
+  mediaFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  videoContainer: {
+    position: 'relative',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  videoDuration: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
   },
   loadingContainer: {
     justifyContent: 'center',

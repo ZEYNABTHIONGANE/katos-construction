@@ -20,6 +20,7 @@ export type RootStackParamList = {
 export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
+  Documents: undefined;
   Finitions: undefined;
   Profil: undefined;
 };
