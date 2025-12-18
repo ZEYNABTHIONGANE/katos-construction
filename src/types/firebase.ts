@@ -300,6 +300,8 @@ export interface VoiceNoteFeedback {
   createdAt: Timestamp;
   status: 'unread' | 'read' | 'resolved';
   readBy?: string[]; // IDs of users who listened
+  type?: 'audio' | 'text'; // Type of message (default: 'audio' for backward compatibility)
+  text?: string; // Content if type is 'text'
 }
 
 // Collection names constant for easy reference

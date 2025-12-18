@@ -2,6 +2,7 @@ import {
     collection,
     addDoc,
     updateDoc,
+    deleteDoc,
     doc,
     onSnapshot,
     query,
@@ -51,27 +52,65 @@ export const feedbackService = {
         stepId?: string
     ): Promise<string> => {
         try {
-            const feedbackData: Omit<VoiceNoteFeedback, 'id'> = {
+            const feedbackData: any = {
                 chantierId,
                 phaseId,
-                stepId,
                 clientId,
+                type: 'audio',
                 audioUrl,
                 duration,
-                createdAt: serverTimestamp() as Timestamp,
+                createdAt: serverTimestamp(),
                 status: 'unread',
                 readBy: []
             };
 
-            // Sanitize undefined stepId if needed, but Firestore handles it (fields undefined are not saved)
-            // Actually strictly typing Omit<VoiceNoteFeedback, 'id'> requires all keys, 
-            // but let's ensure we passed exactly what we want.
+            // Only add stepId if it is defined to avoid "Unsupported field value: undefined" error
+            if (stepId) {
+                feedbackData.stepId = stepId;
+            }
 
             const feedbacksRef = collection(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION);
             const docRef = await addDoc(feedbacksRef, feedbackData);
             return docRef.id;
         } catch (error) {
             console.error('Error creating voice note:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Creates a new text message feedback document in Firestore
+     */
+    createTextMessage: async (
+        chantierId: string,
+        phaseId: string,
+        clientId: string,
+        text: string,
+        stepId?: string
+    ): Promise<string> => {
+        try {
+            const feedbackData: any = {
+                chantierId,
+                phaseId,
+                clientId,
+                type: 'text',
+                text,
+                audioUrl: '', // Placeholder
+                duration: 0,
+                createdAt: serverTimestamp(),
+                status: 'unread',
+                readBy: []
+            };
+
+            if (stepId) {
+                feedbackData.stepId = stepId;
+            }
+
+            const feedbacksRef = collection(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION);
+            const docRef = await addDoc(feedbacksRef, feedbackData);
+            return docRef.id;
+        } catch (error) {
+            console.error('Error creating text message:', error);
             throw error;
         }
     },
@@ -122,6 +161,19 @@ export const feedbackService = {
             });
         } catch (error) {
             console.error('Error marking feedback as read:', error);
+        }
+    },
+
+    /**
+     * Deletes a voice note from Firestore
+     */
+    deleteVoiceNote: async (chantierId: string, feedbackId: string, audioUrl: string) => {
+        try {
+            const feedbackRef = doc(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION, feedbackId);
+            await deleteDoc(feedbackRef);
+        } catch (error) {
+            console.error('Error deleting voice note:', error);
+            throw error;
         }
     }
 };

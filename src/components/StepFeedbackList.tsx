@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import { MaterialIcons } from '@expo/vector-icons';
 import { VoiceNoteFeedback } from '../types/firebase';
 import { useUserNames } from '../hooks/useUserNames';
+import { feedbackService } from '../services/feedbackService';
 
 interface StepFeedbackListProps {
   feedbacks: VoiceNoteFeedback[];
@@ -46,6 +47,29 @@ export default function StepFeedbackList({ feedbacks, currentUserId }: StepFeedb
     }
   }
 
+  const handleDelete = (item: VoiceNoteFeedback) => {
+      Alert.alert(
+          "Supprimer la note vocale",
+          "Êtes-vous sûr de vouloir supprimer cette note ? Cette action est irréversible.",
+          [
+              { text: "Annuler", style: "cancel" },
+              { 
+                  text: "Supprimer", 
+                  style: "destructive",
+                  onPress: async () => {
+                      try {
+                          if (item.id) {
+                            await feedbackService.deleteVoiceNote(item.chantierId, item.id, item.audioUrl);
+                          }
+                      } catch (err) {
+                          Alert.alert("Erreur", "Impossible de supprimer la note.");
+                      }
+                  }
+              }
+          ]
+      );
+  };
+
   useEffect(() => {
     return sound
       ? () => {
@@ -62,36 +86,49 @@ export default function StepFeedbackList({ feedbacks, currentUserId }: StepFeedb
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
     }) || '';
     
-    // Get sender name (or "Moi" if it's the current user, though checking clientId matches session uid is safer)
     const senderName = isMe ? 'Moi' : getUserName(item.clientId) || 'Utilisateur';
+    const isText = item.type === 'text';
 
     return (
       <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.otherMessage]}>
         <View style={[styles.bubble, isMe && styles.myBubble]}>
             <View style={styles.headerRow}>
                  <Text style={[styles.senderName, isMe && styles.textWhiteLight]}>{senderName}</Text>
-                 <Text style={[styles.timestamp, isMe && styles.textWhiteLight]}>{formattedDate}</Text>
+                 <View style={styles.headerRight}>
+                    <Text style={[styles.timestamp, isMe && styles.textWhiteLight]}>{formattedDate}</Text>
+                    {isMe && (
+                        <TouchableOpacity onPress={() => handleDelete(item)} style={styles.deleteButton}>
+                            <MaterialIcons name="delete-outline" size={16} color="rgba(255,255,255,0.7)" />
+                        </TouchableOpacity>
+                    )}
+                 </View>
             </View>
-            <View style={styles.contentRow}>
-                <TouchableOpacity onPress={() => playSound(item.audioUrl, item.id)}>
-                    <MaterialIcons 
-                        name={isPlaying ? "stop-circle" : "play-circle-filled"} 
-                        size={32} 
-                        color={isMe ? "#FFF" : "#2B2E83"} 
-                    />
-                </TouchableOpacity>
-                <View style={styles.waveformPlaceholder}>
-                     {/* Visual filler for waveform */}
-                     <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 10 }]} />
-                     <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 20 }]} />
-                     <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 15 }]} />
-                     <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 25 }]} />
-                     <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 12 }]} />
-                </View>
-                <Text style={[styles.duration, isMe ? styles.textWhite : styles.textBlue]}>
-                    {Math.round(item.duration)}s
+            
+            {isText ? (
+                <Text style={[styles.messageText, isMe ? styles.textWhite : styles.textBlue]}>
+                    {item.text}
                 </Text>
-            </View>
+            ) : (
+                <View style={styles.contentRow}>
+                    <TouchableOpacity onPress={() => playSound(item.audioUrl, item.id)}>
+                        <MaterialIcons 
+                            name={isPlaying ? "stop-circle" : "play-circle-filled"} 
+                            size={32} 
+                            color={isMe ? "#FFF" : "#2B2E83"} 
+                        />
+                    </TouchableOpacity>
+                    <View style={styles.waveformPlaceholder}>
+                         <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 10 }]} />
+                         <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 20 }]} />
+                         <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 15 }]} />
+                         <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 25 }]} />
+                         <View style={[styles.line, isMe ? styles.lineWhite : styles.lineBlue, { height: 12 }]} />
+                    </View>
+                    <Text style={[styles.duration, isMe ? styles.textWhite : styles.textBlue]}>
+                        {Math.round(item.duration)}s
+                    </Text>
+                </View>
+            )}
         </View>
       </View>
     );
@@ -140,6 +177,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+  headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+  },
+  deleteButton: {
+      marginLeft: 8,
+  },
   senderName: {
       fontSize: 10,
       fontWeight: 'bold',
@@ -185,5 +229,10 @@ const styles = StyleSheet.create({
   },
   textWhiteLight: {
     color: 'rgba(255,255,255,0.7)',
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 4,
   }
 });

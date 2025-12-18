@@ -5,7 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: "katos-app",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/icon.png",
+  icon: "./src/assets/logo.png",
   userInterfaceStyle: "light",
   newArchEnabled: true,
   plugins: ["expo-font", "expo-video"],
@@ -24,7 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: "com.scylka.katos",
     adaptiveIcon: {
-      foregroundImage: "./assets/adaptive-icon.png",
+      foregroundImage: "./src/assets/logo.png",
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
@@ -45,7 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   web: {
-    favicon: "./assets/favicon.png",
+    favicon: "./src/assets/logo.png",
   },
 
   updates: {

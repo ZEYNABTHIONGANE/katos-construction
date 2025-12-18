@@ -24,6 +24,7 @@ import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
+import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 
 const { width, height } = Dimensions.get('window');
 
@@ -561,6 +562,16 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                                           maximumTrackTintColor="#E5E7EB"
                                           disabled={isStepLocked}
                                       />
+                                      {/* Voice Notes for Step - only show if unlocked */}
+                                      {!isStepLocked && (
+                                          <PhaseFeedbackSection
+                                              chantierId={selectedProject.id}
+                                              phaseId={phase.id}
+                                              stepId={step.id}
+                                              title="Notes vocales (Étape)"
+                                              currentUserId={user?.uid}
+                                          />
+                                      )}
                                   </View>
                                 );
                             })}
@@ -578,6 +589,15 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                             maximumTrackTintColor="#E5E7EB"
                             disabled={isPhaseLocked}
                           />
+                          {/* Voice Notes for Phase (no steps) - only show if unlocked */}
+                          {!isPhaseLocked && (
+                              <PhaseFeedbackSection
+                                  chantierId={selectedProject.id}
+                                  phaseId={phase.id}
+                                  title="Notes vocales (Phase)"
+                                  currentUserId={user?.uid}
+                              />
+                          )}
                         </View>
                     )}
 
