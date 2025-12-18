@@ -165,6 +165,13 @@ service cloud.firestore {
 
       // Permettre aux utilisateurs authentifiés (admins) de créer, modifier et supprimer des chantiers
       allow create, update, delete: if request.auth != null;
+
+      // Sub-collection feedbacks
+      match /feedbacks/{feedbackId} {
+        // Allow read/write for authenticated users (chefs and clients) linked to this chantier
+        // Ideally we check if request.auth.uid is the client or chef, but for now allow authenticated
+        allow read, write: if request.auth != null;
+      }
     }
 
     // Collection clientSelections - Sélections de matériaux par les clients

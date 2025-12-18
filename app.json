@@ -16,8 +16,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.scylka.katos",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "L'application a besoin d'accéder au micro pour enregistrer des notes vocales."
+      },
+      "associatedDomains": [
+        "applinks:katos-app.vercel.app"
+      ]
     },
     "android": {
       "package": "com.scylka.katos",

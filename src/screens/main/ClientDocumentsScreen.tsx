@@ -8,8 +8,13 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Modal,
+  Image,
+  Dimensions,
 } from 'react-native';
+import { ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import VideoPlayer from '../../components/VideoPlayer';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -38,6 +43,9 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
 
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>('all');
 
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(-1);
+
   const filteredDocuments = () => {
     if (selectedCategory === 'all') {
       return documents;
@@ -45,13 +53,40 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
     return documents.filter(doc => doc.category === selectedCategory);
   };
 
+  // Filter only viewable media (images and videos) from the current list
+  const getViewableMedia = () => {
+    return filteredDocuments().filter(doc => 
+      doc.mimeType.startsWith('image/') || doc.mimeType.startsWith('video/')
+    ).map(doc => ({
+      ...doc,
+      type: doc.mimeType.startsWith('video/') ? 'video' : 'image',
+      url: doc.url
+    }));
+  };
+
+  const openMediaViewer = (mediaUrl: string) => {
+    const viewableMedia = getViewableMedia();
+    const index = viewableMedia.findIndex(m => m.url === mediaUrl);
+    
+    if (index >= 0) {
+        setSelectedMediaIndex(index);
+        setShowMediaModal(true);
+    }
+  };
+
   const renderDocument = ({ item }: { item: FirebaseDocument }) => {
     const iconName = getDocumentIcon(item.mimeType);
     const formattedSize = formatFileSize(item.size);
     const uploadDate = item.uploadedAt?.toDate?.()?.toLocaleDateString('fr-FR') || 'Date inconnue';
 
+    const isViewable = item.mimeType.startsWith('image/') || item.mimeType.startsWith('video/');
+
     return (
-      <View style={styles.documentCard}>
+      <TouchableOpacity 
+        style={styles.documentCard}
+        disabled={!isViewable}
+        onPress={() => isViewable && openMediaViewer(item.url)}
+      >
         <View style={styles.documentHeader}>
           <View style={styles.documentIcon}>
             <MaterialIcons
@@ -92,7 +127,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -235,6 +270,73 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
             </View>
           )}
         </ScrollView>
+
+        {/* Media Carousel Modal */}
+        <Modal
+          visible={showMediaModal}
+          animationType="fade"
+          presentationStyle="fullScreen"
+          statusBarTranslucent
+          onRequestClose={() => setShowMediaModal(false)}
+        >
+          <SafeAreaView style={styles.carouselContainer} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={styles.carouselHeader}>
+              {/* <TouchableOpacity onPress={() => setShowMediaModal(false)} style={styles.carouselCloseButton}>
+                <MaterialIcons name="close" size={30} color="#fff" />
+              </TouchableOpacity> */}
+              <Text style={styles.carouselTitle}>
+                {selectedMediaIndex + 1} / {getViewableMedia().length}
+              </Text>
+              <View style={{ width: 40 }} /> 
+            </View>
+
+            {getViewableMedia().length > 0 && (
+              <FlatList
+                data={getViewableMedia()}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={selectedMediaIndex}
+                getItemLayout={(data, index) => ({
+                  length: Dimensions.get('window').width,
+                  offset: Dimensions.get('window').width * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                  setSelectedMediaIndex(index);
+                }}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                  <View style={styles.carouselItemContainer}>
+                    {item.type === 'video' ? (
+                      <VideoPlayer
+                        source={{ uri: item.url }}
+                        style={styles.carouselVideo}
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={index === selectedMediaIndex}
+                        isLooping={false}
+                        useNativeControls={true}
+                        onError={(error) => {
+                          console.error('Error playing video:', error);
+                          Alert.alert('Erreur vidéo', error);
+                        }}
+                      />
+                    ) : (
+                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                    )}
+                    
+                    {item.description && (
+                        <Text style={styles.carouselDescription}>
+                        {item.description}
+                        </Text>
+                    )}
+                  </View>
+                )}
+              />
+            )}
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -488,5 +590,67 @@ const styles = StyleSheet.create({
   },
   errorBannerClose: {
     padding: 4,
+  },
+  // Carousel Styles
+  carouselContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  carouselHeader: {
+    position: 'absolute',
+     top: -60, // Adjusted for SafeAreaView
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+
+  },
+  carouselCloseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 25,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  carouselTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  carouselItemContainer: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+  },
+  carouselImage: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  carouselVideo: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+  },
+  carouselDescription: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 12,
+    borderRadius: 8,
   },
 });

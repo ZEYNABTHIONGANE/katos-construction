@@ -10,7 +10,9 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
+import { ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -58,14 +60,22 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
     clearError
   } = useClientDocuments(chantier?.id || '');
 
-  const [selectedMedia, setSelectedMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const { width } = Dimensions.get('window');
+
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(-1);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [mediaFilter, setMediaFilter] = useState<'all' | 'photos' | 'videos'>('all');
 
   const openMediaViewer = (mediaUrl: string, mediaType: 'image' | 'video') => {
-    setSelectedMedia({ url: mediaUrl, type: mediaType });
-    setShowMediaModal(true);
+    // Find index in filtered list
+    const mediaList = getFilteredMedia();
+    const index = mediaList.findIndex(m => m.url === mediaUrl);
+    
+    if (index >= 0) {
+        setSelectedMediaIndex(index);
+        setShowMediaModal(true);
+    }
   };
 
   // Memoized media filtering
@@ -350,9 +360,9 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
                         />
                         <View style={styles.videoOverlay}>
                           <MaterialIcons name="play-circle-filled" size={32} color="rgba(255,255,255,0.9)" />
-                          {media.duration && (
+                          {(media as any).duration && (
                             <Text style={styles.videoDuration}>
-                              {Math.floor(media.duration / 60)}:{String(Math.floor(media.duration % 60)).padStart(2, '0')}
+                              {Math.floor((media as any).duration / 60)}:{String(Math.floor((media as any).duration % 60)).padStart(2, '0')}
                             </Text>
                           )}
                         </View>
@@ -419,37 +429,69 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
           </View>
         </ScrollView>
 
-        {/* Media Modal (Photos and Videos) */}
+        {/* Media Carousel Modal */}
         <Modal
           visible={showMediaModal}
-          transparent={true}
           animationType="fade"
+          presentationStyle="fullScreen"
+          statusBarTranslucent
           onRequestClose={() => setShowMediaModal(false)}
         >
-          <View style={styles.mediaModal}>
-            <TouchableOpacity
-              style={styles.mediaModalClose}
-              onPress={() => setShowMediaModal(false)}
-            >
-              <MaterialIcons name="close" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
-            {selectedMedia && (
-              selectedMedia.type === 'video' ? (
-                <VideoPlayer
-                  source={{ uri: selectedMedia.url }}
-                  style={styles.mediaModalVideo}
-                  resizeMode="contain"
-                  shouldPlay={false}
-                  isLooping={false}
-                  useNativeControls={true}
-                  onError={(error) => {
-                    console.error('Error playing video:', error);
-                    Alert.alert('Erreur vidéo', error);
-                  }}
-                />
-              ) : (
-                <Image source={{ uri: selectedMedia.url }} style={styles.mediaModalImage} />
-              )
+          <View style={styles.carouselContainer}>
+            <View style={styles.carouselHeader}>
+              <TouchableOpacity onPress={() => setShowMediaModal(false)} style={styles.carouselCloseButton}>
+                <MaterialIcons name="close" size={30} color="red" />
+              </TouchableOpacity>
+              <Text style={styles.carouselTitle}>
+                {selectedMediaIndex + 1} / {getFilteredMedia().length}
+              </Text>
+              <View style={{ width: 40 }} /> 
+            </View>
+
+            {getFilteredMedia().length > 0 && (
+              <FlatList
+                data={getFilteredMedia()}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={selectedMediaIndex}
+                getItemLayout={(data, index) => ({
+                  length: width,
+                  offset: width * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                  setSelectedMediaIndex(index);
+                }}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                  <View style={styles.carouselItemContainer}>
+                    {item.type === 'video' ? (
+                      <VideoPlayer
+                        source={{ uri: item.url }}
+                        style={styles.carouselVideo}
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={index === selectedMediaIndex}
+                        isLooping={false}
+                        useNativeControls={true}
+                        onError={(error) => {
+                          console.error('Error playing video:', error);
+                          Alert.alert('Erreur vidéo', error);
+                        }}
+                      />
+                    ) : (
+                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                    )}
+                    
+                    {item.description && (
+                        <Text style={styles.carouselDescription}>
+                        {item.description}
+                        </Text>
+                    )}
+                  </View>
+                )}
+              />
             )}
           </View>
         </Modal>
@@ -692,27 +734,65 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_400Regular',
     textAlign: 'center',
   },
-  mediaModal: {
+  carouselContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'black',
+  },
+  carouselHeader: {
+    position: 'absolute',
+    top: 60, // Increased top spacing
+    left: 0,
+    right: 0,
+    zIndex: 10, // Increased zIndex
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  carouselCloseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker background
+    borderRadius: 25, // Rounder
+    padding: 12, // Larger touch area
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)', // Subtle border for visibility
+  },
+  carouselTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'FiraSans_600SemiBold',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  carouselItemContainer: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'black', // Ensure black background for item
   },
-  mediaModalClose: {
+  carouselImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height, 
+    resizeMode: 'contain', // Ensure styling knows it's contain
+  },
+  carouselVideo: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  carouselDescription: {
     position: 'absolute',
-    top: 60,
+    bottom: 50,
+    left: 20,
     right: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  mediaModalImage: {
-    width: '90%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  mediaModalVideo: {
-    width: '95%',
-    height: '80%',
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 12,
+    borderRadius: 8,
   },
   // Media filter styles
   mediaFilterContainer: {

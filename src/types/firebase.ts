@@ -97,6 +97,20 @@ export interface FirebaseCollections {
 export type ChantierStatus = 'En attente' | 'En cours' | 'Terminé' | 'En retard';
 export type PhaseStatus = 'pending' | 'in-progress' | 'completed' | 'blocked';
 
+// Types pour la structure hiérarchique des phases Katos (identique au backoffice)
+export interface PhaseStep {
+  id: string;
+  name: string;
+  description: string;
+  status: PhaseStatus;
+  progress: number; // 0-100%
+  estimatedDuration: number; // en jours
+  actualStartDate?: Timestamp;
+  actualEndDate?: Timestamp;
+  notes?: string;
+  updatedBy?: string;
+}
+
 export interface ChantierPhase {
   id: string;
   name: string;
@@ -120,6 +134,14 @@ export interface ChantierPhase {
   photos: string[]; // Photo URLs for this phase
   lastUpdated: Timestamp;
   updatedBy: string; // Chef who last updated
+}
+
+// Extension de ChantierPhase pour supporter les sous-étapes (identique au backoffice)
+export interface KatosChantierPhase extends Omit<ChantierPhase, 'progress'> {
+  steps?: PhaseStep[]; // Sous-étapes optionnelles
+  progress: number; // Calculé automatiquement à partir des steps si elles existent
+  category: 'main' | 'gros_oeuvre' | 'second_oeuvre'; // Catégorie pour regroupement
+  order: number; // Ordre d'exécution
 }
 
 export interface TeamMember {
@@ -264,6 +286,20 @@ export interface FirebaseCollections {
   clientSelections: 'clientSelections';
   invitationCodes: 'invitationCodes';
   documentNotifications: 'documentNotifications';
+  feedbacks: 'feedbacks'; // Sub-collection of chantiers
+}
+
+export interface VoiceNoteFeedback {
+  id: string;
+  chantierId: string;
+  phaseId: string;
+  stepId?: string; // Optional (if linked to main phase)
+  clientId: string;
+  audioUrl: string; // Firebase Storage URL
+  duration: number; // In seconds
+  createdAt: Timestamp;
+  status: 'unread' | 'read' | 'resolved';
+  readBy?: string[]; // IDs of users who listened
 }
 
 // Collection names constant for easy reference
@@ -277,7 +313,8 @@ export const COLLECTIONS: FirebaseCollections = {
   documents: 'documents',
   clientSelections: 'clientSelections',
   invitationCodes: 'invitationCodes',
-  documentNotifications: 'documentNotifications'
+  documentNotifications: 'documentNotifications',
+  feedbacks: 'feedbacks'
 };
 
 // Utility functions for chantier calculations
@@ -302,4 +339,356 @@ export const getPhaseStatus = (progress: number): PhaseStatus => {
   if (progress === 0) return 'pending';
   if (progress === 100) return 'completed';
   return 'in-progress';
+};
+
+// Export des phases standards selon la structure Katos (identique au backoffice)
+export const KATOS_STANDARD_PHASES: Omit<KatosChantierPhase, 'id' | 'lastUpdated' | 'updatedBy'>[] = [
+  {
+    name: 'Approvisionnement',
+    description: 'Commande et réception des matériaux nécessaires',
+    status: 'pending',
+    progress: 0,
+    category: 'main',
+    order: 1,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 3,
+    photos: [],
+    notes: ''
+  },
+
+  // GROS ŒUVRE
+  {
+    name: 'Fondation',
+    description: 'Travaux de fondation complets',
+    status: 'pending',
+    progress: 0,
+    category: 'gros_oeuvre',
+    order: 2,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 10,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'implantation',
+        name: 'Implantation',
+        description: 'Marquage et positionnement des fondations',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 1,
+        notes: ''
+      },
+      {
+        id: 'terrassement',
+        name: 'Terrassement',
+        description: 'Excavation et préparation du terrain',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 4,
+        notes: ''
+      },
+      {
+        id: 'fondation',
+        name: 'Fondation',
+        description: 'Coulage des fondations',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 5,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Élévation',
+    description: 'Construction des murs et structures verticales',
+    status: 'pending',
+    progress: 0,
+    category: 'gros_oeuvre',
+    order: 3,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 15,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'maconnerie',
+        name: 'Maçonnerie',
+        description: 'Construction des murs en maçonnerie',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 10,
+        notes: ''
+      },
+      {
+        id: 'beton_arme',
+        name: 'Éléments béton armé',
+        description: 'Mise en place des éléments en béton armé',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 5,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Coulage',
+    description: 'Coulage des dalles',
+    status: 'pending',
+    progress: 0,
+    category: 'gros_oeuvre',
+    order: 4,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 3,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'coulage_dalle',
+        name: 'Coulage dalle',
+        description: 'Coulage de la dalle de plancher',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Vérification gros œuvre',
+    description: 'Contrôle qualité du gros œuvre',
+    status: 'pending',
+    progress: 0,
+    category: 'gros_oeuvre',
+    order: 5,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 2,
+    photos: [],
+    notes: ''
+  },
+
+  // SECOND ŒUVRE
+  {
+    name: 'Plomberie',
+    description: 'Installation complète de la plomberie',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 6,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 8,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'alimentation',
+        name: 'Alimentation',
+        description: 'Installation du réseau d\'alimentation en eau',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      },
+      {
+        id: 'appareillage_plomberie',
+        name: 'Appareillage',
+        description: 'Installation des appareils sanitaires',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      },
+      {
+        id: 'evacuation',
+        name: 'Évacuation',
+        description: 'Installation du réseau d\'évacuation',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 2,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Électricité',
+    description: 'Installation électrique complète',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 7,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 7,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'fourretage',
+        name: 'Fourretage',
+        description: 'Passage des gaines électriques',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 2,
+        notes: ''
+      },
+      {
+        id: 'cablage',
+        name: 'Câblage',
+        description: 'Installation des câbles électriques',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      },
+      {
+        id: 'appareillage_electrique',
+        name: 'Appareillage',
+        description: 'Installation des prises et interrupteurs',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 2,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Carrelage',
+    description: 'Pose du carrelage',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 8,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 6,
+    photos: [],
+    notes: ''
+  },
+  {
+    name: 'Étanchéité',
+    description: 'Travaux d\'étanchéité',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 9,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 3,
+    photos: [],
+    notes: ''
+  },
+  {
+    name: 'Menuiserie',
+    description: 'Installation des menuiseries',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 10,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 5,
+    photos: [],
+    notes: ''
+  },
+  {
+    name: 'Faux plafond',
+    description: 'Installation des faux plafonds',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 11,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 4,
+    photos: [],
+    notes: ''
+  },
+  {
+    name: 'Peinture',
+    description: 'Travaux de peinture complets',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 12,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 8,
+    photos: [],
+    notes: '',
+    steps: [
+      {
+        id: 'grattage',
+        name: 'Grattage',
+        description: 'Préparation des surfaces',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 2,
+        notes: ''
+      },
+      {
+        id: 'couche_primaire',
+        name: 'Application couche primaire',
+        description: 'Application de la sous-couche',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      },
+      {
+        id: 'couche_secondaire',
+        name: 'Application couche secondaire',
+        description: 'Application de la couche de finition',
+        status: 'pending',
+        progress: 0,
+        estimatedDuration: 3,
+        notes: ''
+      }
+    ]
+  },
+  {
+    name: 'Vérification second œuvre',
+    description: 'Contrôle qualité du second œuvre',
+    status: 'pending',
+    progress: 0,
+    category: 'second_oeuvre',
+    order: 13,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 2,
+    photos: [],
+    notes: ''
+  },
+  {
+    name: 'Clef en main',
+    description: 'Livraison finale du projet',
+    status: 'pending',
+    progress: 0,
+    category: 'main',
+    order: 14,
+    assignedTeamMembers: [],
+    requiredMaterials: [],
+    estimatedDuration: 1,
+    photos: [],
+    notes: ''
+  }
+];
+
+// Fonction pour calculer le progrès d'une phase avec sous-étapes (identique au backoffice)
+export const calculatePhaseProgress = (phase: KatosChantierPhase): number => {
+  if (!phase.steps || phase.steps.length === 0) {
+    return phase.progress;
+  }
+
+  const totalStepProgress = phase.steps.reduce((sum, step) => sum + step.progress, 0);
+  return Math.round(totalStepProgress / phase.steps.length);
+};
+
+// Fonction pour obtenir toutes les phases par catégorie (identique au backoffice)
+export const getPhasesByCategory = (category: 'main' | 'gros_oeuvre' | 'second_oeuvre') => {
+  return KATOS_STANDARD_PHASES.filter(phase => phase.category === category);
 };

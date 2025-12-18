@@ -211,6 +211,30 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     updatePhaseProgress(phaseId, Math.round(newProgress));
   };
 
+  const handleStepProgressChange = async (phaseId: string, stepId: string, newProgress: number) => {
+    // Mise à jour immédiate pour feedback visuel using composite key
+    const key = `${phaseId}_${stepId}`;
+    setSliderValues(prev => ({
+      ...prev,
+      [key]: Math.round(newProgress)
+    }));
+
+    if (!selectedProject || !user) return;
+
+    try {
+      await chantierService.updateStepProgress(
+        selectedProject.id!,
+        phaseId,
+        stepId,
+        Math.round(newProgress),
+        user.uid
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'étape:', error);
+      Alert.alert('Erreur', 'Impossible de mettre à jour la progression.');
+    }
+  };
+
   const addTeamMember = async () => {
     if (!selectedProject || !newMember.name.trim()) {
       Alert.alert("Erreur", "Veuillez saisir au minimum le nom du membre");
@@ -443,46 +467,126 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                 <Text style={styles.sectionTitle}>Étapes du projet</Text>
                 {selectedProject.phases
                   .filter(phase => phase.name !== 'Électricité & Plomberie')
-                  .map((phase) => (
-                  <View key={phase.id} style={styles.phaseItem}>
+                  .map((phase, phaseIndex, phasesArray) => {
+                    // --- PHASE LINEARITY CHECK ---
+                    // "Gros Oeuvre" phases must be sequential.
+                    // "Second Oeuvre" phases are NOT linear relative to each other.
+                    // However, we might arguably want Second Oeuvre to start only after ALL Gros Oeuvre is done?
+                    // User said: "linearité n'est valable que pour les gros oeuvre... mais les etapes des second oeuvre ne sont pas lineaire"
+                    // Implies: Phase N (Gros Oeuvre) requires Phase N-1 (Gros Oeuvre) to be done.
+                    
+                    const isGrosOeuvre = (phase as any).category === 'gros_oeuvre';
+                    let isPhaseLocked = false;
+                    
+                    if (isGrosOeuvre) {
+                      // Find previous Gros Oeuvre phase
+                      // Iterate backwards from current index
+                      let prevGrosOeuvreIndex = -1;
+                      for (let i = phaseIndex - 1; i >= 0; i--) {
+                        if ((phasesArray[i] as any).category === 'gros_oeuvre') {
+                          prevGrosOeuvreIndex = i;
+                          break;
+                        }
+                      }
+                      
+                      if (prevGrosOeuvreIndex !== -1) {
+                         const prevPhase = phasesArray[prevGrosOeuvreIndex];
+                         // Check if strictly less than 100%
+                         if (prevPhase.progress < 100) {
+                           isPhaseLocked = true;
+                         }
+                      }
+                    } 
+                    // Note: No lock for 'second_oeuvre' phases relative to each other, based on user request.
+
+                    const hasSteps = (phase as any).steps && (phase as any).steps.length > 0;
+
+                    return (
+                  <View key={phase.id} style={[styles.phaseItem, isPhaseLocked && styles.phaseItemLocked]}>
                     <View style={styles.phaseHeader}>
                       <View style={styles.phaseInfo}>
-                        <MaterialIcons
-                          name={(() => {
-                            const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
-                            return realtimeStatus === 'completed'
-                              ? 'check-circle'
-                              : realtimeStatus === 'in-progress'
-                              ? 'radio-button-checked'
-                              : 'radio-button-unchecked';
-                          })()}
-                          size={20}
-                          color={getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress))}
-                        />
-                        <Text style={styles.phaseName}>{phase.name}</Text>
+                        {isPhaseLocked ? (
+                           <MaterialIcons name="lock" size={20} color="#9CA3AF" />
+                        ) : (
+                          <MaterialIcons
+                            name={(() => {
+                              const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
+                              return realtimeStatus === 'completed'
+                                ? 'check-circle'
+                                : realtimeStatus === 'in-progress'
+                                ? 'radio-button-checked'
+                                : 'radio-button-unchecked';
+                            })()}
+                            size={20}
+                            color={getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress))}
+                          />
+                        )}
+                        <Text style={[styles.phaseName, isPhaseLocked && styles.textLocked]}>{phase.name}</Text>
                       </View>
-                      <Text style={styles.phaseProgress}>{sliderValues[phase.id] ?? phase.progress}%</Text>
+                      <Text style={[styles.phaseProgress, isPhaseLocked && styles.textLocked]}>
+                        {sliderValues[phase.id] ?? phase.progress}%
+                      </Text>
                     </View>
 
-                    <View style={styles.sliderContainer}>
-                      <Slider
-                        style={styles.phaseSlider}
-                        minimumValue={0}
-                        maximumValue={100}
-                        value={sliderValues[phase.id] ?? phase.progress}
-                        onValueChange={(value) => handleProgressChange(phase.id, value)}
-                        step={5}
-                        minimumTrackTintColor="#E96C2E"
-                        maximumTrackTintColor="#E5E7EB"
-                      />
-                    </View>
+                    {/* Check if Phase has steps */}
+                    {hasSteps ? (
+                        <View style={styles.stepsContainer}>
+                            {(phase as any).steps.map((step: any, stepIndex: number) => {
+                                // --- STEP LINEARITY CHECK ---
+                                // Always linear within the phase
+                                let isStepLocked = isPhaseLocked; // Inherit phase lock
+                                if (!isStepLocked && stepIndex > 0) {
+                                    const prevStep = (phase as any).steps[stepIndex - 1];
+                                    if (prevStep.progress < 100) {
+                                        isStepLocked = true;
+                                    }
+                                }
+
+                                return (
+                                  <View key={step.id} style={styles.stepItem}>
+                                      <View style={styles.stepHeader}>
+                                          <Text style={[styles.stepName, isStepLocked && styles.textLocked]}>{step.name}</Text>
+                                          <Text style={[styles.stepProgress, isStepLocked && styles.textLocked]}>{step.progress}%</Text>
+                                      </View>
+                                      <Slider
+                                          style={styles.stepSlider}
+                                          minimumValue={0}
+                                          maximumValue={100}
+                                          value={sliderValues[`${phase.id}_${step.id}`] ?? step.progress}
+                                          onValueChange={(val) => {
+                                              handleStepProgressChange(phase.id, step.id, val);
+                                          }}
+                                          step={100} 
+                                          minimumTrackTintColor={isStepLocked ? "#D1D5DB" : "#E96C2E"}
+                                          maximumTrackTintColor="#E5E7EB"
+                                          disabled={isStepLocked}
+                                      />
+                                  </View>
+                                );
+                            })}
+                        </View>
+                    ) : (
+                        <View style={styles.sliderContainer}>
+                          <Slider
+                            style={styles.phaseSlider}
+                            minimumValue={0}
+                            maximumValue={100}
+                            value={sliderValues[phase.id] ?? phase.progress}
+                            onValueChange={(value) => handleProgressChange(phase.id, value)}
+                            step={5}
+                            minimumTrackTintColor={isPhaseLocked ? "#D1D5DB" : "#E96C2E"}
+                            maximumTrackTintColor="#E5E7EB"
+                            disabled={isPhaseLocked}
+                          />
+                        </View>
+                    )}
 
                     <View style={styles.phaseStatusContainer}>
                       <Text style={[
                         styles.phaseStatusText,
-                        { color: getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress)) }
+                        { color: isPhaseLocked ? '#9CA3AF' : getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress)) }
                       ]}>
-                        {(() => {
+                        {isPhaseLocked ? 'Verrouillé' : (() => {
                           const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
                           return realtimeStatus === 'completed'
                             ? 'Terminé'
@@ -493,7 +597,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                       </Text>
                     </View>
                   </View>
-                ))}
+                )})}
               </View>
 {/* 
               <View style={styles.gallerySection}>
@@ -1432,5 +1536,42 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 10,
     borderRadius: 8,
+  },
+  phaseItemLocked: {
+    opacity: 0.7,
+    backgroundColor: '#F9FAFB',
+  },
+  textLocked: {
+    color: '#9CA3AF',
+  },
+  stepsContainer: {
+    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    paddingTop: 15,
+    paddingHorizontal: 5,
+  },
+  stepItem: {
+    marginBottom: 20,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepName: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  stepProgress: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+  },
+  stepSlider: {
+    width: '100%',
+    height: 40,
   },
 });

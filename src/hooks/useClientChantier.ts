@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { chantierService } from '../services/chantierService';
 import { useClientAuth } from './useClientAuth';
-import type { FirebaseChantier } from '../types/firebase';
+import type { FirebaseChantier, KatosChantierPhase } from '../types/firebase';
 
 export const useClientChantier = (specificChantierId?: string) => {
   const { session, isAuthenticated, refreshKey } = useClientAuth();
@@ -136,19 +136,30 @@ export const useClientChantier = (specificChantierId?: string) => {
 
     return chantier.phases
       .filter(phase => phase.name !== 'Électricité & Plomberie')
-      .map(phase => ({
-        id: phase.id,
-        name: phase.name,
-        description: phase.description,
-        status: phase.status,
-        progress: phase.progress,
-        startDate: phase.actualStartDate
-          ? phase.actualStartDate.toDate().toLocaleDateString('fr-FR')
-          : phase.plannedStartDate?.toDate().toLocaleDateString('fr-FR'),
-        endDate: phase.actualEndDate
-          ? phase.actualEndDate.toDate().toLocaleDateString('fr-FR')
-          : phase.plannedEndDate?.toDate().toLocaleDateString('fr-FR')
-      }));
+      .map(phase => {
+        // Cast to KatosChantierPhase to access expanded properties
+        const katosPhase = phase as unknown as KatosChantierPhase;
+
+        return {
+          id: phase.id,
+          name: phase.name,
+          description: phase.description,
+          status: phase.status,
+          progress: phase.progress,
+          // Pass through additional fields needed for UI
+          lastUpdated: phase.lastUpdated,
+          updatedBy: phase.updatedBy,
+          category: katosPhase.category, // From KatosChantierPhase
+          steps: katosPhase.steps,       // From KatosChantierPhase
+
+          startDate: phase.actualStartDate
+            ? phase.actualStartDate.toDate().toLocaleDateString('fr-FR')
+            : phase.plannedStartDate?.toDate().toLocaleDateString('fr-FR'),
+          endDate: phase.actualEndDate
+            ? phase.actualEndDate.toDate().toLocaleDateString('fr-FR')
+            : phase.plannedEndDate?.toDate().toLocaleDateString('fr-FR')
+        };
+      });
   };
 
   const photos = getPhotos();

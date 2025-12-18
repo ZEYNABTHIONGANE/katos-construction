@@ -19,6 +19,9 @@ import ProgressBar from '../../components/ProgressBar';
 import VideoPlayer from '../../components/VideoPlayer';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { ResizeMode, Video } from 'expo-av';
+import type { KatosChantierPhase } from '../../types/firebase';
+import { useUserNames } from '../../hooks/useUserNames';
+import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 
 type Props = BottomTabScreenProps<HomeTabParamList, 'Chantier'>;
 
@@ -42,6 +45,29 @@ export default function ChantierScreen({ navigation, route }: Props) {
     photos,
     phases
   } = useClientChantier(chantierId);
+
+  // Collecter tous les IDs d'utilisateurs pour récupérer leurs noms
+  const userIds = React.useMemo(() => {
+    if (!phases) return [];
+    
+    const ids = new Set<string>();
+    
+    phases.forEach((phase: any) => {
+      // Phase updatedBy
+      if (phase.updatedBy) ids.add(phase.updatedBy);
+      
+      // Step updatedBy
+      if (phase.steps) {
+        phase.steps.forEach((step: any) => {
+          if (step.updatedBy) ids.add(step.updatedBy);
+        });
+      }
+    });
+    
+    return Array.from(ids);
+  }, [phases]);
+
+  const { getUserName } = useUserNames(userIds);
 
   const openMediaCarousel = (index: number) => {
     setSelectedMediaIndex(index);
@@ -92,6 +118,134 @@ export default function ChantierScreen({ navigation, route }: Props) {
       default:
         return 'En attente';
     }
+  };
+
+  // Fonction pour grouper les phases par catégorie
+  const groupPhasesByCategory = (phases: any[]) => {
+    const katosPhases = phases as KatosChantierPhase[];
+    const grouped = katosPhases.reduce((acc, phase) => {
+      const category = phase.category || 'main';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(phase);
+      return acc;
+    }, {} as Record<string, KatosChantierPhase[]>);
+
+    return grouped;
+  };
+
+  // Fonction pour obtenir les couleurs par catégorie
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'gros_oeuvre':
+        return {
+          primary: '#E96C2E', // Orange pour gros œuvre
+          light: '#FFF3E0',
+          text: '#E96C2E'
+        };
+      case 'second_oeuvre':
+        return {
+          primary: '#9C27B0', // Violet pour second œuvre
+          light: '#F3E5F5',
+          text: '#9C27B0'
+        };
+      default:
+        return {
+          primary: '#2B2E83', // Bleu pour phases principales
+          light: '#E8EAF6',
+          text: '#2B2E83'
+        };
+    }
+  };
+
+  // Fonction pour obtenir le nom de la catégorie
+  const getCategoryName = (category: string) => {
+    switch (category) {
+      case 'gros_oeuvre':
+        return 'PHASES GROS ŒUVRE';
+      case 'second_oeuvre':
+        return 'PHASES SECOND ŒUVRE';
+      default:
+        return null; // Pas de header pour les phases principales
+    }
+  };
+
+  // Fonction pour vérifier si c'est une phase de vérification
+  const isVerificationPhase = (phaseName: string) => {
+    return phaseName.toLowerCase().includes('vérification');
+  };
+
+  // Fonction pour formater les dates avec heure
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return null;
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Fonction pour formater les dates avec heure complète (pour correspondre au backoffice)
+  const formatDateWithTime = (timestamp: any) => {
+    if (!timestamp) return null;
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Fonction pour obtenir les dates réelles basées sur les mises à jour
+  const getRealDates = (phase: any) => {
+    const lastUpdate = formatDate(phase.lastUpdated);
+    const lastUpdateWithTime = formatDateWithTime(phase.lastUpdated);
+
+    // Si la phase a du progrès, elle a été commencée
+    const hasStarted = phase.progress > 0;
+    const isCompleted = phase.progress >= 100;
+    const isInProgress = phase.progress > 0 && phase.progress < 100;
+
+    return {
+      startDate: hasStarted ? lastUpdate : null,
+      endDate: isCompleted ? lastUpdate : null,
+      lastUpdateDate: lastUpdate,
+      lastUpdateDateWithTime: lastUpdateWithTime,
+      updatedBy: phase.updatedBy || 'Système',
+      status: phase.status,
+      progress: phase.progress
+    };
+  };
+
+  // Fonction pour obtenir les dates des sous-étapes
+  const getStepRealDates = (step: any) => {
+    const lastUpdate = formatDate(step.actualStartDate) || formatDate(step.actualEndDate);
+    const lastUpdateWithTime = formatDateWithTime(step.actualStartDate) || formatDateWithTime(step.actualEndDate);
+
+    const hasStarted = step.progress > 0;
+    const isCompleted = step.progress >= 100;
+
+    return {
+      startDate: hasStarted ? (formatDate(step.actualStartDate) || lastUpdate) : null,
+      endDate: isCompleted ? (formatDate(step.actualEndDate) || lastUpdate) : null,
+      lastUpdateDate: lastUpdate,
+      lastUpdateDateWithTime: lastUpdateWithTime,
+      updatedBy: step.updatedBy || 'Système',
+      estimatedDuration: step.estimatedDuration
+    };
   };
 
   if (loading) {
@@ -240,46 +394,162 @@ export default function ChantierScreen({ navigation, route }: Props) {
         {/* Timeline */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Phases du chantier</Text>
-          <View style={styles.timeline}>
-            {phases
-              .filter(phase => phase.name !== 'Électricité & Plomberie')
-              .map((phase, index) => (
-              <View key={phase.id} style={styles.timelineItem}>
-                <View style={styles.timelineLeft}>
-                  <View
-                    style={[
-                      styles.timelineIcon,
-                      { backgroundColor: getPhaseStatusColor(phase.status) },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={getPhaseStatusIcon(phase.status)}
-                      size={16}
-                      color="#fff"
-                    />
-                  </View>
-                  {index < phases.length - 1 && (
-                    <View style={styles.timelineLine} />
+
+          {/* Affichage des phases groupées par catégorie */}
+          {(() => {
+            const groupedPhases = groupPhasesByCategory(phases.filter(phase => phase.name !== 'Électricité & Plomberie'));
+            const categoryOrder = ['main', 'gros_oeuvre', 'second_oeuvre'];
+
+            return categoryOrder.map(categoryKey => {
+              const categoryPhases = groupedPhases[categoryKey];
+              if (!categoryPhases || categoryPhases.length === 0) return null;
+
+              const categoryColors = getCategoryColor(categoryKey);
+              const categoryName = getCategoryName(categoryKey);
+
+              return (
+                <View key={categoryKey} style={styles.categoryContainer}>
+                  {/* Header de catégorie avec distinction visuelle */}
+                  {categoryName && (
+                    <View style={[
+                      styles.categoryHeaderWithBorder,
+                      categoryKey === 'gros_oeuvre' && styles.grosOeuvreHeader,
+                      categoryKey === 'second_oeuvre' && styles.secondOeuvreHeader
+                    ]}>
+                      <View style={[
+                        styles.categoryBorderLeft,
+                        categoryKey === 'gros_oeuvre' && { backgroundColor: '#E96C2E' },
+                        categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' }
+                      ]} />
+                      <View style={styles.categoryHeaderContent}>
+                        <Text style={[
+                          styles.categoryTitleWithIcon,
+                          categoryKey === 'gros_oeuvre' && { color: '#E96C2E' },
+                          categoryKey === 'second_oeuvre' && { color: '#9C27B0' }
+                        ]}>
+                          {categoryKey === 'gros_oeuvre' && '🏗️ '}
+                          {categoryKey === 'second_oeuvre' && '🔧 '}
+                          {categoryName}
+                        </Text>
+                        <View style={[
+                          styles.categoryUnderline,
+                          categoryKey === 'gros_oeuvre' && { backgroundColor: '#E96C2E' },
+                          categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' }
+                        ]} />
+                      </View>
+                    </View>
                   )}
-                </View>
 
-                <View style={styles.timelineContent}>
-                  <View style={styles.phaseHeader}>
-                    <Text style={styles.phaseName}>{phase.name}</Text>
-                    <Text style={styles.phaseProgress}>{phase.progress}%</Text>
-                  </View>
+                  {/* Timeline des phases de cette catégorie */}
+                  <View style={styles.timeline}>
+                    {categoryPhases.map((phase, phaseIndex) => {
+                      const isVerification = isVerificationPhase(phase.name);
+                      // Obtenir les vraies dates basées sur les mises à jour
+                      const realDates = getRealDates(phase);
 
-                  <Text style={styles.phaseDescription}>{phase.description}</Text>
+                      return (
+                        <View key={phase.id} style={[
+                          styles.timelineItem,
+                          isVerification && styles.verificationPhaseItem
+                        ]}>
+                          <View style={styles.timelineLeft}>
+                            <View
+                              style={[
+                                styles.timelineIcon,
+                                { backgroundColor: getPhaseStatusColor(phase.status) },
+                                isVerification && styles.verificationIcon
+                              ]}
+                            >
+                              <MaterialIcons
+                                name={isVerification ? 'fact-check' : getPhaseStatusIcon(phase.status)}
+                                size={16}
+                                color="#fff"
+                              />
+                            </View>
+                            {phaseIndex < categoryPhases.length - 1 && (
+                              <View style={[styles.timelineLine, { backgroundColor: categoryColors.primary }]} />
+                            )}
+                          </View>
 
-                  {phase.startDate && (
-                    <Text style={styles.phaseDate}>
-                      Début: {phase.startDate}
-                      {phase.endDate && ` • Fin: ${phase.endDate}`}
-                    </Text>
+                          <View style={styles.timelineContent}>
+                            <View style={styles.phaseHeader}>
+                              <Text style={[
+                                styles.phaseName,
+                                { color: categoryColors.text },
+                                isVerification && styles.verificationPhaseTitle
+                              ]}>
+                                {phase.name}
+                              </Text>
+                              <Text style={[styles.phaseProgress, { color: categoryColors.text }]}>
+                                {phase.progress}%
+                              </Text>
+                            </View>
+
+                            <Text style={styles.phaseDescription}>{phase.description}</Text>
+
+                            {/* Affichage des dates comme dans le backoffice */}
+                            <View style={styles.datesContainer}>
+                              <Text style={styles.dateTextUpdate}>
+                                {phase.lastUpdated
+                                  ? `Dernière mise à jour: ${formatDateWithTime(phase.lastUpdated)} par ${getUserName(phase.updatedBy)}`
+                                  : `Phase créée - Pas encore de mise à jour`
+                                }
+                              </Text>
+                            </View>
+
+                            {/* Affichage des sous-étapes avec dates complètes */}
+                            {phase.steps && phase.steps.length > 0 && (
+                              <View style={styles.subStepsContainer}>
+                                <Text style={styles.subStepsTitle}>Étapes détaillées:</Text>
+                                {phase.steps.map((step, stepIndex) => {
+                                  const stepRealDates = getStepRealDates(step);
+
+                                  return (
+                                    <View key={step.id} style={styles.subStepItem}>
+                                      <View style={[
+                                        styles.subStepIndicator,
+                                        { backgroundColor: getPhaseStatusColor(step.status) }
+                                      ]} />
+                                      <View style={styles.subStepDetails}>
+                                        <Text style={styles.subStepText}>
+                                          {step.name} ({step.progress}%)
+                                        </Text>
+                                        {/* Affichage des dates des sous-étapes comme dans le backoffice */}
+                                        {(step.actualStartDate || step.actualEndDate) && (
+                                          <View style={styles.subStepDates}>
+                                            <Text style={styles.subStepUpdateText}>
+                                              Dernière mise à jour: {formatDateWithTime(step.actualEndDate || step.actualStartDate)} par {getUserName(step.updatedBy)}
+                                            </Text>
+                                          </View>
+                                        )}
+                                        
+                                        <PhaseFeedbackSection 
+                                          chantierId={chantier?.id || chantierId} 
+                                          phaseId={phase.id} 
+                                          stepId={step.id}
+                                        />
+                                      </View>
+                                    </View>
+                                  );
+                                })}
+                              </View>
+                            )}
+
+                  {/* Voice Notes for Phase (if no steps, or general phase feedback) */}
+                  {(!phase.steps || phase.steps.length === 0) && (
+                      <PhaseFeedbackSection 
+                        chantierId={chantier?.id || chantierId} 
+                        phaseId={phase.id} 
+                        title="Notes vocales"
+                      />
                   )}
 
                   <View style={styles.phaseProgressContainer}>
-                    <ProgressBar progress={phase.progress} height={6} />
+                    <ProgressBar
+                      progress={phase.progress}
+                      height={6}
+                      progressColor={categoryColors.primary}
+                    />
                   </View>
 
                   <View style={styles.phaseStatus}>
@@ -294,8 +564,13 @@ export default function ChantierScreen({ navigation, route }: Props) {
                   </View>
                 </View>
               </View>
-            ))}
-          </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  });
+})()}
         </View>
       </ScrollView>
 
@@ -738,5 +1013,163 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 12,
     borderRadius: 8,
+  },
+  // Nouveaux styles pour les catégories
+  categoryContainer: {
+    marginBottom: 24,
+  },
+  // Nouveaux styles pour headers avec distinction visuelle
+  categoryHeaderWithBorder: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    marginTop: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  grosOeuvreHeader: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#E96C2E',
+  },
+  secondOeuvreHeader: {
+    backgroundColor: '#F3E5F5',
+    borderWidth: 1,
+    borderColor: '#9C27B0',
+  },
+  categoryBorderLeft: {
+    width: 6,
+    backgroundColor: '#2B2E83',
+    borderRadius: 3,
+    marginRight: 16,
+  },
+  categoryHeaderContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  categoryTitleWithIcon: {
+    fontSize: 18,
+    fontFamily: 'FiraSans_700Bold',
+    color: '#2B2E83',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  categoryUnderline: {
+    height: 3,
+    width: 60,
+    backgroundColor: '#2B2E83',
+    borderRadius: 2,
+  },
+  // Styles pour les sous-étapes
+  subStepsContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: '#E0E0E0',
+  },
+  subStepsTitle: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 6,
+  },
+  subStepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  subStepIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  subStepText: {
+    fontSize: 12,
+    color: '#555',
+    fontFamily: 'FiraSans_400Regular',
+  },
+  subStepDetails: {
+    flex: 1,
+  },
+  subStepDates: {
+    flexDirection: 'column',
+    gap: 2,
+    marginTop: 4,
+  },
+  subStepDateText: {
+    fontSize: 10,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  subStepDateTextPlanned: {
+    fontSize: 10,
+    color: '#888',
+    fontFamily: 'FiraSans_400Regular',
+    fontStyle: 'italic',
+  },
+  subStepDurationText: {
+    fontSize: 10,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  // Styles pour les phases de vérification
+  verificationPhaseItem: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+    paddingLeft: 8,
+  },
+  verificationIcon: {
+    backgroundColor: '#FFC107',
+  },
+  verificationPhaseTitle: {
+    fontStyle: 'italic',
+  },
+  // Styles pour les dates
+  datesContainer: {
+    marginVertical: 8,
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  dateTextPlanned: {
+    fontSize: 12,
+    color: '#888',
+    fontFamily: 'FiraSans_400Regular',
+    fontStyle: 'italic',
+  },
+  dateTextDuration: {
+    fontSize: 12,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  dateTextUpdate: {
+    fontSize: 11,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    fontStyle: 'italic',
+  },
+  subStepUpdateText: {
+    fontSize: 9,
+    color: '#666',
+    fontFamily: 'FiraSans_400Regular',
+    fontStyle: 'italic',
+  },
+  debugText: {
+    fontSize: 10,
+    color: '#ff0000',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 4,
   },
 });

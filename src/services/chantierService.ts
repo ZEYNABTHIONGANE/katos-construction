@@ -115,6 +115,68 @@ export class ChantierService {
     }
   }
 
+  // Mettre à jour la progression d'une sous-étape
+  async updateStepProgress(
+    chantierId: string,
+    phaseId: string,
+    stepId: string,
+    progress: number,
+    updatedBy: string
+  ): Promise<void> {
+    try {
+      const chantier = await this.getChantierById(chantierId);
+      if (!chantier) {
+        throw new Error('Chantier non trouvé');
+      }
+
+      const updatedPhases = chantier.phases.map(phase => {
+        if (phase.id === phaseId && (phase as any).steps) {
+          const katosPhase = phase as any;
+          const updatedSteps = katosPhase.steps.map((step: any) => {
+            if (step.id === stepId) {
+              return {
+                ...step,
+                progress: Math.max(0, Math.min(100, progress)),
+                status: getPhaseStatus(progress),
+                actualStartDate: progress > 0 && !step.actualStartDate ? Timestamp.now() : step.actualStartDate,
+                actualEndDate: progress === 100 ? Timestamp.now() : undefined,
+                updatedBy // Track who updated the step
+              };
+            }
+            return step;
+          });
+
+          // Recalculate phase progress based on steps
+          const totalStepProgress = updatedSteps.reduce((sum: number, step: any) => sum + step.progress, 0);
+          const newPhaseProgress = Math.round(totalStepProgress / updatedSteps.length);
+
+          return {
+            ...phase,
+            steps: updatedSteps,
+            progress: newPhaseProgress,
+            status: getPhaseStatus(newPhaseProgress),
+            lastUpdated: Timestamp.now(),
+            updatedBy
+          };
+        }
+        return phase;
+      });
+
+      const globalProgress = calculateGlobalProgress(updatedPhases);
+      const status = getChantierStatus(updatedPhases, chantier.plannedEndDate);
+
+      await this.updateChantier(chantierId, {
+        phases: updatedPhases,
+        globalProgress,
+        status,
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'étape:', error);
+      throw error;
+    }
+  }
+
   // Mettre à jour la progression d'une phase
   async updatePhaseProgress(
     chantierId: string,

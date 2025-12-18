@@ -15,6 +15,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     bundleIdentifier: "com.scylka.katos",
     associatedDomains: ["applinks:katos-app.vercel.app"],
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSMicrophoneUsageDescription: "L'application a besoin d'accéder au micro pour enregistrer des notes vocales.",
+    },
   },
 
   android: {
@@ -57,4 +61,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       projectId: "fbf54315-f2a4-45af-bcd8-150b8f087040",
     },
   },
+  owner: "scylka",
 });
