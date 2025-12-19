@@ -201,27 +201,55 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleProgressChange = (phaseId: string, newProgress: number) => {
+  const handleProgressLocalUpdate = (phaseId: string, newProgress: number) => {
     // Mise à jour immédiate de la valeur locale pour un feedback visuel
     setSliderValues(prev => ({
       ...prev,
       [phaseId]: Math.round(newProgress)
     }));
+  };
 
-    // Mise à jour en base de données (peut être asynchrone)
+  const handleProgressComplete = (phaseId: string, newProgress: number) => {
+    // Mise à jour en base de données seulement à la fin du slide
     updatePhaseProgress(phaseId, Math.round(newProgress));
   };
 
-  const handleStepProgressChange = async (phaseId: string, stepId: string, newProgress: number) => {
+  const handleStepProgressLocalUpdate = (phaseId: string, stepId: string, newProgress: number) => {
     // Mise à jour immédiate pour feedback visuel using composite key
     const key = `${phaseId}_${stepId}`;
+    
+    // Calculate new parent phase progress optimistically
+    let newPhaseProgress = -1;
+    
+    if (selectedProject) {
+      const phase = selectedProject.phases.find(p => p.id === phaseId);
+      if (phase && (phase as any).steps && (phase as any).steps.length > 0) {
+        const steps = (phase as any).steps;
+        let totalProgress = 0;
+        
+        steps.forEach((s: any) => {
+          if (s.id === stepId) {
+            totalProgress += newProgress;
+          } else {
+            // Use existing optimistic value for other steps if available, else DB value
+            const sKey = `${phaseId}_${s.id}`;
+            totalProgress += sliderValues[sKey] ?? s.progress;
+          }
+        });
+        
+        newPhaseProgress = Math.round(totalProgress / steps.length);
+      }
+    }
+
     setSliderValues(prev => ({
       ...prev,
-      [key]: Math.round(newProgress)
+      [key]: Math.round(newProgress),
+      ...(newPhaseProgress !== -1 && { [phaseId]: newPhaseProgress })
     }));
+  };
 
+  const handleStepProgressComplete = async (phaseId: string, stepId: string, newProgress: number) => {
     if (!selectedProject || !user) return;
-
     try {
       await chantierService.updateStepProgress(
         selectedProject.id!,
@@ -492,8 +520,9 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                       
                       if (prevGrosOeuvreIndex !== -1) {
                          const prevPhase = phasesArray[prevGrosOeuvreIndex];
-                         // Check if strictly less than 100%
-                         if (prevPhase.progress < 100) {
+                         // Check if strictly less than 100% using optimistic value
+                         const prevPhaseProgress = sliderValues[prevPhase.id] ?? prevPhase.progress;
+                         if (prevPhaseProgress < 100) {
                            isPhaseLocked = true;
                          }
                       }
@@ -538,7 +567,11 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                                 let isStepLocked = isPhaseLocked; // Inherit phase lock
                                 if (!isStepLocked && stepIndex > 0) {
                                     const prevStep = (phase as any).steps[stepIndex - 1];
-                                    if (prevStep.progress < 100) {
+                                    // Use optimistic value for previous step check
+                                    const prevStepKey = `${phase.id}_${prevStep.id}`;
+                                    const prevStepProgress = sliderValues[prevStepKey] ?? prevStep.progress;
+                                    
+                                    if (prevStepProgress < 100) {
                                         isStepLocked = true;
                                     }
                                 }
@@ -555,9 +588,12 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                                           maximumValue={100}
                                           value={sliderValues[`${phase.id}_${step.id}`] ?? step.progress}
                                           onValueChange={(val) => {
-                                              handleStepProgressChange(phase.id, step.id, val);
+                                              handleStepProgressLocalUpdate(phase.id, step.id, val);
                                           }}
-                                          step={100} 
+                                          onSlidingComplete={(val) => {
+                                              handleStepProgressComplete(phase.id, step.id, val);
+                                          }}
+                                          step={1} 
                                           minimumTrackTintColor={isStepLocked ? "#D1D5DB" : "#E96C2E"}
                                           maximumTrackTintColor="#E5E7EB"
                                           disabled={isStepLocked}
@@ -583,8 +619,9 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                             minimumValue={0}
                             maximumValue={100}
                             value={sliderValues[phase.id] ?? phase.progress}
-                            onValueChange={(value) => handleProgressChange(phase.id, value)}
-                            step={5}
+                            onValueChange={(value) => handleProgressLocalUpdate(phase.id, value)}
+                            onSlidingComplete={(value) => handleProgressComplete(phase.id, value)}
+                            step={1}
                             minimumTrackTintColor={isPhaseLocked ? "#D1D5DB" : "#E96C2E"}
                             maximumTrackTintColor="#E5E7EB"
                             disabled={isPhaseLocked}

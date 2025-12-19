@@ -1,5 +1,6 @@
 {
   "name": "katos-app",
+  "displayName": "Katos Connect",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
