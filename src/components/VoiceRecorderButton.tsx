@@ -13,12 +13,17 @@ export default function VoiceRecorderButton({ onRecordingComplete, isLoading = f
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
+  const startTimeRef = React.useRef<number | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
       interval = setInterval(() => {
-        setDuration(prev => prev + 1);
+        // Update visual timer only, not used for final calculation
+        if (startTimeRef.current) {
+            const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            setDuration(elapsed);
+        }
       }, 1000);
     } else {
       setDuration(0);
@@ -50,12 +55,13 @@ export default function VoiceRecorderButton({ onRecordingComplete, isLoading = f
       const { recording } = await Audio.Recording.createAsync( 
          Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
+      
+      startTimeRef.current = Date.now();
       setRecording(recording);
       setIsRecording(true);
       console.log('Recording started');
     } catch (err: any) {
       console.error('Failed to start recording', err);
-      // More specific error message for session activation failure
       if (err.message && err.message.includes('Session activation failed')) {
          Alert.alert('Erreur micro', 'Impossible d\'activer la session audio. Veuillez redémarrer l\'application. Si le problème persiste, une nouvelle version (build) peut être nécessaire.');
       } else {
@@ -68,29 +74,45 @@ export default function VoiceRecorderButton({ onRecordingComplete, isLoading = f
     console.log('Stopping recording..');
     if (!recording) return;
 
-    setIsRecording(false); // Stop timer visually first
+    setIsRecording(false); // Stop visually
     
     try {
-        await recording.stopAndUnloadAsync();
+        const status = await recording.stopAndUnloadAsync();
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
         });
         const uri = recording.getURI(); 
-        const status = await recording.getStatusAsync();
-        const durationMillis = status.durationMillis;
         
-        console.log('Recording stopped and stored at', uri);
+        // Calculate duration locally for reliability
+        let finalDuration = 0;
+        if (startTimeRef.current) {
+            finalDuration = (Date.now() - startTimeRef.current) / 1000;
+        }
+
+        // Fallback to hardware duration if local failed for some reason, or verify?
+        // Actually, local calculation is more robust against "0" hardware bugs.
+        // But status.durationMillis is the *exact* audio file length.
+        // Let's take the MAX of both to be safe? Or simple localized fallback.
+        const hardwareDuration = status.durationMillis / 1000;
         
+        if (hardwareDuration > 0) {
+            finalDuration = hardwareDuration;
+        } else if (finalDuration === 0) {
+             // If both are 0, that's proper 0.
+             console.warn('Duration 0 detected');
+        }
+
+        console.log('Recording stopped. Hardware Duration:', hardwareDuration, 'Local Calc:', finalDuration);
+        
+        startTimeRef.current = null;
         setRecording(undefined);
-        if (uri) {
-            // Confirm send? Or just send automatically? 
-            // For whatsapp style, usually slide to cancel, but simple tap/hold is easier for MVP.
-            // Let's assume simple tap-to-start / tap-to-stop for reliability or simple hold.
-            // Implementing Tap-to-Start / Tap-to-Stop behavior as it's more accessible than hold for some.
-            // User requested "intuitive type message vocal whatsapp" -> usually hold.
-            // But let's stick to simple Press In / Press Out for Hold behavior if we want WhatsApp style.
-            
-            onRecordingComplete(uri, durationMillis / 1000);
+        
+        if (uri && finalDuration > 0) {
+            // Ensure we never send 0 duration
+            onRecordingComplete(uri, finalDuration);
+        } else if (uri) {
+             // Fallback minimal duration if something went really wrong but we have file
+             onRecordingComplete(uri, 1);
         }
     } catch (error) {
         console.error('Failed to stop recording', error);
@@ -109,10 +131,6 @@ export default function VoiceRecorderButton({ onRecordingComplete, isLoading = f
                 stopRecording();
             }
         }}
-        // Add minimal delay to prevent accidental triggers? 
-        // LongPress usually has 500ms delay. 
-        // Let's also support simple Press if user prefers toggle? 
-        // No, strict WhatsApp style is Hold.
         disabled={isLoading}
       >
         {isLoading ? (
