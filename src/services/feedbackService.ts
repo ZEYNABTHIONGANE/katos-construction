@@ -129,7 +129,7 @@ export const feedbackService = {
         let q = query(
             feedbacksRef,
             where('phaseId', '==', phaseId),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'asc')
         );
 
         if (stepId) {
