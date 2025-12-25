@@ -12,7 +12,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -35,8 +34,6 @@ export default function ChefGalleryScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [showImageCarousel, setShowImageCarousel] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [uploading, setUploading] = useState(false);
-
   const loadChefChantiers = React.useCallback(async () => {
     try {
       setLoading(true);
@@ -70,102 +67,34 @@ export default function ChefGalleryScreen({ navigation }: Props) {
     }
   }, [user, authLoading, loadChefChantiers]);
 
-  const addMediaToGallery = () => {
-    if (!selectedProject) {
-      Alert.alert('Erreur', 'Veuillez sélectionner un chantier');
-      return;
-    }
+  // Fonction pour regrouper les photos par phase
+  const getPhotosByPhase = (project: FirebaseChantier) => {
+    const photosByPhase = new Map<string, { phaseName: string; photos: ProgressPhoto[] }>();
 
-    Alert.alert(
-      "Ajouter un média",
-      "Choisissez le type de média à ajouter",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Photo", onPress: () => selectMedia('image') },
-        { text: "Vidéo", onPress: () => selectMedia('video') },
-      ]
-    );
-  };
+    // Regrouper les photos par phaseId
+    project.gallery.forEach(photo => {
+      if (photo.phaseId) {
+        const phase = project.phases?.find(p => p.id === photo.phaseId);
+        const phaseName = phase?.name || 'Phase inconnue';
 
-  const selectMedia = async (mediaType: 'image' | 'video') => {
-    if (!selectedProject || !user) return;
-
-    try {
-      setUploading(true);
-
-      // Request permission silently
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour ajouter des médias.");
-        setUploading(false);
-        return;
-      }
-
-      const mediaTypes = mediaType === 'image'
-        ? ImagePicker.MediaTypeOptions.Images
-        : ImagePicker.MediaTypeOptions.Videos;
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypes,
-        allowsEditing: true,
-        aspect: mediaType === 'image' ? [4, 3] : undefined,
-        quality: mediaType === 'image' ? 0.8 : 0.7,
-        videoMaxDuration: mediaType === 'video' ? 60 : undefined, // 60 seconds max for videos
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        try {
-          const asset = result.assets[0];
-          const mediaUri = asset.uri;
-
-          // Upload media to Firebase Storage
-          const mediaUrl = await storageService.uploadMediaFromUri(
-            mediaUri,
-            `chantiers/${selectedProject.id}/gallery`,
-            mediaType
-          );
-
-          // For videos, we might want to generate a thumbnail in the future
-          // For now, we'll use the video URL as both main URL and thumbnail
-          const thumbnailUrl = mediaType === 'video' ? mediaUrl : undefined;
-          const duration = mediaType === 'video' ? asset.duration : undefined;
-
-          // Add media to the chantier's gallery
-          await chantierService.addPhasePhoto(
-            selectedProject.id!,
-            '', // Empty phaseId for general gallery photos
-            mediaUrl,
-            `${mediaType === 'image' ? 'Photo' : 'Vidéo'} ajoutée depuis l'application mobile`,
-            user.uid,
-            mediaType,
-            duration,
-            thumbnailUrl
-          );
-
-          // Refresh project data to show new media immediately
-          const updatedProject = await chantierService.getChantierById(selectedProject.id!);
-          if (updatedProject) {
-            setSelectedProject(updatedProject);
-
-            // Update projects list too
-            setProjects(prevProjects =>
-              prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
-            );
-          }
-
-          Alert.alert('Succès', `${mediaType === 'image' ? 'Photo' : 'Vidéo'} ajoutée avec succès!`);
-
-        } catch (uploadError) {
-          console.error('Erreur lors de l\'upload du média:', uploadError);
-          Alert.alert('Erreur', `Impossible d'ajouter ${mediaType === 'image' ? 'la photo' : 'la vidéo'}`);
+        if (!photosByPhase.has(photo.phaseId)) {
+          photosByPhase.set(photo.phaseId, { phaseName, photos: [] });
         }
+        photosByPhase.get(photo.phaseId)!.photos.push(photo);
       }
-    } catch (error) {
-      console.error('Erreur générale lors de l\'ajout de média:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection du média');
-    } finally {
-      setUploading(false);
+    });
+
+    // Photos sans phase spécifique
+    const photosWithoutPhase = project.gallery.filter(photo => !photo.phaseId);
+    if (photosWithoutPhase.length > 0) {
+      photosByPhase.set('general', { phaseName: 'Photos générales', photos: photosWithoutPhase });
     }
+
+    return Array.from(photosByPhase.entries()).map(([phaseId, data]) => ({
+      phaseId,
+      phaseName: data.phaseName,
+      photos: data.photos.sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis())
+    }));
   };
 
   const deleteMedia = async (photoId: string) => {
@@ -299,23 +228,6 @@ export default function ChefGalleryScreen({ navigation }: Props) {
         </ScrollView>
       </View>
 
-      {/* Add Media Button */}
-      <View style={styles.addButtonContainer}>
-        <TouchableOpacity
-          style={[styles.addButton, (!selectedProject || uploading) && styles.addButtonDisabled]}
-          onPress={addMediaToGallery}
-          disabled={!selectedProject || uploading}
-        >
-          {uploading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <MaterialIcons name="add" size={24} color="#FFFFFF" />
-          )}
-          <Text style={styles.addButtonText}>
-            {uploading ? 'Upload en cours...' : 'Ajouter un média'}
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Media Gallery */}
       <ScrollView style={styles.galleryContainer} showsVerticalScrollIndicator={false}>
@@ -328,16 +240,19 @@ export default function ChefGalleryScreen({ navigation }: Props) {
         ) : selectedProject.gallery.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialIcons name="photo-camera" size={64} color="#E0E0E0" />
-            <Text style={styles.emptyText}>Aucun média</Text>
-            <Text style={styles.emptySubtext}>Ajoutez des photos et vidéos pour documenter l'avancement</Text>
+            <Text style={styles.emptyText}>Aucune photo</Text>
+            <Text style={styles.emptySubtext}>Les photos sont ajoutées depuis les étapes de chantier</Text>
           </View>
         ) : (
           <>
-            {selectedProject.gallery.some(item => item.type === 'video') && (
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Vidéos</Text>
+            {getPhotosByPhase(selectedProject).map(({ phaseId, phaseName, photos }) => (
+              <View key={phaseId} style={styles.sectionContainer}>
+                <View style={styles.phaseHeader}>
+                  <Text style={styles.sectionTitle}>{phaseName}</Text>
+                  <Text style={styles.photoCount}>({photos.length} photo{photos.length > 1 ? 's' : ''})</Text>
+                </View>
                 <FlatList
-                  data={selectedProject.gallery.filter(item => item.type === 'video')}
+                  data={photos}
                   renderItem={renderMediaItem}
                   keyExtractor={(item) => item.id}
                   numColumns={2}
@@ -346,22 +261,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
                   columnWrapperStyle={styles.mediaRow}
                 />
               </View>
-            )}
-
-            {selectedProject.gallery.some(item => item.type === 'image') && (
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Photos</Text>
-                <FlatList
-                  data={selectedProject.gallery.filter(item => item.type === 'image')}
-                  renderItem={renderMediaItem}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.mediaGrid}
-                  columnWrapperStyle={styles.mediaRow}
-                />
-              </View>
-            )}
+            ))}
           </>
         )}
       </ScrollView>
@@ -493,36 +393,6 @@ const styles = StyleSheet.create({
   },
   projectChipTextActive: {
     color: '#FFFFFF',
-  },
-  addButtonContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  addButton: {
-    backgroundColor: '#E96C2E',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: '#E96C2E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  addButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  addButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginLeft: 8,
   },
   galleryContainer: {
     flex: 1,
@@ -683,13 +553,21 @@ const styles = StyleSheet.create({
   },
   sectionContainer: {
     marginBottom: 24,
-    
+  },
+  phaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'FiraSans_600SemiBold',
     color: '#374151',
-    marginBottom: 12,
-    marginTop: 4,
+  },
+  photoCount: {
+    fontSize: 14,
+    fontFamily: 'FiraSans_400Regular',
+    color: '#6B7280',
   },
 });

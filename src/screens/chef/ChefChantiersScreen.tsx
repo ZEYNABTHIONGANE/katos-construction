@@ -18,7 +18,7 @@ import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ChefTabParamList } from '../../types';
+import { ChefStackParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
 import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
@@ -28,7 +28,7 @@ import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 
 const { width, height } = Dimensions.get('window');
 
-type Props = NativeStackScreenProps<ChefTabParamList, 'ChefChantiers'>;
+type Props = NativeStackScreenProps<ChefStackParamList, 'ChefTabs'>;
 
 export default function ChefChantiersScreen({ navigation, route }: Props) {
   const { user, loading: authLoading } = useAuth();
@@ -532,7 +532,25 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                     const hasSteps = (phase as any).steps && (phase as any).steps.length > 0;
 
                     return (
-                  <View key={phase.id} style={[styles.phaseItem, isPhaseLocked && styles.phaseItemLocked]}>
+                  <TouchableOpacity
+                    key={phase.id}
+                    style={[
+                      styles.phaseItem,
+                      isPhaseLocked && styles.phaseItemLocked,
+                      hasSteps ? styles.phaseItemWithSteps : styles.phaseItemSimple
+                    ]}
+                    onPress={() => {
+                      if (!isPhaseLocked) {
+                        setShowModal(false);
+                        navigation.navigate('ChefPhaseDetail', {
+                          chantierId: selectedProject.id!,
+                          phaseId: phase.id,
+                          phaseName: phase.name,
+                        });
+                      }
+                    }}
+                    activeOpacity={isPhaseLocked ? 1 : 0.7}
+                  >
                     <View style={styles.phaseHeader}>
                       <View style={styles.phaseInfo}>
                         {isPhaseLocked ? (
@@ -551,62 +569,138 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                             color={getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress))}
                           />
                         )}
-                        <Text style={[styles.phaseName, isPhaseLocked && styles.textLocked]}>{phase.name}</Text>
+                        <View style={styles.phaseNameContainer}>
+                          <Text style={[styles.phaseName, isPhaseLocked && styles.textLocked]}>
+                            {phase.name}
+                          </Text>
+                          {hasSteps && (
+                            <Text style={styles.phaseSubtitle}>
+                              {(phase as any).steps.length} sous-étapes
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                      <Text style={[styles.phaseProgress, isPhaseLocked && styles.textLocked]}>
-                        {sliderValues[phase.id] ?? phase.progress}%
-                      </Text>
+                      <View style={styles.phaseHeaderRight}>
+                        <Text style={[styles.phaseProgress, isPhaseLocked && styles.textLocked]}>
+                          {sliderValues[phase.id] ?? phase.progress}%
+                        </Text>
+                        {!isPhaseLocked && (
+                          <MaterialIcons name="chevron-right" size={20} color="#999" />
+                        )}
+                      </View>
                     </View>
 
                     {/* Check if Phase has steps */}
                     {hasSteps ? (
                         <View style={styles.stepsContainer}>
+                            <View style={styles.stepsContainerHeader}>
+                              <Text style={styles.stepsContainerTitle}>Sous-étapes :</Text>
+                              {phase.name === 'Élévation' && (
+                                <View style={styles.nonLinearBadge}>
+                                  <MaterialIcons name="all-inclusive" size={14} color="#E96C2E" />
+                                  <Text style={styles.nonLinearText}>Parallèles</Text>
+                                </View>
+                              )}
+                            </View>
                             {(phase as any).steps.map((step: any, stepIndex: number) => {
                                 // --- STEP LINEARITY CHECK ---
-                                // Always linear within the phase
+                                // Maçonnerie steps are NOT linear (can be done in parallel)
+                                // Other phase steps remain linear
                                 let isStepLocked = isPhaseLocked; // Inherit phase lock
-                                if (!isStepLocked && stepIndex > 0) {
+
+                                // Only apply linearity check for phases other than "Élévation" (Maçonnerie)
+                                if (!isStepLocked && stepIndex > 0 && phase.name !== 'Élévation') {
                                     const prevStep = (phase as any).steps[stepIndex - 1];
                                     // Use optimistic value for previous step check
                                     const prevStepKey = `${phase.id}_${prevStep.id}`;
                                     const prevStepProgress = sliderValues[prevStepKey] ?? prevStep.progress;
-                                    
+
                                     if (prevStepProgress < 100) {
                                         isStepLocked = true;
                                     }
                                 }
 
                                 return (
-                                  <View key={step.id} style={styles.stepItem}>
-                                      <View style={styles.stepHeader}>
-                                          <Text style={[styles.stepName, isStepLocked && styles.textLocked]}>{step.name}</Text>
-                                          <Text style={[styles.stepProgress, isStepLocked && styles.textLocked]}>{step.progress}%</Text>
+                                  <View key={step.id} style={[styles.stepItem, isStepLocked && styles.stepItemLocked]}>
+                                      <View style={styles.stepMainContent}>
+                                          <View style={styles.stepIndicatorContainer}>
+                                              <View style={styles.stepConnector} />
+                                              <View style={[
+                                                  styles.stepIndicator,
+                                                  { backgroundColor: isStepLocked ? '#D1D5DB' : getPhaseStatusColor(getPhaseStatus(step.progress)) }
+                                              ]}>
+                                                  <Text style={styles.stepNumber}>{stepIndex + 1}</Text>
+                                              </View>
+                                              {stepIndex < (phase as any).steps.length - 1 && (
+                                                  <View style={styles.stepConnectorBottom} />
+                                              )}
+                                          </View>
+
+                                          <TouchableOpacity
+                                              style={styles.stepContent}
+                                              onPress={() => {
+                                                  if (!isStepLocked) {
+                                                      setShowModal(false);
+                                                      navigation.navigate('ChefPhaseDetail', {
+                                                          chantierId: selectedProject.id!,
+                                                          phaseId: phase.id,
+                                                          phaseName: phase.name,
+                                                          stepId: step.id,
+                                                          stepName: step.name,
+                                                      });
+                                                  }
+                                              }}
+                                              activeOpacity={isStepLocked ? 1 : 0.7}
+                                              disabled={isStepLocked}
+                                          >
+                                              <View style={styles.stepHeader}>
+                                                  <View style={styles.stepTitleContainer}>
+                                                      <Text style={[styles.stepName, isStepLocked && styles.textLocked]}>{step.name}</Text>
+                                                      <Text style={[styles.stepStatus, { color: getPhaseStatusColor(getPhaseStatus(step.progress)) }]}>
+                                                          {getPhaseStatus(step.progress) === 'completed' ? 'Terminé' :
+                                                           getPhaseStatus(step.progress) === 'in-progress' ? 'En cours' :
+                                                           'En attente'}
+                                                      </Text>
+                                                  </View>
+                                                  <View style={styles.stepHeaderRight}>
+                                                      <Text style={[styles.stepProgress, isStepLocked && styles.textLocked]}>{step.progress}%</Text>
+                                                      {!isStepLocked && (
+                                                          <MaterialIcons name="chevron-right" size={16} color="#999" />
+                                                      )}
+                                                  </View>
+                                              </View>
+
+                                              {/* Slider intégré dans le contenu de l'étape */}
+                                              <Slider
+                                                  style={styles.stepSlider}
+                                                  minimumValue={0}
+                                                  maximumValue={100}
+                                                  value={sliderValues[`${phase.id}_${step.id}`] ?? step.progress}
+                                                  onValueChange={(val) => {
+                                                      handleStepProgressLocalUpdate(phase.id, step.id, val);
+                                                  }}
+                                                  onSlidingComplete={(val) => {
+                                                      handleStepProgressComplete(phase.id, step.id, val);
+                                                  }}
+                                                  step={1}
+                                                  minimumTrackTintColor={isStepLocked ? "#D1D5DB" : "#E96C2E"}
+                                                  maximumTrackTintColor="#E5E7EB"
+                                                  disabled={isStepLocked}
+                                              />
+                                          </TouchableOpacity>
                                       </View>
-                                      <Slider
-                                          style={styles.stepSlider}
-                                          minimumValue={0}
-                                          maximumValue={100}
-                                          value={sliderValues[`${phase.id}_${step.id}`] ?? step.progress}
-                                          onValueChange={(val) => {
-                                              handleStepProgressLocalUpdate(phase.id, step.id, val);
-                                          }}
-                                          onSlidingComplete={(val) => {
-                                              handleStepProgressComplete(phase.id, step.id, val);
-                                          }}
-                                          step={1} 
-                                          minimumTrackTintColor={isStepLocked ? "#D1D5DB" : "#E96C2E"}
-                                          maximumTrackTintColor="#E5E7EB"
-                                          disabled={isStepLocked}
-                                      />
-                                      {/* Voice Notes for Step - only show if unlocked */}
+
+                                      {/* Voice Notes pour l'étape - à l'extérieur du contenu principal */}
                                       {!isStepLocked && (
-                                          <PhaseFeedbackSection
-                                              chantierId={selectedProject.id}
-                                              phaseId={phase.id}
-                                              stepId={step.id}
-                                              title="Notes vocales (Étape)"
-                                              currentUserId={user?.uid}
-                                          />
+                                          <View style={styles.stepFeedbackContainer}>
+                                              <PhaseFeedbackSection
+                                                  chantierId={selectedProject.id}
+                                                  phaseId={phase.id}
+                                                  stepId={step.id}
+                                                  title="💬 Notes étape"
+                                                  currentUserId={user?.uid}
+                                              />
+                                          </View>
                                       )}
                                   </View>
                                 );
@@ -653,7 +747,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                         })()}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 )})}
               </View>
 {/* 
@@ -1136,6 +1230,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  phaseItemWithSteps: {
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2B2E83',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  phaseItemSimple: {
+    backgroundColor: '#F8FAFC',
+    borderLeftWidth: 3,
+    borderLeftColor: '#E96C2E',
+  },
+  phaseNameContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  phaseSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
   phaseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1151,12 +1271,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
-    marginLeft: 12,
   },
   phaseProgress: {
     fontSize: 18,
     color: '#E96C2E',
     fontFamily: 'FiraSans_700Bold',
+  },
+  phaseHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   sliderContainer: {
     marginVertical: 8,
@@ -1602,33 +1731,134 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   stepsContainer: {
-    marginTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    paddingTop: 15,
-    paddingHorizontal: 5,
+    marginTop: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E96C2E',
   },
-  stepItem: {
-    marginBottom: 20,
-  },
-  stepHeader: {
+  stepsContainerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 15,
+    paddingLeft: 8,
+  },
+  stepsContainerTitle: {
+    fontSize: 14,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+  nonLinearBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E96C2E',
+  },
+  nonLinearText: {
+    fontSize: 10,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 4,
+    textTransform: 'uppercase',
+  },
+  stepItem: {
+    marginBottom: 16,
+  },
+  stepItemLocked: {
+    opacity: 0.6,
+  },
+  stepMainContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepIndicatorContainer: {
+    alignItems: 'center',
+    width: 40,
+    paddingTop: 4,
+  },
+  stepConnector: {
+    width: 2,
+    height: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  stepIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  stepNumber: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  stepConnectorBottom: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  stepContent: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  stepHeader: {
     marginBottom: 8,
+  },
+  stepTitleContainer: {
+    marginBottom: 4,
   },
   stepName: {
     fontSize: 14,
-    color: '#4B5563',
-    fontFamily: 'FiraSans_400Regular',
+    color: '#1F2937',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 2,
+  },
+  stepStatus: {
+    fontSize: 11,
+    fontFamily: 'FiraSans_500Medium',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   stepProgress: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    fontFamily: 'FiraSans_500Medium',
+    fontFamily: 'FiraSans_600SemiBold',
   },
   stepSlider: {
     width: '100%',
-    height: 40,
+    height: 30,
+    marginTop: 8,
+  },
+  stepFeedbackContainer: {
+    marginLeft: 52, // Align with step content
+    marginTop: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#64748B',
   },
 });

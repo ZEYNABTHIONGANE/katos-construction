@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFirebaseProjects } from './useFirebaseProjects';
-import { useFirebaseMaterials } from './useFirebaseMaterials';
 import { useClientAuth } from './useClientAuth';
 import { useClientData } from './useClientData';
 import { useClientProjectLookup } from './useClientProjectLookup';
-import type { FirebaseProject, FirebaseMaterial } from '../types/firebase';
-import type { Project, Material, Category } from '../types';
+import type { FirebaseProject } from '../types/firebase';
+import type { Project } from '../types';
 import {
   transformFirebaseProjectToProject,
-  transformFirebaseMaterialToMaterial,
-  groupMaterialsByCategory,
   filterProjectsByClient
 } from '../utils/dataTransformers';
 
@@ -17,7 +14,6 @@ export const useClientSpecificData = () => {
   const { session, isAuthenticated, refreshKey } = useClientAuth();
   const { clientData } = useClientData(session?.clientId || null, refreshKey);
   const { projects: allProjects, loading: projectsLoading, error: projectsError } = useFirebaseProjects();
-  const { materials: allMaterials, loading: materialsLoading, error: materialsError } = useFirebaseMaterials();
 
   // Use the new client project lookup hook for proper project filtering
   const clientProjectLookup = useClientProjectLookup(session?.clientId || null);
@@ -32,11 +28,6 @@ export const useClientSpecificData = () => {
     return clientProjectLookup.clientProject ? [clientProjectLookup.clientProject] : [];
   }, [isAuthenticated, clientProjectLookup.isReady, clientProjectLookup.hasValidProject, clientProjectLookup.clientProject]);
 
-  // Get all available materials grouped by category
-  const materialCategories = useMemo(() => {
-    if (!allMaterials.length) return [];
-    return groupMaterialsByCategory(allMaterials);
-  }, [allMaterials]);
 
   // Get current project for the client - now their specific assigned project
   const currentProject = useMemo(() => {
@@ -44,10 +35,10 @@ export const useClientSpecificData = () => {
   }, [clientProjectLookup.clientProject]);
 
   // Loading state - include project lookup loading
-  const loading = projectsLoading || materialsLoading || clientProjectLookup.loading;
+  const loading = projectsLoading || clientProjectLookup.loading;
 
   // Error state - prioritize project assignment errors
-  const error = clientProjectLookup.assignmentError || projectsError || materialsError;
+  const error = clientProjectLookup.assignmentError || projectsError;
 
   // Client information
   const clientInfo = useMemo(() => {
@@ -65,11 +56,6 @@ export const useClientSpecificData = () => {
     };
   }, [clientData, session]);
 
-  // Get materials by category
-  const getMaterialsByCategory = (categoryName: string): Material[] => {
-    const category = materialCategories.find(cat => cat.name === categoryName);
-    return category ? category.materials : [];
-  };
 
   // Search functionality
   const searchProjects = (query: string): Project[] => {
@@ -80,17 +66,6 @@ export const useClientSpecificData = () => {
     );
   };
 
-  const searchMaterials = (query: string): Material[] => {
-    const lowercaseQuery = query.toLowerCase();
-    const allMaterialsList = materialCategories.flatMap(cat => cat.materials);
-
-    return allMaterialsList.filter(material =>
-      material.name.toLowerCase().includes(lowercaseQuery) ||
-      material.category.toLowerCase().includes(lowercaseQuery) ||
-      material.description?.toLowerCase().includes(lowercaseQuery) ||
-      material.supplier?.toLowerCase().includes(lowercaseQuery)
-    );
-  };
 
   return {
     // Authentication state
@@ -100,7 +75,6 @@ export const useClientSpecificData = () => {
     // Data
     projects: clientProjects,
     currentProject,
-    materialCategories,
 
     // Loading and error states
     loading,
@@ -113,14 +87,11 @@ export const useClientSpecificData = () => {
     suggestedProjects: clientProjectLookup.suggestedProjects,
 
     // Utility functions
-    getMaterialsByCategory,
     searchProjects,
-    searchMaterials,
     getProjectAssignmentDiagnostics: clientProjectLookup.getAssignmentDiagnostics,
 
     // Raw data (for advanced use cases)
     rawProjects: allProjects,
-    rawMaterials: allMaterials,
     rawClientProject: clientProjectLookup.rawClientProject
   };
 };

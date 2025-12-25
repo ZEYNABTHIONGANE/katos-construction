@@ -15,13 +15,19 @@ export type RootStackParamList = {
   HelpSupport: undefined;
   About: undefined;
   Main: undefined;
+  PhaseDetail: {
+    chantierId: string;
+    phaseId: string;
+    phaseName: string;
+    stepId?: string;
+    stepName?: string;
+  };
 };
 
 export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
   Documents: undefined;
-  Finitions: undefined;
   Profil: undefined;
 };
 
@@ -30,6 +36,17 @@ export type ChefTabParamList = {
   ChefChantiers: { selectedChantierId?: string };
   ChefGallery: undefined;
   ChefProfil: undefined;
+};
+
+export type ChefStackParamList = {
+  ChefTabs: NavigatorScreenParams<ChefTabParamList> | undefined;
+  ChefPhaseDetail: {
+    chantierId: string;
+    phaseId: string;
+    phaseName: string;
+    stepId?: string;
+    stepName?: string;
+  };
 };
 
 // Data types
@@ -66,22 +83,6 @@ export interface Message {
   attachmentName?: string;
 }
 
-export interface Material {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  imageUrl: string;
-  description?: string;
-  supplier?: string;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  materials: Material[];
-}
 
 export interface ProjectUpdate {
   id: string;
@@ -101,9 +102,3 @@ export interface ProjectPhase {
   description: string;
 }
 
-export interface Selection {
-  id: string;
-  materialId: string;
-  material: Material;
-  selectedAt: Date;
-}

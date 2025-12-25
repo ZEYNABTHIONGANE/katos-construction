@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { RootStackParamList, HomeTabParamList, ChefTabParamList, User } from '../types';
+import { RootStackParamList, HomeTabParamList, ChefTabParamList, ChefStackParamList, User } from '../types';
 import { authService } from '../services/authService';
 import { useClientAuth } from '../hooks/useClientAuth';
 
@@ -18,7 +18,6 @@ import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
 import ChefGalleryScreen from '../screens/chef/ChefGalleryScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
 import ChantierScreen from '../screens/main/ChantierScreen';
-import FinitionsScreen from '../screens/main/FinitionsScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -28,11 +27,25 @@ import ClientDocumentsScreenV3 from '../screens/main/ClientDocumentsScreenV3';
 import HelpSupportScreen from '../screens/main/HelpSupportScreen';
 import AboutScreen from '../screens/main/AboutScreen';
 import HomeScreen from '../screens/main/HomeScreen';
+import PhaseDetailScreen from '../screens/main/PhaseDetailScreen';
+import ChefPhaseDetailScreen from '../screens/chef/ChefPhaseDetailScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ClientTab = createBottomTabNavigator<HomeTabParamList>();
 const ChefTab = createBottomTabNavigator<ChefTabParamList>();
+const ChefStack = createNativeStackNavigator<ChefStackParamList>();
+
+const ChefStackNavigator = ({ onLogout }: { onLogout: () => void }) => {
+  return (
+    <ChefStack.Navigator screenOptions={{ headerShown: false }}>
+      <ChefStack.Screen name="ChefTabs">
+        {() => <ChefTabNavigator onLogout={onLogout} />}
+      </ChefStack.Screen>
+      <ChefStack.Screen name="ChefPhaseDetail" component={ChefPhaseDetailScreen} />
+    </ChefStack.Navigator>
+  );
+};
 
 const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
   return (
@@ -82,14 +95,12 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Accueil</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Accueil</Text>
             </View>
           ),
         }}
@@ -113,14 +124,12 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Chantier</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Chantier</Text>
             </View>
           ),
         }}
@@ -144,45 +153,12 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Documents</Text>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <ClientTab.Screen
-        name="Finitions"
-        component={FinitionsScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              minWidth: 50,
-            }}>
-              <MaterialIcons
-                name="shopping-cart"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Finitions</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Documents</Text>
             </View>
           ),
         }}
@@ -205,14 +181,12 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#2B2E83',
-                  marginTop: 2,
-                }}>Profil</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Profil</Text>
             </View>
           ),
         }}
@@ -271,14 +245,12 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#003366',
-                  marginTop: 2,
-                }}>Accueil</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Accueil</Text>
             </View>
           ),
         }}
@@ -302,14 +274,12 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#003366',
-                  marginTop: 2,
-                }}>Chantiers</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Chantiers</Text>
             </View>
           ),
         }}
@@ -333,14 +303,12 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#003366',
-                  marginTop: 2,
-                }}>Galerie</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Galerie</Text>
             </View>
           ),
         }}
@@ -363,14 +331,12 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
-              {focused && (
-                <Text style={{
-                  fontSize: 10,
-                  fontFamily: 'FiraSans_600SemiBold',
-                  color: '#003366',
-                  marginTop: 2,
-                }}>Profil</Text>
-              )}
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Profil</Text>
             </View>
           ),
         }}
@@ -487,6 +453,11 @@ export default function AppNavigator() {
                   {() => <ClientTabNavigator onLogout={handleLogout} />}
                 </Stack.Screen>
                 <Stack.Screen
+                  name="PhaseDetail"
+                  component={PhaseDetailScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
                   name="ClientProjects"
                   component={ClientProjectsScreen}
                   options={{ headerShown: false }}
@@ -509,7 +480,7 @@ export default function AppNavigator() {
               </>
             ) : (
               <Stack.Screen name="ChefTabs">
-                {() => <ChefTabNavigator onLogout={handleLogout} />}
+                {() => <ChefStackNavigator onLogout={handleLogout} />}
               </Stack.Screen>
             )}
           </>

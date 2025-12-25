@@ -1,5 +1,5 @@
-import type { FirebaseProject, FirebaseMaterial, FirebaseClient } from '../types/firebase';
-import type { Project, Material, Category, User, ProjectUpdate, ProjectPhase } from '../types';
+import type { FirebaseProject, FirebaseClient } from '../types/firebase';
+import type { Project, User, ProjectUpdate, ProjectPhase } from '../types';
 
 /**
  * Transform Firebase project data to mobile app project format
@@ -17,20 +17,6 @@ export const transformFirebaseProjectToProject = (firebaseProject: FirebaseProje
   };
 };
 
-/**
- * Transform Firebase material data to mobile app material format
- */
-export const transformFirebaseMaterialToMaterial = (firebaseMaterial: FirebaseMaterial): Material => {
-  return {
-    id: firebaseMaterial.id!,
-    name: firebaseMaterial.name,
-    category: firebaseMaterial.category,
-    price: firebaseMaterial.price,
-    imageUrl: firebaseMaterial.image,
-    description: firebaseMaterial.description,
-    supplier: firebaseMaterial.supplier
-  };
-};
 
 /**
  * Transform Firebase client data to mobile app user format
@@ -46,43 +32,6 @@ export const transformFirebaseClientToUser = (firebaseClient: FirebaseClient): U
   };
 };
 
-/**
- * Group materials by category to create Category objects
- */
-export const groupMaterialsByCategory = (materials: FirebaseMaterial[]): Category[] => {
-  const categoryMap = new Map<string, FirebaseMaterial[]>();
-
-  // Group materials by category
-  materials.forEach(material => {
-    const category = material.category;
-    if (!categoryMap.has(category)) {
-      categoryMap.set(category, []);
-    }
-    categoryMap.get(category)!.push(material);
-  });
-
-  // Convert to Category format with appropriate icons
-  const categoryIcons: { [key: string]: string } = {
-    'Peinture': 'format-paint',
-    'Carrelage': 'view-module',
-    'Sanitaires': 'plumbing',
-    'Électricité': 'electrical-services',
-    'Menuiserie': 'handyman',
-    'Isolation': 'layers',
-    'Plomberie': 'plumbing',
-    'Chauffage': 'thermostat',
-    'Toiture': 'roofing',
-    'Fenêtres': 'window',
-    'Portes': 'door-front'
-  };
-
-  return Array.from(categoryMap.entries()).map(([categoryName, categoryMaterials]) => ({
-    id: `cat_${categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-    name: categoryName,
-    icon: categoryIcons[categoryName] || 'construction',
-    materials: categoryMaterials.map(transformFirebaseMaterialToMaterial)
-  }));
-};
 
 /**
  * Create mock project updates for a project (since this data isn't in Firebase yet)

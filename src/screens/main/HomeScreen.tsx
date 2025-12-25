@@ -21,6 +21,7 @@ import { useClientAuth } from "../../hooks/useClientAuth";
 import AppHeader from "../../components/AppHeader";
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { useClientDocuments } from "../../hooks/useDocuments";
+import { useUserNames } from "../../hooks/useUserNames";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -45,13 +46,25 @@ export default function HomeScreen({ navigation }: Props) {
     status,
     name: chantierName,
     address: chantierAddress,
+    assignedChefId,
     startDate,
     mainImage,
     recentUpdates
   } = useClientChantier();
 
+  // Récupérer le nom du chef de chantier
+  const { getUserName } = useUserNames(assignedChefId ? [assignedChefId] : []);
+  const chefName = assignedChefId ? getUserName(assignedChefId) : '';
+
+  console.log('🏠 HomeScreen debug:', {
+    assignedChefId,
+    chefName,
+    chantierAddress,
+    hasChantier
+  });
+
   // Documents dynamiques
-  const { 
+  const {
     documents, 
     documentsByCategory,
     totalDocuments,
@@ -236,121 +249,134 @@ export default function HomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <ExpoLinearGradient
-          colors={['#2B2E83', '#E96C2E']}
-          start={[0, 0]}
-          end={[1, 1]}
-          style={styles.welcomeSection}
-        >
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.name}>{clientInfo?.firstName || 'Client'}</Text>
-          <Text style={styles.subtitle}>Client chez Katos Construction</Text>
-        </ExpoLinearGradient>
-
-        <View style={styles.statsContainer}>
-          <Text style={[styles.sectionTitle, {marginBottom: 15}]}>Tableau de bord</Text>
-
-          {/* Carte principale - Avancement */}
-          {renderMainStatCard(statisticsData[0])}
-
-          {/* Cartes secondaires */}
-          <View style={styles.secondaryStatsGrid}>
-            {statisticsData.slice(1).map(renderSecondaryStatCard)}
-          </View>
-        </View>
-
-        <View style={styles.projectsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mon chantier</Text>
-            {/* <TouchableOpacity onPress={handleProjectPress}>
-              <Text style={styles.seeAllText}>Voir détails</Text>
-            </TouchableOpacity> */}
+        <View style={styles.welcomeSection}>
+          <View style={styles.welcomeContent}>
+            <View style={styles.welcomeHeader}>
+              <Text style={styles.greeting}>Bienvenu,</Text>
+              <Text style={styles.name}>
+                {clientInfo?.firstName || 'Client'} {clientInfo?.lastName || ''}
+              </Text>
+            </View>
           </View>
 
-          {hasChantier ? (
-            <TouchableOpacity
-              style={styles.projectCard}
-              onPress={handleProjectPress}
-              activeOpacity={0.7}
-            >
-              <View style={styles.projectCardInner} pointerEvents="none">
-                {/* Image principale du chantier */}
-                {mainImage && (
-                  <View style={styles.projectImageContainer}>
-                    <Image
-                      source={{ uri: mainImage.url }}
-                      style={styles.projectMainImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.imageOverlay} />
-                  </View>
-                )}
+          {/* Image du chantier */}
+          {hasChantier && mainImage && (
+            <View style={styles.chantierImageContainer}>
+              <Image
+                source={{ uri: mainImage.url }}
+                style={styles.chantierImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
 
-                <View style={styles.projectContent}>
-                  <View style={styles.projectHeader}>
-                    <View style={styles.projectInfo}>
-                      <Text style={styles.projectName}>{chantierName}</Text>
-                      <Text style={styles.clientName}>{chantierAddress}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, {
-                      backgroundColor: status === 'En cours' ? '#4CAF50' :
-                                     status === 'Terminé' ? '#2196F3' :
-                                     status === 'En retard' ? '#F44336' : '#E0B043'
-                    }]}>
-                      <Text style={styles.statusText}>{status}</Text>
-                    </View>
-                  </View>
+          {/* Status du projet */}
+          {hasChantier && (
+            <View style={styles.welcomeContent}>
+              <View style={styles.projectStatus}>
+                <View style={styles.statusCard}>
+                  <ExpoLinearGradient
+                    colors={['#2B2E83', '#E96C2E']}
+                    start={[0, 0]}
+                    end={[1, 1]}
+                    style={styles.statusGradient}
+                  >
+                    <View style={styles.statusContent}>
+                      <Text style={styles.statusTitle}>Votre projet</Text>
+                      <Text style={styles.statusProjectName}>{chantierName}</Text>
+                      <View style={styles.statusDetails}>
+                        <View style={styles.statusInfoCard}>
+                          <View style={styles.statusInfoRow}>
+                            <View style={styles.statusIconContainer}>
+                              <MaterialIcons name="location-on" size={16} color="#E96C2E" />
+                            </View>
+                            <View style={styles.statusInfoContent}>
+                              <Text style={styles.statusInfoLabel}>Localisation</Text>
+                              <Text style={styles.statusInfoValue}>{chantierAddress}</Text>
+                            </View>
+                          </View>
+                        </View>
 
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressHeader}>
-                      <Text style={styles.progressLabel}>Progression</Text>
-                      <Text style={styles.progressValue}>{globalProgress}%</Text>
-                    </View>
-                    <View style={styles.progressBar}>
-                      <ExpoLinearGradient
-                        colors={['#2B2E83', '#E96C2E']}
-                        start={[0, 0]}
-                        end={[1, 0]}
-                        style={[
-                          styles.progressFill,
-                          { width: `${globalProgress}%` }
-                        ]}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.projectFooter}>
-                    <View style={styles.dueDateContainer}>
-                      <View style={styles.iconContainer}>
-                        <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+                        {chefName && (
+                          <View style={styles.statusInfoCard}>
+                            <View style={styles.statusInfoRow}>
+                              <View style={styles.statusIconContainer}>
+                                <MaterialIcons name="engineering" size={16} color="#2B2E83" />
+                              </View>
+                              <View style={styles.statusInfoContent}>
+                                <Text style={styles.statusInfoLabel}>Chef de chantier</Text>
+                                <Text style={styles.statusInfoValue}>{chefName}</Text>
+                              </View>
+                            </View>
+                          </View>
+                        )}
                       </View>
-                      <Text style={styles.dueDate}>Début: {startDate}</Text>
                     </View>
-                    <View style={styles.arrowContainer}>
-                      <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
-                    </View>
-                  </View>
+                  </ExpoLinearGradient>
                 </View>
               </View>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.emptyProjectCard}>
-              <MaterialIcons name="home-work" size={48} color="#E0E0E0" />
-              <Text style={styles.emptyProjectText}>Aucun chantier assigné</Text>
-              <Text style={styles.emptyProjectSubtext}>
-                Votre chantier apparaîtra ici une fois créé par l'administration
-              </Text>
             </View>
           )}
         </View>
 
+        {/* Dashboard moderne style iOS Widget */}
+        <View style={styles.widgetContainer}>
+
+          {/* Widget principal - Avancement avec phase actuelle */}
+          <TouchableOpacity
+            style={styles.mainWidget}
+            onPress={handleProjectPress}
+            activeOpacity={0.9}
+          >
+            <ExpoLinearGradient
+              colors={['#2B2E83', '#E96C2E']}
+              start={[0, 0]}
+              end={[1, 1]}
+              style={styles.mainWidgetGradient}
+            >
+              <View style={styles.mainWidgetHeader}>
+                <View style={styles.progressInfo}>
+                  <Text style={styles.progressTitle}>Avancement global</Text>
+                  <Text style={styles.progressPercentage}>{globalProgress}%</Text>
+                </View>
+                <View style={styles.progressIcon}>
+                  <MaterialIcons name="trending-up" size={28} color="#FFFFFF" />
+                </View>
+              </View>
+
+              <View style={styles.progressBarWidget}>
+                <View style={styles.progressTrackWidget}>
+                  <View style={[styles.progressFillWidget, { width: `${globalProgress}%` }]} />
+                </View>
+              </View>
+
+              {currentPhase && (
+                <View style={styles.currentPhaseWidget}>
+                  <MaterialIcons name="build-circle" size={18} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.currentPhaseText}>Phase actuelle: {currentPhase}</Text>
+                </View>
+              )}
+            </ExpoLinearGradient>
+          </TouchableOpacity>
+
+   
+        </View>
+
+        {/* Message si pas de chantier */}
+        {!hasChantier && (
+          <View style={styles.emptyProjectCard}>
+            <MaterialIcons name="home-work" size={48} color="#E0E0E0" />
+            <Text style={styles.emptyProjectText}>Aucun chantier assigné</Text>
+            <Text style={styles.emptyProjectSubtext}>
+              Votre chantier apparaîtra ici une fois créé par l'administration
+            </Text>
+          </View>
+        )}
+
         {/* Section Documents */}
         <View style={styles.projectsContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mes documents</Text>
-            {/* <TouchableOpacity onPress={handleDocumentsPress}>
-              <Text style={styles.seeAllText}>Gérer</Text>
-            </TouchableOpacity> */}
+            <Text style={styles.sectionTitle}>Documents</Text>
           </View>
 
           <TouchableOpacity style={styles.documentsCard} onPress={handleDocumentsPress}>
@@ -423,58 +449,177 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   welcomeSection: {
-    paddingHorizontal: 25,
-    paddingVertical: 30,
-    marginTop: 15,
-    marginHorizontal: 15,
+    marginHorizontal: 20,
+    marginTop: 20,
     borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
     elevation: 8,
+    overflow: 'hidden',
+  },
+  welcomeContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  welcomeHeader: {
+    alignItems: 'center',
+    marginBottom: 0,
   },
   greeting: {
     fontSize: 16,
-    color: '#FFFFFF',
-    fontFamily: 'FiraSans_400Regular',
-    opacity: 0.9,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   name: {
-    fontSize: 28,
+    fontSize: 24,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_700Bold',
+    textAlign: 'center',
+  },
+
+  // Status du projet
+  projectStatus: {
+    marginTop: 0,
+  },
+  statusCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  statusGradient: {
+    padding: 20,
+  },
+  statusContent: {
+    flex: 1,
+  },
+  statusTitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: 'FiraSans_600SemiBold',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  statusProjectName: {
+    fontSize: 18,
     color: '#FFFFFF',
     fontFamily: 'FiraSans_700Bold',
-    marginTop: 5,
-    marginBottom: 5,
+    marginBottom: 12,
   },
-  subtitle: {
+  statusDetails: {
+    flex: 1,
+    marginTop: 8,
+  },
+  statusInfoCard: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statusInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  statusIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusInfoContent: {
+    flex: 1,
+  },
+  statusInfoLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusInfoValue: {
     fontSize: 14,
     color: '#FFFFFF',
     fontFamily: 'FiraSans_600SemiBold',
-    opacity: 0.8,
+  },
+
+  // Styles pour l'image du chantier intégrée
+  chantierImageContainer: {
+    position: 'relative',
+    height: 180,
+    width: '100%',
+  },
+  chantierImage: {
+    width: '100%',
+    height: '100%',
+  },
+  chantierImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  chantierImageTitle: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+    marginBottom: 4,
+  },
+  chantierImageSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: 'FiraSans_500Medium',
   },
   statsContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 25,
+    paddingBottom: 15,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     color: '#2B2E83',
     fontFamily: 'FiraSans_700Bold',
-    marginTop: 20,
+    marginBottom: 15,
+    paddingLeft: 5,
   },
   // Carte principale
   mainStatCard: {
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 24,
+    marginBottom: 25,
     shadowColor: '#2B2E83',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(43, 46, 131, 0.08)',
   },
   mainStatCardGradient: {
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 28,
   },
   mainStatContent: {
     flexDirection: 'row',
@@ -509,16 +654,18 @@ const styles = StyleSheet.create({
   secondaryStatsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 15,
   },
   secondaryStatCard: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   secondaryStatContent: {
     padding: 18,
@@ -560,7 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,
@@ -568,15 +715,17 @@ const styles = StyleSheet.create({
     fontFamily: 'FiraSans_600SemiBold',
   },
   projectCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
     overflow: 'hidden',
-    minHeight: 120, // S'assurer qu'il y a assez de zone tactile
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(43, 46, 131, 0.06)',
   },
   projectCardInner: {
     backgroundColor: '#FFFFFF',
@@ -615,7 +764,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2B2E83',
     fontFamily: 'FiraSans_600SemiBold',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  projectDetails: {
+    marginTop: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_400Regular',
+    marginLeft: 4,
   },
   clientName: {
     fontSize: 14,
@@ -676,12 +839,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  projectDetailsInfo: {
+    flex: 1,
+  },
   dueDateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
     paddingHorizontal: 12,
     paddingVertical: 8,
+    marginBottom: 6,
     borderRadius: 15,
   },
   iconContainer: {
@@ -709,17 +876,19 @@ const styles = StyleSheet.create({
 
   // Styles pour la carte des documents
   documentsCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     marginBottom: 20,
     shadowColor: '#2B2E83',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(43, 46, 131, 0.08)',
   },
   documentsCardGradient: {
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 28,
   },
   documentsCardContent: {
     flex: 1,
@@ -843,6 +1012,139 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontFamily: 'FiraSans_400Regular',
+    textAlign: 'center',
+  },
+
+  // Styles pour le container des widgets iOS
+  widgetContainer: {
+    padding: 20,
+    paddingTop: 15,
+  },
+
+  // Widget principal
+  mainWidget: {
+    borderRadius: 24,
+    marginBottom: 20,
+    shadowColor: '#2B2E83',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  mainWidgetGradient: {
+    borderRadius: 24,
+    padding: 24,
+  },
+  mainWidgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  progressInfo: {
+    flex: 1,
+  },
+  progressTitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 8,
+  },
+  progressPercentage: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+  },
+  progressIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Barre de progression widget
+  progressBarWidget: {
+    marginBottom: 16,
+  },
+  progressTrackWidget: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFillWidget: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+  },
+
+  // Phase actuelle widget
+  currentPhaseWidget: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  currentPhaseText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginLeft: 8,
+  },
+
+  // Mini widgets horizontaux
+  miniWidgetsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 12,
+  },
+  miniWidget: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  miniWidgetContent: {
+    alignItems: 'center',
+  },
+  miniWidgetIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  miniWidgetNumber: {
+    fontSize: 24,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_700Bold',
+    marginBottom: 4,
+  },
+  miniWidgetDate: {
+    fontSize: 12,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  miniWidgetLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
     textAlign: 'center',
   },
 });

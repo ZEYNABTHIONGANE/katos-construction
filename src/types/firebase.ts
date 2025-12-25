@@ -483,7 +483,7 @@ export const KATOS_STANDARD_PHASES: Omit<KatosChantierPhase, 'id' | 'lastUpdated
     order: 6,
     assignedTeamMembers: [],
     requiredMaterials: [],
-    estimatedDuration: 8,
+    estimatedDuration: 5,
     photos: [],
     notes: '',
     steps: [
@@ -491,15 +491,6 @@ export const KATOS_STANDARD_PHASES: Omit<KatosChantierPhase, 'id' | 'lastUpdated
         id: 'alimentation',
         name: 'Alimentation',
         description: 'Installation du réseau d\'alimentation en eau',
-        status: 'pending',
-        progress: 0,
-        estimatedDuration: 3,
-        notes: ''
-      },
-      {
-        id: 'appareillage_plomberie',
-        name: 'Appareillage',
-        description: 'Installation des appareils sanitaires',
         status: 'pending',
         progress: 0,
         estimatedDuration: 3,

@@ -337,60 +337,6 @@ export default function ChantierScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* Photo Gallery */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Photos du chantier ({photos.length})</Text>
-          {photos.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.galleryContainer}
-            >
-              {photos.map((photo, index) => (
-                <TouchableOpacity
-                  key={photo.id}
-                  style={styles.galleryItem}
-                  onPress={() => openMediaCarousel(index)}
-                  activeOpacity={0.8}
-                >
-                  {photo.type === 'video' ? (
-                       <View style={styles.galleryImage}>
-                         <Video
-                           source={{ uri: photo.thumbnailUrl || photo.url }}
-                           style={{ width: '100%', height: '100%' }}
-                           resizeMode={ResizeMode.COVER}
-                           shouldPlay={false}
-                           isLooping={false}
-                           useNativeControls={false}
-                         />
-                         <View style={styles.playIconOverlay}>
-                            <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.8)" />
-                         </View>
-                       </View>
-                  ) : (
-                      <Image source={{ uri: photo.thumbnailUrl || photo.url }} style={styles.galleryImage} resizeMode="cover" />
-                  )}
-                  <View style={styles.photoOverlay}>
-
-                    <MaterialIcons
-                      name={photo.type === 'video' ? "play-circle-filled" : "zoom-in"}
-                      size={16}
-                      color="#fff"
-                      style={styles.zoomIcon}
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyGallery}>
-              <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
-              <Text style={styles.emptyGalleryText}>Aucune photo disponible</Text>
-              <Text style={styles.emptyGallerySubtext}>Les photos du chantier apparaîtront ici</Text>
-            </View>
-          )}
-        </View>
-
         {/* Timeline */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Phases du chantier</Text>
@@ -471,7 +417,17 @@ export default function ChantierScreen({ navigation, route }: Props) {
                             )}
                           </View>
 
-                          <View style={styles.timelineContent}>
+                          <TouchableOpacity
+                            style={styles.timelineContent}
+                            onPress={() =>
+                              navigation.navigate('PhaseDetail', {
+                                chantierId: chantier?.id || chantierId,
+                                phaseId: phase.id,
+                                phaseName: phase.name,
+                              })
+                            }
+                            activeOpacity={0.7}
+                          >
                             <View style={styles.phaseHeader}>
                               <Text style={[
                                 styles.phaseName,
@@ -480,9 +436,12 @@ export default function ChantierScreen({ navigation, route }: Props) {
                               ]}>
                                 {phase.name}
                               </Text>
-                              <Text style={[styles.phaseProgress, { color: categoryColors.text }]}>
-                                {phase.progress}%
-                              </Text>
+                              <View style={styles.phaseHeaderRight}>
+                                <Text style={[styles.phaseProgress, { color: categoryColors.text }]}>
+                                  {phase.progress}%
+                                </Text>
+                                <MaterialIcons name="chevron-right" size={20} color="#999" />
+                              </View>
                             </View>
 
                             <Text style={styles.phaseDescription}>{phase.description}</Text>
@@ -497,73 +456,70 @@ export default function ChantierScreen({ navigation, route }: Props) {
                               </Text>
                             </View>
 
-                            {/* Affichage des sous-étapes avec dates complètes */}
+                            {/* Affichage des sous-étapes avec navigation */}
                             {phase.steps && phase.steps.length > 0 && (
                               <View style={styles.subStepsContainer}>
                                 <Text style={styles.subStepsTitle}>Étapes détaillées:</Text>
-                                {phase.steps.map((step, stepIndex) => {
-                                  const stepRealDates = getStepRealDates(step);
-
-                                  return (
-                                    <View key={step.id} style={styles.subStepItem}>
-                                      <View style={[
-                                        styles.subStepIndicator,
-                                        { backgroundColor: getPhaseStatusColor(step.status) }
-                                      ]} />
-                                      <View style={styles.subStepDetails}>
+                                {phase.steps.map((step, stepIndex) => (
+                                  <TouchableOpacity
+                                    key={step.id}
+                                    style={styles.subStepItem}
+                                    onPress={() =>
+                                      navigation.navigate('PhaseDetail', {
+                                        chantierId: chantier?.id || chantierId,
+                                        phaseId: phase.id,
+                                        phaseName: phase.name,
+                                        stepId: step.id,
+                                        stepName: step.name,
+                                      })
+                                    }
+                                    activeOpacity={0.7}
+                                  >
+                                    <View style={[
+                                      styles.subStepIndicator,
+                                      { backgroundColor: getPhaseStatusColor(step.status) }
+                                    ]} />
+                                    <View style={styles.subStepDetails}>
+                                      <View style={styles.subStepHeader}>
                                         <Text style={styles.subStepText}>
                                           {step.name} ({step.progress}%)
                                         </Text>
-                                        {/* Affichage des dates des sous-étapes comme dans le backoffice */}
-                                        {(step.actualStartDate || step.actualEndDate) && (
-                                          <View style={styles.subStepDates}>
-                                            <Text style={styles.subStepUpdateText}>
-                                              Dernière mise à jour: {formatDateWithTime(step.actualEndDate || step.actualStartDate)} par {getUserName(step.updatedBy)}
-                                            </Text>
-                                          </View>
-                                        )}
-                                        
-                                        <PhaseFeedbackSection 
-                                          chantierId={chantier?.id || chantierId} 
-                                          phaseId={phase.id} 
-                                          stepId={step.id}
-                                        />
+                                        <MaterialIcons name="chevron-right" size={16} color="#999" />
                                       </View>
+                                      {/* Affichage des dates des sous-étapes comme dans le backoffice */}
+                                      {(step.actualStartDate || step.actualEndDate) && (
+                                        <View style={styles.subStepDates}>
+                                          <Text style={styles.subStepUpdateText}>
+                                            Dernière mise à jour: {formatDateWithTime(step.actualEndDate || step.actualStartDate)} par {getUserName(step.updatedBy)}
+                                          </Text>
+                                        </View>
+                                      )}
                                     </View>
-                                  );
-                                })}
+                                  </TouchableOpacity>
+                                ))}
                               </View>
                             )}
 
-                  {/* Voice Notes for Phase (if no steps, or general phase feedback) */}
-                  {(!phase.steps || phase.steps.length === 0) && (
-                      <PhaseFeedbackSection 
-                        chantierId={chantier?.id || chantierId} 
-                        phaseId={phase.id} 
-                        title="Notes vocales"
-                      />
-                  )}
+                            <View style={styles.phaseProgressContainer}>
+                              <ProgressBar
+                                progress={phase.progress}
+                                height={6}
+                                progressColor={categoryColors.primary}
+                              />
+                            </View>
 
-                  <View style={styles.phaseProgressContainer}>
-                    <ProgressBar
-                      progress={phase.progress}
-                      height={6}
-                      progressColor={categoryColors.primary}
-                    />
-                  </View>
-
-                  <View style={styles.phaseStatus}>
-                    <Text
-                      style={[
-                        styles.phaseStatusText,
-                        { color: getPhaseStatusColor(phase.status) },
-                      ]}
-                    >
-                      {getStatusText(phase.status)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+                            <View style={styles.phaseStatus}>
+                              <Text
+                                style={[
+                                  styles.phaseStatusText,
+                                  { color: getPhaseStatusColor(phase.status) },
+                                ]}
+                              >
+                                {getStatusText(phase.status)}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </View>
             );
           })}
         </View>
@@ -949,6 +905,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 5,
   },
+  phaseHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   phaseProgress: {
     fontSize: 14,
     color: '#2B2E83',
@@ -1097,6 +1058,11 @@ const styles = StyleSheet.create({
   },
   subStepDetails: {
     flex: 1,
+  },
+  subStepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   subStepDates: {
     flexDirection: 'column',

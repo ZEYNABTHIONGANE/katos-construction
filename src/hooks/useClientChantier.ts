@@ -176,6 +176,7 @@ export const useClientChantier = (specificChantierId?: string) => {
     status: chantier?.status || 'En attente',
     name: chantier?.name || '',
     address: chantier?.address || '',
+    assignedChefId: chantier?.assignedChefId || '',
     startDate: chantier?.startDate?.toDate().toLocaleDateString('fr-FR') || '',
     plannedEndDate: chantier?.plannedEndDate?.toDate().toLocaleDateString('fr-FR') || '',
 
