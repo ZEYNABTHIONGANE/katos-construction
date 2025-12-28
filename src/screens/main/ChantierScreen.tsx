@@ -14,16 +14,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { HomeTabParamList } from '../../types';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeTabParamList, RootStackParamList } from '../../types';
 import ProgressBar from '../../components/ProgressBar';
 import VideoPlayer from '../../components/VideoPlayer';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { ResizeMode, Video } from 'expo-av';
 import type { KatosChantierPhase } from '../../types/firebase';
 import { useUserNames } from '../../hooks/useUserNames';
-import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 
-type Props = BottomTabScreenProps<HomeTabParamList, 'Chantier'>;
+
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<HomeTabParamList, 'Chantier'>,
+  NativeStackScreenProps<RootStackParamList>
+>;
 
 const { width } = Dimensions.get('window');
 
@@ -49,13 +54,13 @@ export default function ChantierScreen({ navigation, route }: Props) {
   // Collecter tous les IDs d'utilisateurs pour récupérer leurs noms
   const userIds = React.useMemo(() => {
     if (!phases) return [];
-    
+
     const ids = new Set<string>();
-    
+
     phases.forEach((phase: any) => {
       // Phase updatedBy
       if (phase.updatedBy) ids.add(phase.updatedBy);
-      
+
       // Step updatedBy
       if (phase.steps) {
         phase.steps.forEach((step: any) => {
@@ -63,7 +68,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
         });
       }
     });
-    
+
     return Array.from(ids);
   }, [phases]);
 
@@ -124,7 +129,8 @@ export default function ChantierScreen({ navigation, route }: Props) {
   const groupPhasesByCategory = (phases: any[]) => {
     const katosPhases = phases as KatosChantierPhase[];
     const grouped = katosPhases.reduce((acc, phase) => {
-      const category = phase.category || 'main';
+      const name = phase.name.toLowerCase();
+      const category = (name.includes('clé') || name.includes('clef')) ? 'cloture' : (phase.category || 'main');
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -150,6 +156,12 @@ export default function ChantierScreen({ navigation, route }: Props) {
           light: '#F3E5F5',
           text: '#9C27B0'
         };
+      case 'cloture':
+        return {
+          primary: '#4CAF50', // Vert pour la livraison
+          light: '#E8F5E9',
+          text: '#2E7D32'
+        };
       default:
         return {
           primary: '#2B2E83', // Bleu pour phases principales
@@ -166,6 +178,8 @@ export default function ChantierScreen({ navigation, route }: Props) {
         return 'PHASES GROS ŒUVRE';
       case 'second_oeuvre':
         return 'PHASES SECOND ŒUVRE';
+      case 'cloture':
+        return 'LIVRAISON & CLÔTURE';
       default:
         return null; // Pas de header pour les phases principales
     }
@@ -281,7 +295,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
         {/* Header moderne */}
         <View style={styles.header}>
           <TouchableOpacity
-             style={styles.backButton}
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
@@ -290,306 +304,301 @@ export default function ChantierScreen({ navigation, route }: Props) {
           <View style={styles.headerRight} />
         </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Project Info */}
-        <View style={styles.projectInfo}>
-          <Text style={styles.projectName}>{name}</Text>
-          <Text style={styles.projectAddress}>{address}</Text>
+        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Project Info */}
+          <View style={styles.projectInfo}>
+            <Text style={styles.projectName}>{name}</Text>
+            <Text style={styles.projectAddress}>{address}</Text>
 
-          <View style={[styles.statusBadge, {
-            backgroundColor: status === 'En cours' ? '#4CAF50' :
-                           status === 'Terminé' ? '#2196F3' :
-                           status === 'En retard' ? '#F44336' : '#E0B043',
-            alignSelf: 'flex-start',
-            marginBottom: 15
-          }]}>
-            <Text style={styles.statusText}>{status}</Text>
-          </View>
+            <View style={[styles.statusBadge, {
+              backgroundColor: status === 'En cours' ? '#4CAF50' :
+                status === 'Terminé' ? '#2196F3' :
+                  status === 'En retard' ? '#F44336' : '#E0B043',
+              alignSelf: 'flex-start',
+              marginBottom: 15
+            }]}>
+              <Text style={styles.statusText}>{status}</Text>
+            </View>
 
-          {/* Image principale du chantier */}
-          {mainImage && (
-            <TouchableOpacity
-              style={styles.mainImageContainer}
-              onPress={() => {
+            {/* Image principale du chantier */}
+            {mainImage && (
+              <TouchableOpacity
+                style={styles.mainImageContainer}
+                onPress={() => {
                   const index = photos.findIndex(p => p.id === mainImage.id);
                   if (index !== -1) openMediaCarousel(index);
-              }}
-              activeOpacity={0.8}
-            >
-              <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
-              <View style={styles.mainImageOverlay}>
-                <MaterialIcons
-                  name="zoom-in"
-                  size={24}
-                  color="#fff"
-                  style={styles.mainImageZoomIcon}
-                />
+                }}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
+                <View style={styles.mainImageOverlay}>
+                  <MaterialIcons
+                    name="zoom-in"
+                    size={24}
+                    color="#fff"
+                    style={styles.mainImageZoomIcon}
+                  />
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.progressSection}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Avancement global</Text>
+                <Text style={styles.progressValue}>{globalProgress}%</Text>
               </View>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Avancement global</Text>
-              <Text style={styles.progressValue}>{globalProgress}%</Text>
+              <ProgressBar progress={globalProgress} height={12} />
             </View>
-            <ProgressBar progress={globalProgress} height={12} />
           </View>
-        </View>
 
-        {/* Timeline */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Phases du chantier</Text>
+          {/* Timeline */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Phases du chantier</Text>
 
-          {/* Affichage des phases groupées par catégorie */}
-          {(() => {
-            const groupedPhases = groupPhasesByCategory(phases.filter(phase => phase.name !== 'Électricité & Plomberie'));
-            const categoryOrder = ['main', 'gros_oeuvre', 'second_oeuvre'];
+            {/* Affichage des phases groupées par catégorie */}
+            {(() => {
+              const groupedPhases = groupPhasesByCategory(phases.filter(phase => phase.name !== 'Électricité & Plomberie'));
+              const categoryOrder = ['main', 'gros_oeuvre', 'second_oeuvre', 'cloture'];
 
-            return categoryOrder.map(categoryKey => {
-              const categoryPhases = groupedPhases[categoryKey];
-              if (!categoryPhases || categoryPhases.length === 0) return null;
+              return categoryOrder.map(categoryKey => {
+                const categoryPhases = groupedPhases[categoryKey];
+                if (!categoryPhases || categoryPhases.length === 0) return null;
 
-              const categoryColors = getCategoryColor(categoryKey);
-              const categoryName = getCategoryName(categoryKey);
+                const categoryColors = getCategoryColor(categoryKey);
+                const categoryName = getCategoryName(categoryKey);
 
-              return (
-                <View key={categoryKey} style={styles.categoryContainer}>
-                  {/* Header de catégorie avec distinction visuelle */}
-                  {categoryName && (
-                    <View style={[
-                      styles.categoryHeaderWithBorder,
-                      categoryKey === 'gros_oeuvre' && styles.grosOeuvreHeader,
-                      categoryKey === 'second_oeuvre' && styles.secondOeuvreHeader
-                    ]}>
+                return (
+                  <View key={categoryKey} style={styles.categoryContainer}>
+                    {/* Header de catégorie avec distinction visuelle */}
+                    {categoryName && (
                       <View style={[
-                        styles.categoryBorderLeft,
-                        categoryKey === 'gros_oeuvre' && { backgroundColor: '#E96C2E' },
-                        categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' }
-                      ]} />
-                      <View style={styles.categoryHeaderContent}>
-                        <Text style={[
-                          styles.categoryTitleWithIcon,
-                          categoryKey === 'gros_oeuvre' && { color: '#E96C2E' },
-                          categoryKey === 'second_oeuvre' && { color: '#9C27B0' }
-                        ]}>
-                          {categoryKey === 'gros_oeuvre' && '🏗️ '}
-                          {categoryKey === 'second_oeuvre' && '🔧 '}
-                          {categoryName}
-                        </Text>
+                        styles.categoryHeaderWithBorder,
+                        categoryKey === 'gros_oeuvre' && styles.grosOeuvreHeader,
+                        categoryKey === 'second_oeuvre' && styles.secondOeuvreHeader,
+                        categoryKey === 'cloture' && styles.clotureHeader
+                      ]}>
                         <View style={[
-                          styles.categoryUnderline,
+                          styles.categoryBorderLeft,
                           categoryKey === 'gros_oeuvre' && { backgroundColor: '#E96C2E' },
-                          categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' }
+                          categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' },
+                          categoryKey === 'cloture' && { backgroundColor: '#4CAF50' }
                         ]} />
+                        <View style={styles.categoryHeaderContent}>
+                          <Text style={[
+                            styles.categoryTitleWithIcon,
+                            categoryKey === 'gros_oeuvre' && { color: '#E96C2E' },
+                            categoryKey === 'second_oeuvre' && { color: '#9C27B0' },
+                            categoryKey === 'cloture' && { color: '#2E7D32' }
+                          ]}>
+                            {categoryKey === 'gros_oeuvre' && '🏗️ '}
+                            {categoryKey === 'second_oeuvre' && '🔧 '}
+                            {categoryKey === 'cloture' && '🔑 '}
+                            {categoryName}
+                          </Text>
+                          <View style={[
+                            styles.categoryUnderline,
+                            categoryKey === 'gros_oeuvre' && { backgroundColor: '#E96C2E' },
+                            categoryKey === 'second_oeuvre' && { backgroundColor: '#9C27B0' },
+                            categoryKey === 'cloture' && { backgroundColor: '#4CAF50' }
+                          ]} />
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
 
-                  {/* Timeline des phases de cette catégorie */}
-                  <View style={styles.timeline}>
-                    {categoryPhases.map((phase, phaseIndex) => {
-                      const isVerification = isVerificationPhase(phase.name);
-                      // Obtenir les vraies dates basées sur les mises à jour
-                      const realDates = getRealDates(phase);
+                    {/* Timeline des phases de cette catégorie */}
+                    <View style={styles.timeline}>
+                      {categoryPhases.map((phase, phaseIndex) => {
+                        const isVerification = isVerificationPhase(phase.name);
+                        // Obtenir les vraies dates basées sur les mises à jour
+                        const realDates = getRealDates(phase);
 
-                      return (
-                        <View key={phase.id} style={[
-                          styles.timelineItem,
-                          isVerification && styles.verificationPhaseItem
-                        ]}>
-                          <View style={styles.timelineLeft}>
-                            <View
-                              style={[
-                                styles.timelineIcon,
-                                { backgroundColor: getPhaseStatusColor(phase.status) },
-                                isVerification && styles.verificationIcon
-                              ]}
-                            >
-                              <MaterialIcons
-                                name={isVerification ? 'fact-check' : getPhaseStatusIcon(phase.status)}
-                                size={16}
-                                color="#fff"
-                              />
-                            </View>
-                            {phaseIndex < categoryPhases.length - 1 && (
-                              <View style={[styles.timelineLine, { backgroundColor: categoryColors.primary }]} />
-                            )}
-                          </View>
-
-                          <TouchableOpacity
-                            style={styles.timelineContent}
-                            onPress={() =>
-                              navigation.navigate('PhaseDetail', {
-                                chantierId: chantier?.id || chantierId,
-                                phaseId: phase.id,
-                                phaseName: phase.name,
-                              })
-                            }
-                            activeOpacity={0.7}
-                          >
-                            <View style={styles.phaseHeader}>
-                              <Text style={[
-                                styles.phaseName,
-                                { color: categoryColors.text },
-                                isVerification && styles.verificationPhaseTitle
-                              ]}>
-                                {phase.name}
-                              </Text>
-                              <View style={styles.phaseHeaderRight}>
-                                <Text style={[styles.phaseProgress, { color: categoryColors.text }]}>
-                                  {phase.progress}%
-                                </Text>
-                                <MaterialIcons name="chevron-right" size={20} color="#999" />
-                              </View>
-                            </View>
-
-                            <Text style={styles.phaseDescription}>{phase.description}</Text>
-
-                            {/* Affichage des dates comme dans le backoffice */}
-                            <View style={styles.datesContainer}>
-                              <Text style={styles.dateTextUpdate}>
-                                {phase.lastUpdated
-                                  ? `Dernière mise à jour: ${formatDateWithTime(phase.lastUpdated)} par ${getUserName(phase.updatedBy)}`
-                                  : `Phase créée - Pas encore de mise à jour`
-                                }
-                              </Text>
-                            </View>
-
-                            {/* Affichage des sous-étapes avec navigation */}
-                            {phase.steps && phase.steps.length > 0 && (
-                              <View style={styles.subStepsContainer}>
-                                <Text style={styles.subStepsTitle}>Étapes détaillées:</Text>
-                                {phase.steps.map((step, stepIndex) => (
-                                  <TouchableOpacity
-                                    key={step.id}
-                                    style={styles.subStepItem}
-                                    onPress={() =>
-                                      navigation.navigate('PhaseDetail', {
-                                        chantierId: chantier?.id || chantierId,
-                                        phaseId: phase.id,
-                                        phaseName: phase.name,
-                                        stepId: step.id,
-                                        stepName: step.name,
-                                      })
-                                    }
-                                    activeOpacity={0.7}
-                                  >
-                                    <View style={[
-                                      styles.subStepIndicator,
-                                      { backgroundColor: getPhaseStatusColor(step.status) }
-                                    ]} />
-                                    <View style={styles.subStepDetails}>
-                                      <View style={styles.subStepHeader}>
-                                        <Text style={styles.subStepText}>
-                                          {step.name} ({step.progress}%)
-                                        </Text>
-                                        <MaterialIcons name="chevron-right" size={16} color="#999" />
-                                      </View>
-                                      {/* Affichage des dates des sous-étapes comme dans le backoffice */}
-                                      {(step.actualStartDate || step.actualEndDate) && (
-                                        <View style={styles.subStepDates}>
-                                          <Text style={styles.subStepUpdateText}>
-                                            Dernière mise à jour: {formatDateWithTime(step.actualEndDate || step.actualStartDate)} par {getUserName(step.updatedBy)}
-                                          </Text>
-                                        </View>
-                                      )}
-                                    </View>
-                                  </TouchableOpacity>
-                                ))}
-                              </View>
-                            )}
-
-                            <View style={styles.phaseProgressContainer}>
-                              <ProgressBar
-                                progress={phase.progress}
-                                height={6}
-                                progressColor={categoryColors.primary}
-                              />
-                            </View>
-
-                            <View style={styles.phaseStatus}>
-                              <Text
+                        return (
+                          <View key={phase.id} style={[
+                            styles.timelineItem,
+                            isVerification && styles.verificationPhaseItem
+                          ]}>
+                            <View style={styles.timelineLeft}>
+                              <View
                                 style={[
-                                  styles.phaseStatusText,
-                                  { color: getPhaseStatusColor(phase.status) },
+                                  styles.timelineIcon,
+                                  { backgroundColor: getPhaseStatusColor(phase.status) },
+                                  isVerification && styles.verificationIcon
                                 ]}
                               >
-                                {getStatusText(phase.status)}
-                              </Text>
+                                <MaterialIcons
+                                  name={isVerification ? 'fact-check' : getPhaseStatusIcon(phase.status)}
+                                  size={16}
+                                  color="#fff"
+                                />
+                              </View>
+                              {phaseIndex < categoryPhases.length - 1 && (
+                                <View style={[styles.timelineLine, { backgroundColor: categoryColors.primary }]} />
+                              )}
                             </View>
-                          </TouchableOpacity>
-                        </View>
-            );
-          })}
-        </View>
-      </View>
-    );
-  });
-})()}
-        </View>
-      </ScrollView>
 
-      {/* Media Carousel Modal */}
-      <Modal
-        visible={showMediaCarousel}
-        animationType="fade"
-        presentationStyle="fullScreen"
-        statusBarTranslucent
-        onRequestClose={() => setShowMediaCarousel(false)}
-      >
-        <View style={styles.carouselContainer}>
-          <View style={styles.carouselHeader}>
-            <TouchableOpacity onPress={() => setShowMediaCarousel(false)} style={styles.carouselCloseButton}>
-              <MaterialIcons name="close" size={30} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.carouselTitle}>
-              {selectedMediaIndex + 1} / {photos.length}
-            </Text>
-            <View style={{ width: 40 }} /> 
+                            <TouchableOpacity
+                              style={styles.timelineContent}
+                              onPress={() =>
+                                navigation.navigate('PhaseDetail', {
+                                  chantierId: chantier?.id || chantierId,
+                                  phaseId: phase.id,
+                                  phaseName: phase.name,
+                                })
+                              }
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.phaseHeader}>
+                                <Text style={[
+                                  styles.phaseName,
+                                  { color: categoryColors.text },
+                                  isVerification && styles.verificationPhaseTitle
+                                ]}>
+                                  {phase.name}
+                                </Text>
+                                <View style={styles.phaseHeaderRight}>
+                                  <Text style={[styles.phaseProgress, { color: categoryColors.text }]}>
+                                    {phase.progress}%
+                                  </Text>
+                                  <MaterialIcons name="chevron-right" size={20} color="#999" />
+                                </View>
+                              </View>
+
+                              <Text style={styles.phaseDescription}>{phase.description}</Text>
+
+                              {/* Affichage des dates comme dans le backoffice */}
+                              <View style={styles.datesContainer}>
+                                <Text style={styles.dateTextUpdate}>
+                                  {phase.lastUpdated
+                                    ? `Dernière mise à jour: ${formatDateWithTime(phase.lastUpdated)} par ${getUserName(phase.updatedBy)}`
+                                    : `Phase créée - Pas encore de mise à jour`
+                                  }
+                                </Text>
+                              </View>
+
+                              {/* Affichage des sous-étapes avec navigation */}
+                              {phase.steps && phase.steps.length > 0 && (
+                                <View style={styles.subStepsContainer}>
+                                  <Text style={styles.subStepsTitle}>Étapes détaillées:</Text>
+                                  {phase.steps.map((step, stepIndex) => (
+                                    <View
+                                      key={step.id}
+                                      style={styles.subStepItem}
+                                    >
+                                      <View style={[
+                                        styles.subStepIndicator,
+                                        { backgroundColor: getPhaseStatusColor(step.status) }
+                                      ]} />
+                                      <View style={styles.subStepDetails}>
+                                        <View style={styles.subStepHeader}>
+                                          <Text style={styles.subStepText}>
+                                            {step.name} ({step.progress}%)
+                                          </Text>
+
+                                        </View>
+                                        {/* Affichage des dates des sous-étapes comme dans le backoffice */}
+                                        {(step.actualStartDate || step.actualEndDate) && (
+                                          <View style={styles.subStepDates}>
+                                            <Text style={styles.subStepUpdateText}>
+                                              Dernière mise à jour: {formatDateWithTime(step.actualEndDate || step.actualStartDate)} par {getUserName(step.updatedBy)}
+                                            </Text>
+                                          </View>
+                                        )}
+                                      </View>
+                                    </View>
+                                  ))}
+                                </View>
+                              )}
+
+                              <View style={styles.phaseProgressContainer}>
+                                <ProgressBar
+                                  progress={phase.progress}
+                                  height={6}
+                                  progressColor={categoryColors.primary}
+                                />
+                              </View>
+
+                              <View style={styles.phaseStatus}>
+                                <Text
+                                  style={[
+                                    styles.phaseStatusText,
+                                    { color: getPhaseStatusColor(phase.status) },
+                                  ]}
+                                >
+                                  {getStatusText(phase.status)}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              });
+            })()}
           </View>
+        </ScrollView>
 
-          {photos.length > 0 && (
-            <FlatList
-              data={photos}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              initialScrollIndex={selectedMediaIndex}
-              getItemLayout={(data, index) => ({
-                length: width,
-                offset: width * index,
-                index,
-              })}
-              onMomentumScrollEnd={(event) => {
-                const index = Math.round(event.nativeEvent.contentOffset.x / width);
-                setSelectedMediaIndex(index);
-              }}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <View style={styles.carouselItemContainer}>
-                  {item.type === 'video' ? (
-                    <VideoPlayer
-                      source={{ uri: item.url }}
-                      style={styles.carouselVideo}
-                      resizeMode={ResizeMode.CONTAIN}
-                      shouldPlay={index === selectedMediaIndex}
-                      useNativeControls={true}
-                      showCustomControls={false}
-                    />
-                  ) : (
-                    <Image
-                      source={{ uri: item.url }}
-                      style={styles.carouselImage}
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
-              )}
-            />
-          )}
-        </View>
-      </Modal>
+        {/* Media Carousel Modal */}
+        <Modal
+          visible={showMediaCarousel}
+          animationType="fade"
+          presentationStyle="fullScreen"
+          statusBarTranslucent
+          onRequestClose={() => setShowMediaCarousel(false)}
+        >
+          <View style={styles.carouselContainer}>
+            <View style={styles.carouselHeader}>
+              <TouchableOpacity onPress={() => setShowMediaCarousel(false)} style={styles.carouselCloseButton}>
+                <MaterialIcons name="close" size={30} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.carouselTitle}>
+                {selectedMediaIndex + 1} / {photos.length}
+              </Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {photos.length > 0 && (
+              <FlatList
+                data={photos}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={selectedMediaIndex}
+                getItemLayout={(data, index) => ({
+                  length: width,
+                  offset: width * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                  setSelectedMediaIndex(index);
+                }}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                  <View style={styles.carouselItemContainer}>
+                    {item.type === 'video' ? (
+                      <VideoPlayer
+                        source={{ uri: item.url }}
+                        style={styles.carouselVideo}
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={index === selectedMediaIndex}
+                        useNativeControls={true}
+                        showCustomControls={false}
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: item.url }}
+                        style={styles.carouselImage}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -1002,6 +1011,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E5F5',
     borderWidth: 1,
     borderColor: '#9C27B0',
+  },
+  clotureHeader: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
   },
   categoryBorderLeft: {
     width: 6,

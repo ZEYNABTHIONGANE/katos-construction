@@ -138,8 +138,8 @@ export class ChantierService {
                 ...step,
                 progress: Math.max(0, Math.min(100, progress)),
                 status: getPhaseStatus(progress),
-                actualStartDate: progress > 0 && !step.actualStartDate ? Timestamp.now() : (step.actualStartDate || null),
-                actualEndDate: progress === 100 ? Timestamp.now() : null,
+                actualStartDate: progress > 0 && !step.actualStartDate ? Timestamp.now() : (step.actualStartDate || undefined),
+                actualEndDate: progress === 100 ? Timestamp.now() : undefined,
                 updatedBy // Track who updated the step
               };
             }
@@ -229,7 +229,8 @@ export class ChantierService {
     uploadedBy?: string,
     mediaType: 'image' | 'video' = 'image',
     duration?: number,
-    thumbnailUrl?: string
+    thumbnailUrl?: string,
+    stepId?: string
   ): Promise<void> {
     try {
       const chantier = await this.getChantierById(chantierId);
@@ -252,6 +253,25 @@ export class ChantierService {
           }
           return phase;
         });
+
+        // Si un stepId est fourni, ajouter aussi à la sous-étape
+        if (stepId) {
+          updatedPhases = updatedPhases.map(phase => {
+            if (phase.id === phaseId && (phase as any).steps) {
+              const steps = (phase as any).steps.map((step: any) => {
+                if (step.id === stepId) {
+                  return {
+                    ...step,
+                    photos: [...(step.photos || []), photoUrl]
+                  };
+                }
+                return step;
+              });
+              return { ...phase, steps };
+            }
+            return phase;
+          });
+        }
       }
 
       // Ajouter à la galerie générale
@@ -260,6 +280,7 @@ export class ChantierService {
         url: photoUrl,
         type: mediaType,
         ...(phaseId && phaseId.trim() !== '' && { phaseId }), // N'ajouter phaseId que s'il existe et n'est pas vide
+        ...(stepId && stepId.trim() !== '' && { stepId }), // N'ajouter stepId que s'il existe et n'est pas vide
         ...(description && description.trim() !== '' && { description }), // N'ajouter description que si elle existe et n'est pas vide
         ...(duration && mediaType === 'video' && { duration }), // Ajouter duration pour les vidéos
         ...(thumbnailUrl && mediaType === 'video' && { thumbnailUrl }), // Ajouter thumbnailUrl pour les vidéos
@@ -312,9 +333,23 @@ export class ChantierService {
       if (photoToRemove.phaseId) {
         updatedPhases = chantier.phases.map(phase => {
           if (phase.id === photoToRemove.phaseId) {
+            let updatedSteps = (phase as any).steps;
+            if (photoToRemove.stepId && updatedSteps) {
+              updatedSteps = updatedSteps.map((step: any) => {
+                if (step.id === photoToRemove.stepId) {
+                  return {
+                    ...step,
+                    photos: (step.photos || []).filter((url: string) => url !== photoToRemove.url)
+                  };
+                }
+                return step;
+              });
+            }
+
             return {
               ...phase,
               photos: phase.photos.filter(photoUrl => photoUrl !== photoToRemove.url),
+              steps: updatedSteps || (phase as any).steps,
               lastUpdated: Timestamp.now(),
               updatedBy: removedBy || 'system'
             };

@@ -49,19 +49,32 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
   const phasePhotos = React.useMemo(() => {
     if (!chantier) return [];
 
-    // Photos de la galerie générale associées à cette phase
-    const galleryPhotos = chantier.gallery
-      .filter(photo => photo.phaseId === phaseId)
+    let filteredPhotos = [];
+
+    // Si on est sur une sous-étape, on filtre par stepId
+    if (stepId) {
+      filteredPhotos = chantier.gallery.filter(photo => photo.stepId === stepId);
+    }
+    // Si on est sur une phase principale
+    else {
+      // Si la phase a des sous-étapes, on n'affiche PAS de photos (elles doivent être associées aux sous-étapes)
+      if (currentPhase?.steps && currentPhase.steps.length > 0) {
+        return [];
+      }
+
+      // Sinon, on affiche les photos de la phase qui n'ont pas de stepId
+      filteredPhotos = chantier.gallery.filter(photo => photo.phaseId === phaseId && !photo.stepId);
+    }
+
+    const allPhotos = filteredPhotos
       .map(photo => ({
         id: photo.id,
         url: photo.url,
-        description: photo.description || `Photo ${phaseName}`,
+        description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
         thumbnailUrl: photo.thumbnailUrl
-      }));
-
-    const allPhotos = galleryPhotos
+      }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
 
     return allPhotos;
@@ -189,7 +202,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
         `chantiers/${chantierId}`,
         isVideo ? 'video' : 'image'
       );
-      console.log('✅ Image uploadée:', uploadedUrl);
+
 
       let thumbnailUrl: string | undefined;
       if (isVideo && asset.uri) {
@@ -428,15 +441,15 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                 step={1}
                 minimumTrackTintColor="#E96C2E"
                 maximumTrackTintColor="#E5E7EB"
-                thumbStyle={{ backgroundColor: '#2B2E83', width: 20, height: 20 }}
+                thumbTintColor="#2B2E83"
               />
             </View>
 
             {/* Informations de mise à jour */}
-            {displayItem.lastUpdated && (
+            {((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate) && (
               <View style={styles.updateInfo}>
                 <Text style={styles.updateText}>
-                  Dernière mise à jour: {formatDateWithTime(displayItem.lastUpdated)}
+                  Dernière mise à jour: {formatDateWithTime((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate)}
                 </Text>
                 {displayItem.updatedBy && (
                   <Text style={styles.updateByText}>
@@ -481,118 +494,102 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
             )}
           </View>
 
-          {/* Section d'ajout de photos */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Photos de l'étape ({phasePhotos.length})
-              </Text>
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity
-                  style={[styles.addPhotoButton, { backgroundColor: '#2B2E83', marginRight: 8 }]}
-                  onPress={() => {
-                    console.log('🔍 Debug - État actuel:', {
-                      chantier: !!chantier,
-                      galleryCount: chantier?.gallery?.length || 0,
-                      phasePhotos: phasePhotos.length,
-                      phaseId,
-                      phaseName,
-                      allGalleryPhotos: chantier?.gallery?.map(p => ({
-                        id: p.id,
-                        phaseId: p.phaseId,
-                        hasPhaseId: !!p.phaseId,
-                        phaseIdMatch: p.phaseId === phaseId
-                      }))
-                    });
-                  }}
-                >
-                  <MaterialIcons name="bug-report" size={16} color="#FFFFFF" />
-                  <Text style={[styles.addPhotoButtonText, { fontSize: 10 }]}>Debug</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.addPhotoButton}
-                  onPress={showMediaOptions}
-                  disabled={uploadingImage}
-                >
-                  {uploadingImage ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <MaterialIcons name="add-a-photo" size={20} color="#FFFFFF" />
-                      <Text style={styles.addPhotoButtonText}>Ajouter</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {phasePhotos.length > 0 ? (
-              <View style={styles.galleryGrid}>
-                {phasePhotos.map((photo, index) => (
-                  <TouchableOpacity
-                    key={photo.id}
-                    style={styles.galleryItem}
-                    onPress={() => openMediaCarousel(index)}
-                    activeOpacity={0.8}
-                  >
-                    {photo.type === 'video' ? (
-                      <View style={styles.galleryImage}>
-                        <Video
-                          source={{ uri: photo.thumbnailUrl || photo.url }}
-                          style={{ width: '100%', height: '100%' }}
-                          resizeMode={ResizeMode.COVER}
-                          shouldPlay={false}
-                          isLooping={false}
-                          useNativeControls={false}
-                        />
-                        <View style={styles.playIconOverlay}>
-                          <MaterialIcons
-                            name="play-circle-filled"
-                            size={30}
-                            color="rgba(255,255,255,0.8)"
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <Image
-                        source={{ uri: photo.thumbnailUrl || photo.url }}
-                        style={styles.galleryImage}
-                        resizeMode="cover"
-                      />
-                    )}
-                    <View style={styles.photoOverlay}>
-                      <MaterialIcons
-                        name={photo.type === 'video' ? 'play-circle-filled' : 'zoom-in'}
-                        size={16}
-                        color="#fff"
-                      />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyGallery}>
-                <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
-                <Text style={styles.emptyGalleryText}>Aucune photo ajoutée</Text>
-                <Text style={styles.emptyGallerySubtext}>
-                  Ajoutez des photos pour documenter cette étape
+          {/* Section d'ajout de photos - Visible seulement si ce n'est pas une phase parente */}
+          {(!(!stepId && currentPhase?.steps && currentPhase.steps.length > 0)) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  Photos de l'étape ({phasePhotos.length})
                 </Text>
-              </View>
-            )}
-          </View>
+                <View style={styles.buttonGroup}>
 
-          {/* Section de feedback */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Messages et notes vocales</Text>
-            <View style={styles.feedbackContainer}>
-              <PhaseFeedbackSection
-                chantierId={chantierId}
-                phaseId={phaseId}
-                stepId={stepId}
-                currentUserId={user?.uid}
-              />
+                  <TouchableOpacity
+                    style={styles.addPhotoButton}
+                    onPress={showMediaOptions}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialIcons name="add-a-photo" size={20} color="#FFFFFF" />
+                        <Text style={styles.addPhotoButtonText}>Ajouter</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {phasePhotos.length > 0 ? (
+                <View style={styles.galleryGrid}>
+                  {phasePhotos.map((photo, index) => (
+                    <TouchableOpacity
+                      key={photo.id}
+                      style={styles.galleryItem}
+                      onPress={() => openMediaCarousel(index)}
+                      activeOpacity={0.8}
+                    >
+                      {photo.type === 'video' ? (
+                        <View style={styles.galleryImage}>
+                          <Video
+                            source={{ uri: photo.thumbnailUrl || photo.url }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode={ResizeMode.COVER}
+                            shouldPlay={false}
+                            isLooping={false}
+                            useNativeControls={false}
+                          />
+                          <View style={styles.playIconOverlay}>
+                            <MaterialIcons
+                              name="play-circle-filled"
+                              size={30}
+                              color="rgba(255,255,255,0.8)"
+                            />
+                          </View>
+                        </View>
+                      ) : (
+                        <Image
+                          source={{ uri: photo.thumbnailUrl || photo.url }}
+                          style={styles.galleryImage}
+                          resizeMode="cover"
+                        />
+                      )}
+                      <View style={styles.photoOverlay}>
+                        <MaterialIcons
+                          name={photo.type === 'video' ? 'play-circle-filled' : 'zoom-in'}
+                          size={16}
+                          color="#fff"
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyGallery}>
+                  <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
+                  <Text style={styles.emptyGalleryText}>Aucune photo ajoutée</Text>
+                  <Text style={styles.emptyGallerySubtext}>
+                    Ajoutez des photos pour documenter cette étape
+                  </Text>
+                </View>
+              )}
             </View>
-          </View>
+          )}
+
+          {/* Section de feedback - Visible seulement si ce n'est pas une phase parente */}
+          {(!(!stepId && currentPhase?.steps && currentPhase.steps.length > 0)) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Messages et notes vocales</Text>
+              <View style={styles.feedbackContainer}>
+                <PhaseFeedbackSection
+                  chantierId={chantierId}
+                  phaseId={phaseId}
+                  stepId={stepId}
+                  currentUserId={user?.uid}
+                />
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         {/* Media Carousel Modal */}
@@ -836,6 +833,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#2B2E83',
     fontFamily: 'FiraSans_700Bold',
+    paddingBottom: 15,
   },
   buttonGroup: {
     flexDirection: 'row',

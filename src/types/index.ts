@@ -47,6 +47,9 @@ export type ChefStackParamList = {
     stepId?: string;
     stepName?: string;
   };
+  ChefChantierDetails: {
+    chantierId: string;
+  };
 };
 
 // Data types

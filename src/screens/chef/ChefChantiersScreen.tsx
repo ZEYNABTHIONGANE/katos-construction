@@ -6,25 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Modal,
-  FlatList,
   Dimensions,
   Alert,
-  TextInput,
   ActivityIndicator,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefStackParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
 import { chantierService } from '../../services/chantierService';
-import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
-import { storageService } from '../../services/storageService';
+import { FirebaseChantier } from '../../types/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,24 +24,9 @@ type Props = NativeStackScreenProps<ChefStackParamList, 'ChefTabs'>;
 
 export default function ChefChantiersScreen({ navigation, route }: Props) {
   const { user, loading: authLoading } = useAuth();
-  const [selectedProject, setSelectedProject] = useState<FirebaseChantier | null>(null);
-  const [showModal, setShowModal] = useState(false);
 
   const [projects, setProjects] = useState<FirebaseChantier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
-  const [newMember, setNewMember] = useState({
-    name: '',
-    role: '',
-    phone: '',
-    experience: ''
-  });
-  // État local pour les valeurs des sliders (feedback immédiat)
-  const [sliderValues, setSliderValues] = useState<Record<string, number>>({});
-
-  // États pour le carousel d'images
-  const [showImageCarousel, setShowImageCarousel] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -59,45 +36,15 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
 
   // Gérer la sélection automatique d'un chantier si passé en paramètre
   useEffect(() => {
-    const selectedChantierId = route?.params?.selectedChantierId;
+    const params = route?.params as any;
+    const selectedChantierId = params?.selectedChantierId;
     if (selectedChantierId && projects.length > 0) {
       const chantier = projects.find(p => p.id === selectedChantierId);
       if (chantier) {
         openProjectDetail(chantier);
       }
     }
-  }, [projects, route?.params?.selectedChantierId]);
-
-  // Initialiser les valeurs des sliders quand le projet sélectionné change
-  useEffect(() => {
-    if (selectedProject?.phases) {
-      const initialValues: Record<string, number> = {};
-      selectedProject.phases
-        .filter(phase => phase.name !== 'Électricité & Plomberie')
-        .forEach(phase => {
-          initialValues[phase.id] = phase.progress;
-        });
-      setSliderValues(initialValues);
-    }
-  }, [selectedProject]);
-
-  // Calculer la progression globale en temps réel
-  const getRealtimeGlobalProgress = () => {
-    if (!selectedProject?.phases) return 0;
-
-    const phasesWithRealtimeProgress = selectedProject.phases.map(phase => ({
-      ...phase,
-      progress: sliderValues[phase.id] ?? phase.progress
-    }));
-
-    return calculateGlobalProgress(phasesWithRealtimeProgress);
-  };
-
-  // Obtenir le statut d'une phase en temps réel
-  const getRealtimePhaseStatus = (phaseId: string, originalProgress: number) => {
-    const realtimeProgress = sliderValues[phaseId] ?? originalProgress;
-    return getPhaseStatus(realtimeProgress);
-  };
+  }, [projects, route?.params]);
 
   const loadChefChantiers = async () => {
     try {
@@ -124,35 +71,16 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'En cours':
-        return '#E0B043';
-      case 'En retard':
-        return '#F44336';
-      case 'Terminé':
-        return '#4CAF50';
-      case 'En attente':
-        return '#9CA3AF';
-      default:
-        return '#9CA3AF';
-    }
-  };
-
-  const getPhaseStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return '#4CAF50';
-      case 'in-progress':
-        return '#E0B043';
-      case 'pending':
-        return '#9CA3AF';
-      default:
-        return '#9CA3AF';
+      case 'En cours': return '#E0B043';
+      case 'En retard': return '#F44336';
+      case 'Terminé': return '#4CAF50';
+      case 'En attente': return '#9CA3AF';
+      default: return '#9CA3AF';
     }
   };
 
   const openProjectDetail = (project: FirebaseChantier) => {
-    setSelectedProject(project);
-    setShowModal(true);
+    navigation.navigate('ChefChantierDetails', { chantierId: project.id! });
   };
 
   const formatDate = (timestamp: any) => {
@@ -170,168 +98,6 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
   };
 
 
-  // Function to open image carousel
-  const openImageCarousel = (index: number) => {
-    setSelectedImageIndex(index);
-    setShowImageCarousel(true);
-  };
-
-
-  const updatePhaseProgress = async (phaseId: string, newProgressValue: number) => {
-    if (!selectedProject) return;
-
-    try {
-      if (!user) {
-        Alert.alert('Erreur', 'Utilisateur non authentifié');
-        return;
-      }
-
-      await chantierService.updatePhaseProgress(
-        selectedProject.id!,
-        phaseId,
-        newProgressValue,
-        undefined, // Pas de note automatique
-        user.uid
-      );
-
-      // The real-time listener will automatically update the UI
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de la progression:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour la progression. Veuillez réessayer.');
-    }
-  };
-
-  const handleProgressLocalUpdate = (phaseId: string, newProgress: number) => {
-    // Mise à jour immédiate de la valeur locale pour un feedback visuel
-    setSliderValues(prev => ({
-      ...prev,
-      [phaseId]: Math.round(newProgress)
-    }));
-  };
-
-  const handleProgressComplete = (phaseId: string, newProgress: number) => {
-    // Mise à jour en base de données seulement à la fin du slide
-    updatePhaseProgress(phaseId, Math.round(newProgress));
-  };
-
-  const handleStepProgressLocalUpdate = (phaseId: string, stepId: string, newProgress: number) => {
-    // Mise à jour immédiate pour feedback visuel using composite key
-    const key = `${phaseId}_${stepId}`;
-    
-    // Calculate new parent phase progress optimistically
-    let newPhaseProgress = -1;
-    
-    if (selectedProject) {
-      const phase = selectedProject.phases.find(p => p.id === phaseId);
-      if (phase && (phase as any).steps && (phase as any).steps.length > 0) {
-        const steps = (phase as any).steps;
-        let totalProgress = 0;
-        
-        steps.forEach((s: any) => {
-          if (s.id === stepId) {
-            totalProgress += newProgress;
-          } else {
-            // Use existing optimistic value for other steps if available, else DB value
-            const sKey = `${phaseId}_${s.id}`;
-            totalProgress += sliderValues[sKey] ?? s.progress;
-          }
-        });
-        
-        newPhaseProgress = Math.round(totalProgress / steps.length);
-      }
-    }
-
-    setSliderValues(prev => ({
-      ...prev,
-      [key]: Math.round(newProgress),
-      ...(newPhaseProgress !== -1 && { [phaseId]: newPhaseProgress })
-    }));
-  };
-
-  const handleStepProgressComplete = async (phaseId: string, stepId: string, newProgress: number) => {
-    if (!selectedProject || !user) return;
-    try {
-      await chantierService.updateStepProgress(
-        selectedProject.id!,
-        phaseId,
-        stepId,
-        Math.round(newProgress),
-        user.uid
-      );
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'étape:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour la progression.');
-    }
-  };
-
-  const addTeamMember = async () => {
-    if (!selectedProject || !newMember.name.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir au minimum le nom du membre");
-      return;
-    }
-
-    try {
-      if (!user) {
-        Alert.alert('Erreur', 'Utilisateur non authentifié');
-        return;
-      }
-
-      const memberData: Omit<TeamMember, 'id' | 'addedAt' | 'addedBy'> = {
-        name: newMember.name.trim(),
-        role: newMember.role.trim() || 'Ouvrier',
-        phone: newMember.phone.trim(),
-        experience: newMember.experience.trim()
-      };
-
-      await chantierService.addTeamMember(
-        selectedProject.id!,
-        memberData,
-        user.uid
-      );
-
-      // Reset form
-      setNewMember({
-        name: '',
-        role: '',
-        phone: '',
-        experience: ''
-      });
-      setShowAddMemberForm(false);
-      Alert.alert("Succès", "Membre ajouté à l'équipe avec succès !");
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout du membre:', error);
-      Alert.alert('Erreur', 'Impossible d\'ajouter le membre. Veuillez réessayer.');
-    }
-  };
-
-  const removeMember = (member: TeamMember) => {
-    if (!selectedProject) return;
-
-    Alert.alert(
-      "Confirmer la suppression",
-      "Êtes-vous sûr de vouloir retirer ce membre de l'équipe ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await chantierService.removeTeamMember(selectedProject.id!, member.id);
-              Alert.alert("Succès", "Membre retiré de l'équipe");
-            } catch (error) {
-              console.error('Erreur lors de la suppression du membre:', error);
-              Alert.alert('Erreur', 'Impossible de supprimer le membre');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const renderGalleryItem = ({ item }: { item: string }) => (
-    <Image source={{ uri: item }} style={styles.galleryImage} />
-  );
 
 
   if (authLoading || loading) {
@@ -340,7 +106,7 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
         <AppHeader
           title="Mes Chantiers"
           showNotification={false}
-          onNotificationPress={() => {}}
+          onNotificationPress={() => { }}
         />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#2B2E83" />
@@ -354,8 +120,8 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Mes Chantiers"
-          showNotification={false}
-        onNotificationPress={() => {}}
+        showNotification={false}
+        onNotificationPress={() => { }}
       />
 
       <View style={styles.statsHeader}>
@@ -409,14 +175,14 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
                   <View style={styles.progressHeader}>
                     <Text style={styles.progressLabel}>Progression générale</Text>
                     <Text style={styles.progressValue}>
-                      {selectedProject?.id === project.id ? getRealtimeGlobalProgress() : project.globalProgress}%
+                      {project.globalProgress}%
                     </Text>
                   </View>
                   <View style={styles.progressBar}>
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${selectedProject?.id === project.id ? getRealtimeGlobalProgress() : project.globalProgress}%` }
+                        { width: `${project.globalProgress}%` }
                       ]}
                     />
                   </View>
@@ -440,558 +206,9 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
         )}
       </ScrollView>
 
-      <Modal
-        visible={showModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowModal(false)}
-      >
-        {selectedProject && (
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowModal(false)}
-              >
-                <MaterialIcons name="close" size={24} color="#003366" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>{selectedProject.name}</Text>
-              <View style={styles.placeholder} />
-            </View>
-
-            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              {selectedProject.coverImage ? (
-                <Image source={{ uri: selectedProject.coverImage }} style={styles.modalImage} />
-              ) : selectedProject.gallery && selectedProject.gallery.length > 0 ? (
-                <Image source={{ uri: selectedProject.gallery[0].url }} style={styles.modalImage} />
-              ) : (
-                <View style={[styles.modalImage, styles.placeholderImage]}>
-                  <MaterialIcons name="image" size={48} color="#E0E0E0" />
-                </View>
-              )}
-
-              <View style={styles.modalInfo}>
-                <Text style={styles.modalClientName}>{selectedProject.name}</Text>
-                <Text style={styles.modalAddress}>{selectedProject.address}</Text>
-
-                <View style={styles.modalStats}>
-                  <View style={styles.modalStatItem}>
-                    <Text style={styles.modalStatValue}>{getRealtimeGlobalProgress()}%</Text>
-                    <Text style={styles.modalStatLabel}>Progression</Text>
-                  </View>
-                  <View style={styles.modalStatItem}>
-                    <Text style={styles.modalStatValue}>{selectedProject.team.length}</Text>
-                    <Text style={styles.modalStatLabel}>Ouvriers</Text>
-                  </View>
-                  <View style={styles.modalStatItem}>
-                    <Text style={[styles.modalStatValue, { color: getStatusColor(selectedProject.status) }]}>
-                      {selectedProject.status}
-                    </Text>
-                    <Text style={styles.modalStatLabel}>Statut</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.phasesSection}>
-                <Text style={styles.sectionTitle}>Étapes du projet</Text>
-                {selectedProject.phases
-                  .filter(phase => phase.name !== 'Électricité & Plomberie')
-                  .map((phase, phaseIndex, phasesArray) => {
-                    // --- PHASE LINEARITY CHECK ---
-                    // "Gros Oeuvre" phases must be sequential.
-                    // "Second Oeuvre" phases are NOT linear relative to each other.
-                    // However, we might arguably want Second Oeuvre to start only after ALL Gros Oeuvre is done?
-                    // User said: "linearité n'est valable que pour les gros oeuvre... mais les etapes des second oeuvre ne sont pas lineaire"
-                    // Implies: Phase N (Gros Oeuvre) requires Phase N-1 (Gros Oeuvre) to be done.
-                    
-                    const isGrosOeuvre = (phase as any).category === 'gros_oeuvre';
-                    let isPhaseLocked = false;
-                    
-                    if (isGrosOeuvre) {
-                      // Find previous Gros Oeuvre phase
-                      // Iterate backwards from current index
-                      let prevGrosOeuvreIndex = -1;
-                      for (let i = phaseIndex - 1; i >= 0; i--) {
-                        if ((phasesArray[i] as any).category === 'gros_oeuvre') {
-                          prevGrosOeuvreIndex = i;
-                          break;
-                        }
-                      }
-                      
-                      if (prevGrosOeuvreIndex !== -1) {
-                         const prevPhase = phasesArray[prevGrosOeuvreIndex];
-                         // Check if strictly less than 100% using optimistic value
-                         const prevPhaseProgress = sliderValues[prevPhase.id] ?? prevPhase.progress;
-                         if (prevPhaseProgress < 100) {
-                           isPhaseLocked = true;
-                         }
-                      }
-                    } 
-                    // Note: No lock for 'second_oeuvre' phases relative to each other, based on user request.
-
-                    const hasSteps = (phase as any).steps && (phase as any).steps.length > 0;
-
-                    return (
-                  <TouchableOpacity
-                    key={phase.id}
-                    style={[
-                      styles.phaseItem,
-                      isPhaseLocked && styles.phaseItemLocked,
-                      hasSteps ? styles.phaseItemWithSteps : styles.phaseItemSimple
-                    ]}
-                    onPress={() => {
-                      if (!isPhaseLocked) {
-                        setShowModal(false);
-                        navigation.navigate('ChefPhaseDetail', {
-                          chantierId: selectedProject.id!,
-                          phaseId: phase.id,
-                          phaseName: phase.name,
-                        });
-                      }
-                    }}
-                    activeOpacity={isPhaseLocked ? 1 : 0.7}
-                  >
-                    <View style={styles.phaseHeader}>
-                      <View style={styles.phaseInfo}>
-                        {isPhaseLocked ? (
-                           <MaterialIcons name="lock" size={20} color="#9CA3AF" />
-                        ) : (
-                          <MaterialIcons
-                            name={(() => {
-                              const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
-                              return realtimeStatus === 'completed'
-                                ? 'check-circle'
-                                : realtimeStatus === 'in-progress'
-                                ? 'radio-button-checked'
-                                : 'radio-button-unchecked';
-                            })()}
-                            size={20}
-                            color={getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress))}
-                          />
-                        )}
-                        <View style={styles.phaseNameContainer}>
-                          <Text style={[styles.phaseName, isPhaseLocked && styles.textLocked]}>
-                            {phase.name}
-                          </Text>
-                          {hasSteps && (
-                            <Text style={styles.phaseSubtitle}>
-                              {(phase as any).steps.length} sous-étapes
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View style={styles.phaseHeaderRight}>
-                        <Text style={[styles.phaseProgress, isPhaseLocked && styles.textLocked]}>
-                          {sliderValues[phase.id] ?? phase.progress}%
-                        </Text>
-                        {!isPhaseLocked && (
-                          <MaterialIcons name="chevron-right" size={20} color="#999" />
-                        )}
-                      </View>
-                    </View>
-
-                    {/* Check if Phase has steps */}
-                    {hasSteps ? (
-                        <View style={styles.stepsContainer}>
-                            <View style={styles.stepsContainerHeader}>
-                              <Text style={styles.stepsContainerTitle}>Sous-étapes :</Text>
-                              {phase.name === 'Élévation' && (
-                                <View style={styles.nonLinearBadge}>
-                                  <MaterialIcons name="all-inclusive" size={14} color="#E96C2E" />
-                                  <Text style={styles.nonLinearText}>Parallèles</Text>
-                                </View>
-                              )}
-                            </View>
-                            {(phase as any).steps.map((step: any, stepIndex: number) => {
-                                // --- STEP LINEARITY CHECK ---
-                                // Maçonnerie steps are NOT linear (can be done in parallel)
-                                // Other phase steps remain linear
-                                let isStepLocked = isPhaseLocked; // Inherit phase lock
-
-                                // Only apply linearity check for phases other than "Élévation" (Maçonnerie)
-                                if (!isStepLocked && stepIndex > 0 && phase.name !== 'Élévation') {
-                                    const prevStep = (phase as any).steps[stepIndex - 1];
-                                    // Use optimistic value for previous step check
-                                    const prevStepKey = `${phase.id}_${prevStep.id}`;
-                                    const prevStepProgress = sliderValues[prevStepKey] ?? prevStep.progress;
-
-                                    if (prevStepProgress < 100) {
-                                        isStepLocked = true;
-                                    }
-                                }
-
-                                return (
-                                  <View key={step.id} style={[styles.stepItem, isStepLocked && styles.stepItemLocked]}>
-                                      <View style={styles.stepMainContent}>
-                                          <View style={styles.stepIndicatorContainer}>
-                                              <View style={styles.stepConnector} />
-                                              <View style={[
-                                                  styles.stepIndicator,
-                                                  { backgroundColor: isStepLocked ? '#D1D5DB' : getPhaseStatusColor(getPhaseStatus(step.progress)) }
-                                              ]}>
-                                                  <Text style={styles.stepNumber}>{stepIndex + 1}</Text>
-                                              </View>
-                                              {stepIndex < (phase as any).steps.length - 1 && (
-                                                  <View style={styles.stepConnectorBottom} />
-                                              )}
-                                          </View>
-
-                                          <TouchableOpacity
-                                              style={styles.stepContent}
-                                              onPress={() => {
-                                                  if (!isStepLocked) {
-                                                      setShowModal(false);
-                                                      navigation.navigate('ChefPhaseDetail', {
-                                                          chantierId: selectedProject.id!,
-                                                          phaseId: phase.id,
-                                                          phaseName: phase.name,
-                                                          stepId: step.id,
-                                                          stepName: step.name,
-                                                      });
-                                                  }
-                                              }}
-                                              activeOpacity={isStepLocked ? 1 : 0.7}
-                                              disabled={isStepLocked}
-                                          >
-                                              <View style={styles.stepHeader}>
-                                                  <View style={styles.stepTitleContainer}>
-                                                      <Text style={[styles.stepName, isStepLocked && styles.textLocked]}>{step.name}</Text>
-                                                      <Text style={[styles.stepStatus, { color: getPhaseStatusColor(getPhaseStatus(step.progress)) }]}>
-                                                          {getPhaseStatus(step.progress) === 'completed' ? 'Terminé' :
-                                                           getPhaseStatus(step.progress) === 'in-progress' ? 'En cours' :
-                                                           'En attente'}
-                                                      </Text>
-                                                  </View>
-                                                  <View style={styles.stepHeaderRight}>
-                                                      <Text style={[styles.stepProgress, isStepLocked && styles.textLocked]}>{step.progress}%</Text>
-                                                      {!isStepLocked && (
-                                                          <MaterialIcons name="chevron-right" size={16} color="#999" />
-                                                      )}
-                                                  </View>
-                                              </View>
-
-                                              {/* Slider intégré dans le contenu de l'étape */}
-                                              <Slider
-                                                  style={styles.stepSlider}
-                                                  minimumValue={0}
-                                                  maximumValue={100}
-                                                  value={sliderValues[`${phase.id}_${step.id}`] ?? step.progress}
-                                                  onValueChange={(val) => {
-                                                      handleStepProgressLocalUpdate(phase.id, step.id, val);
-                                                  }}
-                                                  onSlidingComplete={(val) => {
-                                                      handleStepProgressComplete(phase.id, step.id, val);
-                                                  }}
-                                                  step={1}
-                                                  minimumTrackTintColor={isStepLocked ? "#D1D5DB" : "#E96C2E"}
-                                                  maximumTrackTintColor="#E5E7EB"
-                                                  disabled={isStepLocked}
-                                              />
-                                          </TouchableOpacity>
-                                      </View>
-
-                                      {/* Voice Notes pour l'étape - à l'extérieur du contenu principal */}
-                                      {!isStepLocked && (
-                                          <View style={styles.stepFeedbackContainer}>
-                                              <PhaseFeedbackSection
-                                                  chantierId={selectedProject.id}
-                                                  phaseId={phase.id}
-                                                  stepId={step.id}
-                                                  title="💬 Notes étape"
-                                                  currentUserId={user?.uid}
-                                              />
-                                          </View>
-                                      )}
-                                  </View>
-                                );
-                            })}
-                        </View>
-                    ) : (
-                        <View style={styles.sliderContainer}>
-                          <Slider
-                            style={styles.phaseSlider}
-                            minimumValue={0}
-                            maximumValue={100}
-                            value={sliderValues[phase.id] ?? phase.progress}
-                            onValueChange={(value) => handleProgressLocalUpdate(phase.id, value)}
-                            onSlidingComplete={(value) => handleProgressComplete(phase.id, value)}
-                            step={1}
-                            minimumTrackTintColor={isPhaseLocked ? "#D1D5DB" : "#E96C2E"}
-                            maximumTrackTintColor="#E5E7EB"
-                            disabled={isPhaseLocked}
-                          />
-                          {/* Voice Notes for Phase (no steps) - only show if unlocked */}
-                          {!isPhaseLocked && (
-                              <PhaseFeedbackSection
-                                  chantierId={selectedProject.id}
-                                  phaseId={phase.id}
-                                  title="Notes vocales (Phase)"
-                                  currentUserId={user?.uid}
-                              />
-                          )}
-                        </View>
-                    )}
-
-                    <View style={styles.phaseStatusContainer}>
-                      <Text style={[
-                        styles.phaseStatusText,
-                        { color: isPhaseLocked ? '#9CA3AF' : getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress)) }
-                      ]}>
-                        {isPhaseLocked ? 'Verrouillé' : (() => {
-                          const realtimeStatus = getRealtimePhaseStatus(phase.id, phase.progress);
-                          return realtimeStatus === 'completed'
-                            ? 'Terminé'
-                            : realtimeStatus === 'in-progress'
-                            ? 'En cours'
-                            : 'En attente';
-                        })()}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )})}
-              </View>
-{/* 
-              <View style={styles.gallerySection}>
-                <View style={styles.gallerySectionHeader}>
-                  <Text style={styles.sectionTitle}>Galerie médias</Text>
-                  <TouchableOpacity
-                    style={styles.galleryButton}
-                    onPress={() => navigation.navigate('ChefGallery')}
-                  >
-                    <MaterialIcons name="photo-library" size={20} color="#FFFFFF" />
-                    <Text style={styles.addPhotoButtonText}>Voir galerie</Text>
-                  </TouchableOpacity>
-                </View>
-                {selectedProject.gallery.length > 0 ? (
-                  <FlatList
-                    data={selectedProject.gallery.slice(0, 4)}
-                    renderItem={({ item, index }) => (
-                      <View style={styles.galleryImageContainer}>
-                        <TouchableOpacity onPress={() => openImageCarousel(index)}>
-                          {item.type === 'video' ? (
-                            <View style={styles.videoContainer}>
-                              <Video
-                                source={{ uri: item.thumbnailUrl || item.url }}
-                                style={styles.galleryImage}
-                                resizeMode={ResizeMode.COVER}
-                                shouldPlay={false}
-                                isLooping={false}
-                                useNativeControls={false}
-                              />
-                              <View style={styles.videoOverlay}>
-                                <MaterialIcons name="play-circle-filled" size={32} color="rgba(255,255,255,0.8)" />
-                                {item.duration && (
-                                  <Text style={styles.videoDuration}>
-                                    {Math.floor(item.duration / 60)}:{String(Math.floor(item.duration % 60)).padStart(2, '0')}
-                                  </Text>
-                                )}
-                              </View>
-                            </View>
-                          ) : (
-                            <Image source={{ uri: item.url }} style={styles.galleryImage} />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    keyExtractor={(item) => item.id}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.galleryContainer}
-                  />
-                ) : (
-                  <View style={styles.emptyGallery}>
-                    <MaterialIcons name="photo-library" size={48} color="#E0E0E0" />
-                    <Text style={styles.emptyGalleryText}>Aucun média pour le moment</Text>
-                    <Text style={styles.emptyGallerySubtext}>Utilisez l'onglet Galerie pour ajouter des photos et vidéos</Text>
-                  </View>
-                )}
-                {selectedProject.gallery.length > 4 && (
-                  <TouchableOpacity
-                    style={styles.showMoreButton}
-                    onPress={() => navigation.navigate('ChefGallery')}
-                  >
-                    <Text style={styles.showMoreText}>
-                      +{selectedProject.gallery.length - 4} médias supplémentaires
-                    </Text>
-                    <MaterialIcons name="arrow-forward" size={16} color="#E96C2E" />
-                  </TouchableOpacity>
-                )}
-              </View> */}
 
 
-              <View style={styles.teamSection}>
-                <View style={styles.teamSectionHeader}>
-                  <Text style={styles.sectionTitle}>Équipe</Text>
-                  <TouchableOpacity
-                    style={styles.addMemberButton}
-                    onPress={() => setShowAddMemberForm(!showAddMemberForm)}
-                  >
-                    <MaterialIcons name="person-add" size={20} color="#FFFFFF" />
-                    <Text style={styles.addMemberButtonText}>Ajouter</Text>
-                  </TouchableOpacity>
-                </View>
 
-                {/* Formulaire d'ajout de membre */}
-                {showAddMemberForm && (
-                  <View style={styles.addMemberForm}>
-                    <View style={styles.formHeader}>
-                      <Text style={styles.formTitle}>Nouveau membre</Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setShowAddMemberForm(false);
-                          setNewMember({ name: '', role: '', phone: '', experience: '' });
-                        }}
-                      >
-                        <MaterialIcons name="close" size={20} color="#6B7280" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.formRow}>
-                      <View style={styles.formField}>
-                        <Text style={styles.fieldLabel}>Nom complet *</Text>
-                        <TextInput
-                          style={styles.fieldInput}
-                          value={newMember.name}
-                          onChangeText={(text) => setNewMember({...newMember, name: text})}
-                          placeholder="Ex: Amadou Ba"
-                          autoCapitalize="words"
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.formRow}>
-                      <View style={styles.formField}>
-                        <Text style={styles.fieldLabel}>Fonction</Text>
-                        <TextInput
-                          style={styles.fieldInput}
-                          value={newMember.role}
-                          onChangeText={(text) => setNewMember({...newMember, role: text})}
-                          placeholder="Ex: Maçon"
-                          autoCapitalize="words"
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.formButtons}>
-                      <TouchableOpacity
-                        style={styles.cancelFormButton}
-                        onPress={() => {
-                          setShowAddMemberForm(false);
-                          setNewMember({ name: '', role: '', phone: '', experience: '' });
-                        }}
-                      >
-                        <Text style={styles.cancelFormText}>Annuler</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.submitFormButton, !newMember.name.trim() && styles.disabledFormButton]}
-                        onPress={addTeamMember}
-                        disabled={!newMember.name.trim()}
-                      >
-                        <Text style={styles.submitFormText}>Ajouter</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-
-                {selectedProject.team.length > 0 ? (
-                  selectedProject.team.map((member) => (
-                    <View key={member.id} style={styles.teamMember}>
-                      <View style={styles.memberInfo}>
-                        <MaterialIcons name="person" size={20} color="#6B7280" />
-                        <View style={styles.memberDetails}>
-                          <Text style={styles.memberName}>{member.name}</Text>
-                          <Text style={styles.memberRole}>{member.role}</Text>
-                          {member.phone && (
-                            <Text style={styles.memberPhone}>📞 {member.phone}</Text>
-                          )}
-                        </View>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.removeMemberButton}
-                        onPress={() => removeMember(member)}
-                      >
-                        <MaterialIcons name="remove-circle-outline" size={18} color="#F44336" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                ) : (
-                  !showAddMemberForm && (
-                    <View style={styles.emptyTeam}>
-                      <MaterialIcons name="group" size={48} color="#E0E0E0" />
-                      <Text style={styles.emptyTeamText}>Aucun membre dans l'équipe</Text>
-                      <Text style={styles.emptyTeamSubtext}>Ajoutez des membres pour ce projet</Text>
-                    </View>
-                  )
-                )}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-      </Modal>
-
-      {/* Image Carousel Modal */}
-      <Modal
-        visible={showImageCarousel}
-        animationType="fade"
-        presentationStyle="fullScreen"
-        statusBarTranslucent
-      >
-        <View style={styles.carouselContainer}>
-          <View style={styles.carouselHeader}>
-            <TouchableOpacity onPress={() => setShowImageCarousel(false)} style={styles.carouselCloseButton}>
-              <MaterialIcons name="close" size={30} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.carouselTitle}>
-              {selectedImageIndex + 1} / {selectedProject?.gallery?.length || 0}
-            </Text>
-            <View style={styles.carouselHeaderSpacer} />
-          </View>
-
-          {selectedProject?.gallery && selectedProject.gallery.length > 0 && (
-            <FlatList
-              data={selectedProject.gallery}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              initialScrollIndex={selectedImageIndex}
-              getItemLayout={(data, index) => ({
-                length: width,
-                offset: width * index,
-                index,
-              })}
-              onMomentumScrollEnd={(event) => {
-                const index = Math.round(event.nativeEvent.contentOffset.x / width);
-                setSelectedImageIndex(index);
-              }}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.carouselImageContainer}>
-                  {item.type === 'video' ? (
-                    <Video
-                      source={{ uri: item.url }}
-                      style={styles.carouselVideo}
-                      resizeMode={ResizeMode.CONTAIN}
-                      shouldPlay={false}
-                      isLooping={false}
-                      useNativeControls={true}
-                    />
-                  ) : (
-                    <Image
-                      source={{ uri: item.url }}
-                      style={styles.carouselImage}
-                      resizeMode="contain"
-                    />
-                  )}
-                  {item.description && (
-                    <Text style={styles.carouselImageDescription}>{item.description}</Text>
-                  )}
-                </View>
-              )}
-            />
-          )}
-        </View>
-      </Modal>
 
     </View>
   );
@@ -1140,173 +357,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'FiraSans_400Regular',
     marginLeft: 4,
-  },
-  modal: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalTitle: {
-    fontSize: 18,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-    textAlign: 'center',
-    flex: 1,
-  },
-  placeholder: {
-    width: 32,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-  },
-  modalInfo: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalClientName: {
-    fontSize: 20,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_700Bold',
-    marginBottom: 4,
-  },
-  modalAddress: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    marginBottom: 20,
-  },
-  modalStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  modalStatItem: {
-    alignItems: 'center',
-  },
-  modalStatValue: {
-    fontSize: 24,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_700Bold',
-    marginBottom: 4,
-  },
-  modalStatLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-  },
-  phasesSection: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-    marginBottom: 16,
-  },
-  phaseItem: {
-    marginBottom: 20,
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  phaseItemWithSteps: {
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 4,
-    borderLeftColor: '#2B2E83',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  phaseItemSimple: {
-    backgroundColor: '#F8FAFC',
-    borderLeftWidth: 3,
-    borderLeftColor: '#E96C2E',
-  },
-  phaseNameContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  phaseSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'FiraSans_400Regular',
-    marginTop: 2,
-    fontStyle: 'italic',
-  },
-  phaseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  phaseInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  phaseName: {
-    fontSize: 16,
-    color: '#2B2E83',
-    fontFamily: 'FiraSans_600SemiBold',
-  },
-  phaseProgress: {
-    fontSize: 18,
-    color: '#E96C2E',
-    fontFamily: 'FiraSans_700Bold',
-  },
-  phaseHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sliderContainer: {
-    marginVertical: 8,
-  },
-  phaseSlider: {
-    width: '100%',
-    height: 40,
-  },
-  phaseStatusContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  phaseStatusText: {
-    fontSize: 12,
-    fontFamily: 'FiraSans_600SemiBold',
-    textTransform: 'uppercase',
-  },
-  gallerySection: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   galleryContainer: {
     paddingRight: 20,

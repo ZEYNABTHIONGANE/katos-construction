@@ -29,6 +29,7 @@ import AboutScreen from '../screens/main/AboutScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import PhaseDetailScreen from '../screens/main/PhaseDetailScreen';
 import ChefPhaseDetailScreen from '../screens/chef/ChefPhaseDetailScreen';
+import ChefChantierDetailsScreen from '../screens/chef/ChefChantierDetailsScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,6 +44,7 @@ const ChefStackNavigator = ({ onLogout }: { onLogout: () => void }) => {
         {() => <ChefTabNavigator onLogout={onLogout} />}
       </ChefStack.Screen>
       <ChefStack.Screen name="ChefPhaseDetail" component={ChefPhaseDetailScreen} />
+      <ChefStack.Screen name="ChefChantierDetails" component={ChefChantierDetailsScreen} />
     </ChefStack.Navigator>
   );
 };

@@ -109,6 +109,7 @@ export interface PhaseStep {
   actualEndDate?: Timestamp;
   notes?: string;
   updatedBy?: string;
+  photos?: string[];
 }
 
 export interface ChantierPhase {
@@ -159,6 +160,7 @@ export interface ProgressPhoto {
   url: string;
   type: 'image' | 'video'; // Media type
   phaseId?: string; // Optional: link to specific phase
+  stepId?: string; // Optional: link to specific step
   description?: string;
   uploadedAt: Timestamp;
   uploadedBy: string;
@@ -203,7 +205,7 @@ export interface FirebaseChantier {
   actualEndDate?: Timestamp;
 
   // Phase management
-  phases: ChantierPhase[];
+  phases: KatosChantierPhase[];
 
   // Team and resources
   assignedChefId: string; // Site manager/chef de chantier
