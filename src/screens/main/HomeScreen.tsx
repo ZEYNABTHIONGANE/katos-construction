@@ -56,16 +56,11 @@ export default function HomeScreen({ navigation }: Props) {
   const { getUserName } = useUserNames(assignedChefId ? [assignedChefId] : []);
   const chefName = assignedChefId ? getUserName(assignedChefId) : '';
 
-  console.log('🏠 HomeScreen debug:', {
-    assignedChefId,
-    chefName,
-    chantierAddress,
-    hasChantier
-  });
+
 
   // Documents dynamiques
   const {
-    documents, 
+    documents,
     documentsByCategory,
     totalDocuments,
   } = useClientDocuments(
@@ -88,10 +83,10 @@ export default function HomeScreen({ navigation }: Props) {
       videos: documentsByCategory['video']?.length || 0,
       plans: documentsByCategory['plan']?.length || 0,
       photos: documentsByCategory['photo']?.length || 0,
-      other: (documentsByCategory['invoice']?.length || 0) + 
-             (documentsByCategory['permit']?.length || 0) + 
-             (documentsByCategory['report']?.length || 0) +
-             (documentsByCategory['other']?.length || 0)
+      other: (documentsByCategory['invoice']?.length || 0) +
+        (documentsByCategory['permit']?.length || 0) +
+        (documentsByCategory['report']?.length || 0) +
+        (documentsByCategory['other']?.length || 0)
     }
   };
 
@@ -100,28 +95,7 @@ export default function HomeScreen({ navigation }: Props) {
   // Simple loading logic: show loading only when actually loading
   const shouldShowLoading = !isAuthenticated || chantierLoading;
 
-  // Debug: Show what's happening step by step
-  if (!isAuthenticated) {
-    console.log('🔐 HomeScreen: Not authenticated');
-  } else if (chantierLoading) {
-    console.log('⏳ HomeScreen: Chantier loading...');
-  } else if (chantierError) {
-    console.log('❌ HomeScreen: Chantier error:', chantierError);
-  } else if (!hasChantier) {
-    console.log('🏠 HomeScreen: No chantier data but no error');
-  } else {
-    console.log('✅ HomeScreen: All good - showing dashboard');
-  }
 
-  console.log('🏠 HomeScreen render:', {
-    isAuthenticated,
-    hasChantier,
-    chantierLoading,
-    chantierError,
-    chantierName,
-    shouldShowLoading,
-    clientInfo: !!clientInfo
-  });
 
 
   const handleProjectPress = () => {
@@ -242,125 +216,89 @@ export default function HomeScreen({ navigation }: Props) {
       <AppHeader
         title="Tableau de bord"
         showNotification={false}
-        onNotificationPress={() => {}}
+        onNotificationPress={() => { }}
       />
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.welcomeSection}>
-          <View style={styles.welcomeContent}>
-            <View style={styles.welcomeHeader}>
-              <Text style={styles.greeting}>Bienvenu,</Text>
-              <Text style={styles.name}>
-                {clientInfo?.firstName || 'Client'} {clientInfo?.lastName || ''}
-              </Text>
-            </View>
-          </View>
-
-          {/* Image du chantier */}
-          {hasChantier && mainImage && (
-            <View style={styles.chantierImageContainer}>
-              <Image
-                source={{ uri: mainImage.url }}
-                style={styles.chantierImage}
-                resizeMode="cover"
-              />
-            </View>
-          )}
-
-          {/* Status du projet */}
-          {hasChantier && (
-            <View style={styles.welcomeContent}>
-              <View style={styles.projectStatus}>
-                <View style={styles.statusCard}>
-                  <ExpoLinearGradient
-                    colors={['#2B2E83', '#E96C2E']}
-                    start={[0, 0]}
-                    end={[1, 1]}
-                    style={styles.statusGradient}
-                  >
-                    <View style={styles.statusContent}>
-                      <Text style={styles.statusTitle}>Votre projet</Text>
-                      <Text style={styles.statusProjectName}>{chantierName}</Text>
-                      <View style={styles.statusDetails}>
-                        <View style={styles.statusInfoCard}>
-                          <View style={styles.statusInfoRow}>
-                            <View style={styles.statusIconContainer}>
-                              <MaterialIcons name="location-on" size={16} color="#E96C2E" />
-                            </View>
-                            <View style={styles.statusInfoContent}>
-                              <Text style={styles.statusInfoLabel}>Localisation</Text>
-                              <Text style={styles.statusInfoValue}>{chantierAddress}</Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        {chefName && (
-                          <View style={styles.statusInfoCard}>
-                            <View style={styles.statusInfoRow}>
-                              <View style={styles.statusIconContainer}>
-                                <MaterialIcons name="engineering" size={16} color="#2B2E83" />
-                              </View>
-                              <View style={styles.statusInfoContent}>
-                                <Text style={styles.statusInfoLabel}>Chef de chantier</Text>
-                                <Text style={styles.statusInfoValue}>{chefName}</Text>
-                              </View>
-                            </View>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  </ExpoLinearGradient>
+        {/* Hero Section - Modern Project Card */}
+        {hasChantier && (
+          <View style={styles.heroCard}>
+            {/* Project Image with Overlay */}
+            {mainImage && (
+              <View style={styles.heroImageContainer}>
+                <Image
+                  source={{ uri: mainImage.url }}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.heroOverlay}>
+                  <Text style={styles.heroProjectName}>{chantierName}</Text>
                 </View>
               </View>
-            </View>
-          )}
-        </View>
+            )}
 
-        {/* Dashboard moderne style iOS Widget */}
-        <View style={styles.widgetContainer}>
-
-          {/* Widget principal - Avancement avec phase actuelle */}
-          <TouchableOpacity
-            style={styles.mainWidget}
-            onPress={handleProjectPress}
-            activeOpacity={0.9}
-          >
-            <ExpoLinearGradient
-              colors={['#2B2E83', '#E96C2E']}
-              start={[0, 0]}
-              end={[1, 1]}
-              style={styles.mainWidgetGradient}
-            >
-              <View style={styles.mainWidgetHeader}>
-                <View style={styles.progressInfo}>
-                  <Text style={styles.progressTitle}>Avancement global</Text>
-                  <Text style={styles.progressPercentage}>{globalProgress}%</Text>
-                </View>
-                <View style={styles.progressIcon}>
-                  <MaterialIcons name="trending-up" size={28} color="#FFFFFF" />
-                </View>
-              </View>
-
-              <View style={styles.progressBarWidget}>
-                <View style={styles.progressTrackWidget}>
-                  <View style={[styles.progressFillWidget, { width: `${globalProgress}%` }]} />
-                </View>
-              </View>
-
-              {currentPhase && (
-                <View style={styles.currentPhaseWidget}>
-                  <MaterialIcons name="build-circle" size={18} color="rgba(255,255,255,0.9)" />
-                  <Text style={styles.currentPhaseText}>Phase actuelle: {currentPhase}</Text>
+            {/* Project Info Pills */}
+            <View style={styles.heroInfoContainer}>
+              {chantierAddress && (
+                <View style={styles.infoPill}>
+                  <MaterialIcons name="location-on" size={16} color="#E96C2E" />
+                  <Text style={styles.infoPillText}>{chantierAddress}</Text>
                 </View>
               )}
-            </ExpoLinearGradient>
-          </TouchableOpacity>
 
-   
-        </View>
+              {chefName && (
+                <View style={styles.infoPill}>
+                  <MaterialIcons name="engineering" size={16} color="#2B2E83" />
+                  <Text style={styles.infoPillText}>{chefName}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Welcome for users without project */}
+        {!hasChantier && (
+          <View style={styles.welcomeCard}>
+            <Text style={styles.welcomeGreeting}>Bienvenue,</Text>
+            <Text style={styles.welcomeName}>
+              {clientInfo?.firstName || 'Client'} {clientInfo?.lastName || ''}
+            </Text>
+          </View>
+        )}
+
+        {/* Modern Stats Grid */}
+        {hasChantier && (
+          <View style={styles.statsGrid}>
+            {/* Progress Card */}
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={handleProjectPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.statIconContainer}>
+                <MaterialIcons name="trending-up" size={28} color="#2B2E83" />
+              </View>
+              <Text style={styles.statValue}>{globalProgress}%</Text>
+              <Text style={styles.statLabel}>Avancement</Text>
+            </TouchableOpacity>
+
+            {/* Phase Card */}
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={handleProjectPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.statIconContainer}>
+                <MaterialIcons name="construction" size={28} color="#E96C2E" />
+              </View>
+              <Text style={styles.statValue} numberOfLines={1}>{currentPhase || 'N/A'}</Text>
+              <Text style={styles.statLabel}>Phase actuelle</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Message si pas de chantier */}
         {!hasChantier && (
@@ -373,58 +311,31 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Section Documents */}
-        <View style={styles.projectsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Documents</Text>
-          </View>
+        {/* Section Documents - Simplified */}
+        <View style={styles.documentsSection}>
+          <Text style={styles.sectionTitle}>Documents</Text>
 
-          <TouchableOpacity style={styles.documentsCard} onPress={handleDocumentsPress}>
-            <ExpoLinearGradient
-              colors={['#2B2E83', '#E96C2E']}
-              start={[0, 0]}
-              end={[1, 1]}
-              style={styles.documentsCardGradient}
-            >
-              <View style={styles.documentsCardContent}>
-                <View style={styles.documentsCardHeader}>
-                  <View style={styles.documentsMainInfo}>
-                    {/* <Text style={styles.documentsTitle}>Documents</Text> */}
-                    <Text style={styles.documentsCount}>{documentsStats.totalDocuments} fichiers</Text>
-                  </View>
-                  <View style={styles.documentsIcon}>
-                    <MaterialIcons name="folder" size={32} color="#FFFFFF" />
-                  </View>
-                </View>
+          <TouchableOpacity style={styles.documentsCardCompact} onPress={handleDocumentsPress}>
+            <View style={styles.documentsIconCompact}>
+              <MaterialIcons name="folder" size={32} color="#2B2E83" />
+            </View>
 
-                <View style={styles.documentsStats}>
-                  <View style={styles.documentsStat}>
-                    <MaterialIcons name="videocam" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{documentsStats.categories.videos} vidéos</Text>
-                  </View>
-                  <View style={styles.documentsStat}>
-                    <MaterialIcons name="architecture" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{documentsStats.categories.plans} plans</Text>
-                  </View>
-                  <View style={styles.documentsStat}>
-                    <MaterialIcons name="photo-library" size={16} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.documentsStatText}>{documentsStats.categories.photos} photos</Text>
-                  </View>
-                </View>
-
-                <View style={styles.documentsFooter}>
-                  <View style={styles.recentUploads}>
-                    <MaterialIcons name="upload" size={16} color="rgba(255,255,255,0.9)" />
-                    <Text style={styles.recentUploadsText}>{documentsStats.recentUploads} ajoutés récemment</Text>
-                  </View>
-                  <MaterialIcons name="arrow-forward" size={20} color="rgba(255,255,255,0.9)" />
-                </View>
+            <View style={styles.documentsInfoCompact}>
+              <Text style={styles.documentsCountCompact}>{documentsStats.totalDocuments} fichiers</Text>
+              <View style={styles.documentsStatsCompact}>
+                <Text style={styles.documentsStatCompact}>{documentsStats.categories.videos} vidéos</Text>
+                <Text style={styles.documentsDot}>•</Text>
+                <Text style={styles.documentsStatCompact}>{documentsStats.categories.plans} plans</Text>
+                <Text style={styles.documentsDot}>•</Text>
+                <Text style={styles.documentsStatCompact}>{documentsStats.categories.photos} photos</Text>
               </View>
-            </ExpoLinearGradient>
+            </View>
+
+            <MaterialIcons name="arrow-forward-ios" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 
-  
+
       </ScrollView>
     </View>
   );
@@ -435,7 +346,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
- 
+
   loadingText: {
     marginTop: 16,
     fontSize: 16,
@@ -1145,5 +1056,184 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'FiraSans_600SemiBold',
     textAlign: 'center',
+  },
+
+  // Modern Hero Card Styles
+  heroCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  heroImageContainer: {
+    position: 'relative',
+    height: 200,
+    width: '100%',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  heroProjectName: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  heroInfoContainer: {
+    padding: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  infoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+  },
+  infoPillText: {
+    fontSize: 13,
+    color: '#4B5563',
+    fontFamily: 'FiraSans_600SemiBold',
+  },
+
+  // Welcome Card (for users without project)
+  welcomeCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 32,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    alignItems: 'center',
+  },
+  welcomeGreeting: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+    marginBottom: 8,
+  },
+  welcomeName: {
+    fontSize: 26,
+    color: '#2B2E83',
+    fontFamily: 'FiraSans_700Bold',
+    textAlign: 'center',
+  },
+
+  // Modern Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: 24,
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  statIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 22,
+    color: '#1F2937',
+    fontFamily: 'FiraSans_700Bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_600SemiBold',
+    textAlign: 'center',
+  },
+
+  // Compact Documents Section
+  documentsSection: {
+    paddingHorizontal: 20,
+    marginTop: 32,
+  },
+  documentsCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  documentsIconCompact: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  documentsInfoCompact: {
+    flex: 1,
+  },
+  documentsCountCompact: {
+    fontSize: 18,
+    color: '#1F2937',
+    fontFamily: 'FiraSans_700Bold',
+    marginBottom: 4,
+  },
+  documentsStatsCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  documentsStatCompact: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'FiraSans_500Medium',
+  },
+  documentsDot: {
+    fontSize: 12,
+    color: '#D1D5DB',
+    marginHorizontal: 6,
   },
 });
