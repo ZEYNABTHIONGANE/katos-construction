@@ -539,15 +539,6 @@ export const KATOS_STANDARD_PHASES: Omit<KatosChantierPhase, 'id' | 'lastUpdated
         progress: 0,
         estimatedDuration: 3,
         notes: ''
-      },
-      {
-        id: 'appareillage_electrique',
-        name: 'Appareillage',
-        description: 'Installation des prises et interrupteurs',
-        status: 'pending',
-        progress: 0,
-        estimatedDuration: 2,
-        notes: ''
       }
     ]
   },

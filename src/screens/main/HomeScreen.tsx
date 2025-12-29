@@ -107,24 +107,14 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
 
-  // Show loading state
-  if (chantierLoading) {
-    return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#2B2E83" />
-        <Text style={styles.loadingText}>Chargement de votre chantier...</Text>
-      </View>
-    );
-  }
-
-  // Show loading state when necessary
-  if (shouldShowLoading) {
+  // Unified loading state
+  if (!isAuthenticated || chantierLoading) {
     return (
       <View style={styles.container}>
         <AppHeader title="Tableau de bord" showNotification={false} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E7D4A" />
-          <Text style={styles.loadingText}>Chargement de vos données...</Text>
+          <ActivityIndicator size="large" color="#2B2E83" />
+          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       </View>
     );
