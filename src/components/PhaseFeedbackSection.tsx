@@ -12,7 +12,7 @@ interface PhaseFeedbackSectionProps {
   phaseId: string;
   stepId?: string;
   title?: string;
-  currentUserId?: string; 
+  currentUserId?: string;
 }
 
 export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, title, currentUserId: propUserId }: PhaseFeedbackSectionProps) {
@@ -38,14 +38,14 @@ export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, titl
 
   const handleRecordingComplete = async (uri: string, duration: number) => {
     if (!effectiveUserId) return;
-    
+
     setUploading(true);
     try {
       const audioUrl = await feedbackService.uploadAudioFile(uri, chantierId);
       await feedbackService.createVoiceNote(
         chantierId,
         phaseId,
-        effectiveUserId, 
+        effectiveUserId,
         audioUrl,
         duration,
         stepId
@@ -58,57 +58,57 @@ export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, titl
   };
 
   const handleSendText = async () => {
-      if (!text.trim() || !effectiveUserId) return;
-      
-      const messageToSend = text.trim();
-      setText(''); // Optimistic clear
-      
-      try {
-          await feedbackService.createTextMessage(
-              chantierId, 
-              phaseId, 
-              effectiveUserId, 
-              messageToSend, 
-              stepId
-          );
-      } catch (error) {
-          console.error("Failed to send text", error);
-          setText(messageToSend); // Restore on error
-      }
+    if (!text.trim() || !effectiveUserId) return;
+
+    const messageToSend = text.trim();
+    setText(''); // Optimistic clear
+
+    try {
+      await feedbackService.createTextMessage(
+        chantierId,
+        phaseId,
+        effectiveUserId,
+        messageToSend,
+        stepId
+      );
+    } catch (error) {
+      console.error("Failed to send text", error);
+      setText(messageToSend); // Restore on error
+    }
   };
 
   return (
     <View style={styles.container}>
       {title && <Text style={styles.title}>{title}</Text>}
-      
-      <StepFeedbackList 
-        feedbacks={feedbacks} 
-        currentUserId={effectiveUserId} 
+
+      <StepFeedbackList
+        feedbacks={feedbacks}
+        currentUserId={effectiveUserId}
       />
-      
+
       <View style={styles.inputBar}>
-         <TextInput
-            style={styles.textInput}
-            placeholder="Écrire un message..."
-            placeholderTextColor="#999"
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={500}
-         />
-         
-         {text.trim().length > 0 ? (
-             <TouchableOpacity onPress={handleSendText} style={styles.sendButton} disabled={!effectiveUserId}>
-                 <MaterialIcons name="send" size={24} color="#2B2E83" />
-             </TouchableOpacity>
-         ) : (
-             <View style={styles.micContainer}>
-                <VoiceRecorderButton 
-                    onRecordingComplete={handleRecordingComplete} 
-                    isLoading={uploading}
-                />
-             </View>
-         )}
+        <TextInput
+          style={styles.textInput}
+          placeholder="Écrire un message..."
+          placeholderTextColor="#999"
+          value={text}
+          onChangeText={setText}
+          multiline
+          maxLength={500}
+        />
+
+        {text.trim().length > 0 ? (
+          <TouchableOpacity onPress={handleSendText} style={styles.sendButton} disabled={!effectiveUserId}>
+            <MaterialIcons name="send" size={24} color="#2B2E83" />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.micContainer}>
+            <VoiceRecorderButton
+              onRecordingComplete={handleRecordingComplete}
+              isLoading={uploading}
+            />
+          </View>
+        )}
       </View>
     </View>
   );
@@ -136,19 +136,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     minHeight: 50,
+    marginBottom: 10,
   },
   textInput: {
-      flex: 1,
-      maxHeight: 100,
-      paddingVertical: 8,
-      paddingHorizontal: 10,
-      fontSize: 14,
-      color: '#333',
+    flex: 1,
+    maxHeight: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    color: '#333',
   },
   sendButton: {
-      padding: 10,
+    padding: 10,
   },
   micContainer: {
-     // Adjust if needed to align mic button
+    // Adjust if needed to align mic button
   }
 });
