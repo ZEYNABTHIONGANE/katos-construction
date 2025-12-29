@@ -223,6 +223,19 @@ export default function HomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Welcome Card - Modern */}
+        <ExpoLinearGradient
+          colors={['#2B2E83', '#E96C2E']}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={styles.welcomeCardGradient}
+        >
+          <Text style={styles.greetingText}>Bienvenue,</Text>
+          <Text style={styles.clientNameText}>
+            {clientInfo?.firstName || 'Client'} {clientInfo?.lastName || ''}
+          </Text>
+        </ExpoLinearGradient>
+
         {/* Hero Section - Modern Project Card */}
         {hasChantier && (
           <View style={styles.heroCard}>
@@ -1056,6 +1069,32 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'FiraSans_600SemiBold',
     textAlign: 'center',
+  },
+
+  // Welcome Card Gradient (always shown)
+  welcomeCardGradient: {
+    paddingHorizontal: 25,
+    paddingVertical: 30,
+    marginTop: 15,
+    marginHorizontal: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  greetingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_400Regular',
+    opacity: 0.9,
+  },
+  clientNameText: {
+    fontSize: 28,
+    color: '#FFFFFF',
+    fontFamily: 'FiraSans_700Bold',
+    marginTop: 5,
   },
 
   // Modern Hero Card Styles
