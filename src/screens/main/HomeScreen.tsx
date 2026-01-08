@@ -1203,10 +1203,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statValue: {
-    fontSize: 22,
+    fontSize: 13,
     color: '#1F2937',
     fontFamily: 'FiraSans_700Bold',
     marginBottom: 4,
+    textAlign: 'center',
   },
   statLabel: {
     fontSize: 13,
