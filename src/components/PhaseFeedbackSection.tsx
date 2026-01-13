@@ -25,6 +25,8 @@ export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, titl
   const effectiveUserId = propUserId || session?.clientData?.userId || session?.clientId;
 
   useEffect(() => {
+    if (!effectiveUserId) return;
+
     const unsubscribe = feedbackService.subscribeToStepFeedbacks(
       chantierId,
       phaseId,
@@ -34,7 +36,7 @@ export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, titl
       stepId
     );
     return () => unsubscribe();
-  }, [chantierId, phaseId, stepId]);
+  }, [chantierId, phaseId, stepId, effectiveUserId]);
 
   const handleRecordingComplete = async (uri: string, duration: number) => {
     if (!effectiveUserId) return;

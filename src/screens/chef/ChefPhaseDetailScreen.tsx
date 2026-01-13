@@ -91,10 +91,10 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
   const { getUserName } = useUserNames(userIds);
 
   useEffect(() => {
-    if (chantierId) {
+    if (chantierId && user) {
       loadChantier();
     }
-  }, [chantierId]);
+  }, [chantierId, user]);
 
   useEffect(() => {
     // Initialiser la valeur du slider
