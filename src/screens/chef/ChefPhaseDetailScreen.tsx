@@ -387,7 +387,17 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.headerBackButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (stepId) {
+                navigation.navigate('ChefPhaseDetail', {
+                  chantierId,
+                  phaseId,
+                  phaseName,
+                });
+              } else {
+                navigation.goBack();
+              }
+            }}
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
@@ -433,22 +443,24 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
               {displayItem.description}
             </Text>
 
-            {/* Contrôle de progression */}
-            <View style={styles.progressControl}>
-              <Text style={styles.progressLabel}>Progression :</Text>
-              <Slider
-                style={styles.progressSlider}
-                minimumValue={0}
-                maximumValue={100}
-                value={sliderValue}
-                onValueChange={(value) => setSliderValue(value)}
-                onSlidingComplete={(value) => updateProgress(Math.round(value))}
-                step={1}
-                minimumTrackTintColor="#E96C2E"
-                maximumTrackTintColor="#E5E7EB"
-                thumbTintColor="#2B2E83"
-              />
-            </View>
+            {/* Contrôle de progression - Uniquement visible si c'est une sous-étape, ou si la phase n'a pas de sous-étapes */}
+            {(!!stepId || (!currentPhase?.steps || currentPhase?.steps?.length === 0)) && (
+              <View style={styles.progressControl}>
+                <Text style={styles.progressLabel}>Progression :</Text>
+                <Slider
+                  style={styles.progressSlider}
+                  minimumValue={0}
+                  maximumValue={100}
+                  value={sliderValue}
+                  onValueChange={(value) => setSliderValue(value)}
+                  onSlidingComplete={(value) => updateProgress(Math.round(value))}
+                  step={1}
+                  minimumTrackTintColor="#E96C2E"
+                  maximumTrackTintColor="#E5E7EB"
+                  thumbTintColor="#2B2E83"
+                />
+              </View>
+            )}
 
             {/* Informations de mise à jour */}
             {((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate) && (
@@ -456,11 +468,13 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.updateText}>
                   Dernière mise à jour: {formatDateWithTime((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate)}
                 </Text>
-                {displayItem.updatedBy && (
-                  <Text style={styles.updateByText}>
-                    par {getUserName(displayItem.updatedBy) || 'Système'}
-                  </Text>
-                )}
+                {displayItem.updatedBy &&
+                  getUserName(displayItem.updatedBy) !== 'Utilisateur inconnu' &&
+                  getUserName(displayItem.updatedBy) !== 'Chargement...' && (
+                    <Text style={styles.updateByText}>
+                      par {getUserName(displayItem.updatedBy)}
+                    </Text>
+                  )}
               </View>
             )}
 

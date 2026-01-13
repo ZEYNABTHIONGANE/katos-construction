@@ -4,7 +4,7 @@ import { useClientAuth } from '../hooks/useClientAuth';
 import { useDeepLinking } from '../hooks/useDeepLinking';
 
 // Screens
-import SplashScreen from '../screens/SplashScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import InvitationAuthScreen from '../screens/auth/InvitationAuthScreen';
 import CreatePINScreen from '../screens/auth/CreatePINScreen';

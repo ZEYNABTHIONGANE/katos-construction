@@ -295,65 +295,11 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
                                         </View>
                                     </View>
 
-                                    {hasSteps ? (
-                                        <View style={styles.stepsContainer}>
-                                            <View style={styles.stepsContainerHeader}>
-                                                <Text style={styles.stepsContainerTitle}>Sous-étapes :</Text>
-                                                {phase.name === 'Élévation' && (
-                                                    <View style={styles.nonLinearBadge}>
-                                                        <MaterialIcons name="all-inclusive" size={14} color="#E96C2E" />
-                                                        <Text style={styles.nonLinearText}>Parallèles</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            {phase.steps!.map((step, stepIndex) => {
-                                                let isStepLocked = isPhaseLocked;
-                                                if (!isStepLocked && stepIndex > 0 && phase.name !== 'Élévation') {
-                                                    const prevStep = phase.steps![stepIndex - 1];
-                                                    const prevStepKey = `${phase.id}_${prevStep.id}`;
-                                                    const prevStepProgress = prevStep.progress;
-                                                    if (prevStepProgress < 100) isStepLocked = true;
-                                                }
-
-                                                return (
-                                                    <View key={step.id} style={[styles.stepItem, isStepLocked && styles.stepItemLocked]}>
-                                                        <View style={styles.stepMainContent}>
-                                                            <View style={styles.stepIndicatorContainer}>
-                                                                <View style={styles.stepConnector} />
-                                                                <View style={[styles.stepIndicator, { backgroundColor: isStepLocked ? '#D1D5DB' : getPhaseStatusColor(getPhaseStatus(step.progress)) }]}>
-                                                                    <Text style={styles.stepNumber}>{stepIndex + 1}</Text>
-                                                                </View>
-                                                                {stepIndex < phase.steps!.length - 1 && <View style={styles.stepConnectorBottom} />}
-                                                            </View>
-
-                                                            <View style={styles.stepContent}>
-                                                                <View style={styles.stepHeader}>
-                                                                    <View style={styles.stepTitleContainer}>
-                                                                        <Text style={[styles.stepName, isStepLocked && styles.textLocked]}>{step.name}</Text>
-                                                                        <Text style={[styles.stepStatus, { color: getPhaseStatusColor(getPhaseStatus(step.progress)) }]}>
-                                                                            {getPhaseStatus(step.progress) === 'completed' ? 'Terminé' : getPhaseStatus(step.progress) === 'in-progress' ? 'En cours' : 'En attente'}
-                                                                        </Text>
-                                                                    </View>
-                                                                    <View style={styles.stepHeaderRight}>
-                                                                        <Text style={[styles.stepProgress, isStepLocked && styles.textLocked]}>{step.progress}%</Text>
-                                                                    </View>
-                                                                </View>
-                                                                <View style={styles.progressBarContainer}>
-                                                                    <View style={[styles.progressBarFill, { width: `${step.progress}%`, backgroundColor: getPhaseStatusColor(getPhaseStatus(step.progress)) }]} />
-                                                                </View>
-                                                            </View>
-                                                        </View>
-                                                    </View>
-                                                );
-                                            })}
+                                    <View style={styles.sliderContainer}>
+                                        <View style={styles.progressBarContainer}>
+                                            <View style={[styles.progressBarFill, { width: `${phase.progress}%`, backgroundColor: isPhaseLocked ? '#D1D5DB' : '#E96C2E' }]} />
                                         </View>
-                                    ) : (
-                                        <View style={styles.sliderContainer}>
-                                            <View style={styles.progressBarContainer}>
-                                                <View style={[styles.progressBarFill, { width: `${phase.progress}%`, backgroundColor: isPhaseLocked ? '#D1D5DB' : '#E96C2E' }]} />
-                                            </View>
-                                        </View>
-                                    )}
+                                    </View>
 
                                     <View style={styles.phaseStatusContainer}>
                                         <Text style={[styles.phaseStatusText, { color: isPhaseLocked ? '#9CA3AF' : getPhaseStatusColor(getRealtimePhaseStatus(phase.id, phase.progress)) }]}>

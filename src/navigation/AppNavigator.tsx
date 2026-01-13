@@ -353,9 +353,11 @@ export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSplashReady, setIsSplashReady] = useState(false);
 
   console.log('🏗️ AppNavigator render:', {
     isLoading,
+    isSplashReady,
     isAuthenticated,
     currentUserRole: currentUser?.role,
     currentUserEmail: currentUser?.email
@@ -412,7 +414,7 @@ export default function AppNavigator() {
   }, []);
 
   const handleContinueFromSplash = () => {
-    setIsLoading(false);
+    setIsSplashReady(true);
   };
 
   const handleLogin = (user: User) => {
@@ -430,7 +432,7 @@ export default function AppNavigator() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !isSplashReady) {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>

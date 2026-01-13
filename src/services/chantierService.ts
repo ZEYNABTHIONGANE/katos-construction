@@ -138,8 +138,8 @@ export class ChantierService {
                 ...step,
                 progress: Math.max(0, Math.min(100, progress)),
                 status: getPhaseStatus(progress),
-                actualStartDate: progress > 0 && !step.actualStartDate ? Timestamp.now() : (step.actualStartDate || undefined),
-                actualEndDate: progress === 100 ? Timestamp.now() : undefined,
+                actualStartDate: progress > 0 && !step.actualStartDate ? Timestamp.now() : (step.actualStartDate || null),
+                actualEndDate: progress === 100 ? Timestamp.now() : (progress < 100 ? null : step.actualEndDate),
                 updatedBy // Track who updated the step
               };
             }
