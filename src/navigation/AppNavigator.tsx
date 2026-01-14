@@ -7,6 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { RootStackParamList, HomeTabParamList, ChefTabParamList, ChefStackParamList, User } from '../types';
 import { authService } from '../services/authService';
+import { clientService } from '../services/clientService';
 import { useClientAuth } from '../hooks/useClientAuth';
 
 // Screens
@@ -384,23 +385,66 @@ export default function AppNavigator() {
     }
   };
 
+
+
   // Écouter les changements d'état d'authentification Firebase
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChange(async (user) => {
       if (user) {
-        // Utilisateur connecté avec Firebase
-        const userData = await authService.getUserData(user.uid);
-        const userRole = await getUserRole(user);
+        // Race condition protection: ensure user is still logged in
+        const currentUser = authService.getCurrentUser();
+        if (!currentUser || currentUser.uid !== user.uid) {
+          console.log('⛔ preventing stale auth update');
+          return;
+        }
 
-        if (userData) {
-          setCurrentUser({
-            id: user.uid,
-            email: user.email!,
-            name: userData.displayName,
-            role: userRole,
-            phone: userData.phoneNumber || undefined
-          });
-          setIsAuthenticated(true);
+        // Utilisateur connecté avec Firebase
+        try {
+          const userData = await authService.getUserData(user.uid);
+
+          // Re-check race condition after await
+          const currentUserAfterFetch = authService.getCurrentUser();
+          if (!currentUserAfterFetch || currentUserAfterFetch.uid !== user.uid) {
+            console.log('⛔ preventing stale auth update after fetch');
+            return;
+          }
+
+          // Check if this is a client account and if it is active
+          if (userData?.username && userData.username.match(/^CLI\d{9}$/)) {
+            // Verify client active status DIRECTLY from Firestore (source of truth)
+            // This avoids race conditions where AsyncStorage session is not yet ready
+            try {
+              const clientData = await clientService.getClientByUserId(user.uid);
+
+              if (clientData && clientData.isActive === false) {
+                console.warn('❌ Account disabled detected in Navigator (Firestore check)');
+                await authService.signOutAll();
+                setCurrentUser(null);
+                setIsAuthenticated(false);
+                setIsLoading(false);
+                return;
+              }
+            } catch (err) {
+              console.error('Error verifying client status:', err);
+            }
+          }
+
+          const userRole = await getUserRole(user);
+
+          if (userData) {
+            setCurrentUser({
+              id: user.uid,
+              email: user.email!,
+              name: userData.displayName,
+              role: userRole,
+              phone: userData.phoneNumber || undefined
+            });
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+          setCurrentUser(null);
+          setIsAuthenticated(false);
         }
       } else {
         // Utilisateur déconnecté

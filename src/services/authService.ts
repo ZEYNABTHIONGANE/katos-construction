@@ -120,6 +120,11 @@ export class AuthService {
         if (clientData) {
           console.log('✅ Client data found, creating session for:', clientData.id);
 
+          if (clientData.isActive === false) {
+            console.warn('❌ Account is disabled for client:', clientData.id);
+            throw new Error('ACCOUNT_DISABLED');
+          }
+
           // Ensure invitation status is accepted
           if (clientData.invitationStatus !== 'accepted') {
             await clientService.updateClientInvitationStatus(clientData.id!, 'accepted');
@@ -139,7 +144,12 @@ export class AuthService {
           console.warn('⚠️ No client data found for user:', result.user.uid);
         }
 
-      } catch (statusUpdateError) {
+      } catch (statusUpdateError: any) {
+        // Re-throw ACCOUNT_DISABLED to prevent login
+        if (statusUpdateError.message === 'ACCOUNT_DISABLED') {
+          await this.signOut();
+          throw statusUpdateError;
+        }
         // Don't fail login if status update fails, but log the error
         console.warn('Failed to create client session after login:', statusUpdateError);
       }
@@ -151,6 +161,8 @@ export class AuthService {
         throw new Error('USER_BLOCKED');
       } else if (error.message === 'USERNAME_NOT_FOUND') {
         throw new Error('USERNAME_NOT_FOUND');
+      } else if (error.message === 'ACCOUNT_DISABLED') {
+        throw new Error('ACCOUNT_DISABLED');
       }
       // Let Firebase auth errors pass through
       throw error;
@@ -318,6 +330,11 @@ export class AuthService {
         // Rafraîchir les données client depuis Firebase
         const freshClientData = await clientService.getClientById(session.clientId);
         if (freshClientData) {
+          if (freshClientData.isActive === false) {
+            console.warn('❌ Account disabled detected during session refresh');
+            await this.signOutAll();
+            return null;
+          }
           session.clientData = freshClientData;
           await this.saveClientSession(session);
         }

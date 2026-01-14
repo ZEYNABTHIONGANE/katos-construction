@@ -28,6 +28,7 @@ interface ChatConversation {
   lastMessageTime: string;
   unreadCount: number;
   isOnline: boolean;
+  isActive?: boolean;
 }
 
 interface ChatMessage {
@@ -49,6 +50,7 @@ const mockConversations: ChatConversation[] = [
     lastMessageTime: '14:30',
     unreadCount: 2,
     isOnline: true,
+    isActive: true,
   },
   {
     id: '2',
@@ -59,6 +61,7 @@ const mockConversations: ChatConversation[] = [
     lastMessageTime: '11:45',
     unreadCount: 0,
     isOnline: false,
+    isActive: true,
   },
   {
     id: '3',
@@ -69,6 +72,7 @@ const mockConversations: ChatConversation[] = [
     lastMessageTime: 'Hier',
     unreadCount: 1,
     isOnline: true,
+    isActive: true, // Example active
   },
   {
     id: '4',
@@ -79,6 +83,7 @@ const mockConversations: ChatConversation[] = [
     lastMessageTime: 'Hier',
     unreadCount: 0,
     isOnline: false,
+    isActive: false, // Example inactive
   },
 ];
 
@@ -179,14 +184,21 @@ export default function ChefChatScreen({ navigation }: Props) {
       onPress={() => openConversation(item)}
     >
       <View style={styles.conversationCard}>
-        <View style={styles.avatarContainer}>
-          <Image source={{ uri: item.clientAvatar }} style={styles.avatar} />
-          {item.isOnline && <View style={styles.onlineIndicator} />}
+        <View style={[styles.avatarContainer, item.isActive === false && { opacity: 0.5 }]}>
+          <Image source={{ uri: item.clientAvatar }} style={[styles.avatar, item.isActive === false && { borderColor: '#EF4444' }]} />
+          {item.isOnline && item.isActive !== false && <View style={styles.onlineIndicator} />}
         </View>
 
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={styles.clientName}>{item.clientName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[styles.clientName, item.isActive === false && { color: '#9CA3AF' }]}>{item.clientName}</Text>
+              {item.isActive === false && (
+                <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                  <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: 'bold' }}>INACTIF</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.messageTime}>{item.lastMessageTime}</Text>
           </View>
           <Text style={styles.projectName}>{item.projectName}</Text>
@@ -248,7 +260,7 @@ export default function ChefChatScreen({ navigation }: Props) {
       <AppHeader
         title="Messages"
         showNotification={true}
-        onNotificationPress={() => {}}
+        onNotificationPress={() => { }}
       />
 
       <FlatList
@@ -305,31 +317,41 @@ export default function ChefChatScreen({ navigation }: Props) {
             />
 
             <View style={styles.inputContainer}>
-              <View style={styles.messageInput}>
-                <TextInput
-                  style={styles.textInput}
-                  value={newMessage}
-                  onChangeText={setNewMessage}
-                  placeholder="Tapez votre message..."
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  maxLength={500}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.sendButton,
-                    newMessage.trim() ? styles.sendButtonActive : styles.sendButtonInactive
-                  ]}
-                  onPress={sendMessage}
-                  disabled={!newMessage.trim()}
-                >
-                  <MaterialIcons
-                    name="send"
-                    size={20}
-                    color={newMessage.trim() ? "#FFFFFF" : "#9CA3AF"}
+              {selectedConversation.isActive !== false ? (
+                <View style={styles.messageInput}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    placeholder="Tapez votre message..."
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    maxLength={500}
                   />
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      newMessage.trim() ? styles.sendButtonActive : styles.sendButtonInactive
+                    ]}
+                    onPress={sendMessage}
+                    disabled={!newMessage.trim()}
+                  >
+                    <MaterialIcons
+                      name="send"
+                      size={20}
+                      color={newMessage.trim() ? "#FFFFFF" : "#9CA3AF"}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={[styles.messageInput, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', justifyContent: 'center' }]}>
+                  <Text style={{ color: '#EF4444', textAlign: 'center', fontFamily: 'FiraSans_600SemiBold' }}>
+                    Ce compte client est désactivé.
+                    {"\n"}
+                    Vous ne pouvez pas envoyer de message.
+                  </Text>
+                </View>
+              )}
             </View>
           </KeyboardAvoidingView>
         )}
