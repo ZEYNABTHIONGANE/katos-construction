@@ -1,1 +1,1 @@
-si le compte est archivé je veux que ca agisse comme une suppression donc tu va remplacé supprimer par archivé et les comptes archivés ne sont pas totalement supprimer de la base de données tu peux cree un tabs  compte archivé dans le module Administration l'idee est de pouvoir retracé tous les clients qu'on a deja eu 
+Je t'aime bb
