@@ -14,7 +14,7 @@ export const FirebaseTest: React.FC = () => {
     const results: string[] = [];
 
     // Test Firebase configuration
-    if (process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID === 'katos-construction') {
+    if (process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID === 'katos-connect') {
       results.push('✅ Firebase configuration loaded successfully');
     } else {
       results.push('❌ Firebase configuration failed');
@@ -65,8 +65,8 @@ export const FirebaseTest: React.FC = () => {
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.infoText}>Project ID: katos-construction</Text>
-        <Text style={styles.infoText}>Auth Domain: katos-construction.firebaseapp.com</Text>
+        <Text style={styles.infoText}>Project ID: katos-connect</Text>
+        <Text style={styles.infoText}>Auth Domain: katos-connect.firebaseapp.com</Text>
         <Text style={styles.infoText}>Collections: users, clients, projects, materials</Text>
       </View>
 

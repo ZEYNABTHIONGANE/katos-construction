@@ -206,7 +206,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
         >
           <Text style={styles.greeting}>Bonjour,</Text>
           <Text style={styles.name}>{userData?.displayName || user?.displayName || 'Chef'}</Text>
-          <Text style={styles.subtitle}>Chef de chantier chez Katos Construction</Text>
+          <Text style={styles.subtitle}>Ingénieur chez Katos Construction</Text>
         </ExpoLinearGradient>
 
         <View style={styles.statsContainer}>
@@ -392,6 +392,11 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontFamily: 'FiraSans_600SemiBold',
     textAlign: 'center',
+  },
+  statValue: {
+    fontSize: 28,
+    fontFamily: 'FiraSans_700Bold',
+    marginBottom: 8,
   },
   projectsContainer: {
     padding: 20,
