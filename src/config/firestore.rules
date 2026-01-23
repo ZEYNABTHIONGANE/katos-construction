@@ -1,0 +1,52 @@
+// Firestore Security Rules for Katos Construction App
+// These rules should be applied to the Firebase project to ensure consistent security
+// across both the backoffice and mobile client applications
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Clients collection - authenticated users can read all, write if authenticated
+    match /clients/{clientId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && isValidClient();
+      allow delete: if request.auth != null; // Only authenticated users can delete
+    }
+
+    // Projects collection - authenticated users can read all, write if authenticated
+    match /projects/{projectId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && isValidProject();
+      allow delete: if request.auth != null; // Only authenticated users can delete
+    }
+
+    // Materials collection - authenticated users can read all, write if authenticated
+    match /materials/{materialId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && isValidMaterial();
+      allow delete: if request.auth != null; // Only authenticated users can delete
+    }
+
+    // Helper functions for validation
+    function isValidClient() {
+      return resource.data.keys().hasAll(['nom', 'prenom', 'localisationSite', 'projetAdhere', 'status', 'createdAt'])
+        && request.resource.data.status in ['En cours', 'Terminé', 'En attente'];
+    }
+
+    function isValidProject() {
+      return resource.data.keys().hasAll(['name', 'description', 'images', 'type', 'createdAt'])
+        && request.resource.data.images is list;
+    }
+
+    function isValidMaterial() {
+      return resource.data.keys().hasAll(['name', 'category', 'price', 'image', 'supplier', 'description', 'createdAt'])
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0;
+    }
+  }
+}
