@@ -7,6 +7,10 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
 
+
+    icon: "./src/assets/logo.png",
+
+
     splash: {
       image: "./src/assets/logo.png",
       resizeMode: "contain",
@@ -16,6 +20,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.katos.app",
+      buildNumber: "2",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
@@ -30,10 +35,12 @@ export default {
 
     android: {
       package: "com.katos.app",
-      versioncode: 10,
+      googleServicesFile: "./google-services.json",
+      versioncode: 11,
       adaptiveIcon: {
         backgroundColor: "#ffffff",
       },
+      softwareKeyboardLayoutMode: "resize",
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: [

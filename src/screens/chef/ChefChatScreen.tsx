@@ -10,8 +10,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChefTabParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
@@ -151,6 +154,7 @@ const mockMessages: { [key: string]: ChatMessage[] } = {
 };
 
 export default function ChefChatScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
   const [newMessage, setNewMessage] = useState('');
@@ -281,7 +285,8 @@ export default function ChefChatScreen({ navigation }: Props) {
         {selectedConversation && (
           <KeyboardAvoidingView
             style={styles.chatModal}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 120}
           >
             <View style={styles.chatHeader}>
               <TouchableOpacity
@@ -307,16 +312,25 @@ export default function ChefChatScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={messages}
-              renderItem={renderMessage}
-              keyExtractor={(item) => item.id}
-              style={styles.messagesList}
-              contentContainerStyle={[styles.messagesContent, { paddingBottom: 40 }]}
-              showsVerticalScrollIndicator={false}
-            />
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+              <View style={{ flex: 1 }}>
+                <FlatList
+                  data={messages}
+                  renderItem={renderMessage}
+                  keyExtractor={(item) => item.id}
+                  style={styles.messagesList}
+                  contentContainerStyle={[styles.messagesContent, { paddingBottom: 40 }]}
+                  showsVerticalScrollIndicator={false}
+                  keyboardDismissMode="on-drag"
+                  keyboardShouldPersistTaps="handled"
+                />
+              </View>
+            </TouchableWithoutFeedback>
 
-            <View style={styles.inputContainer}>
+            <View style={[
+              styles.inputContainer,
+              { paddingBottom: Platform.OS === 'ios' ? insets.bottom + 8 : 20 }
+            ]}>
               {selectedConversation.isActive !== false ? (
                 <View style={styles.messageInput}>
                   <TextInput

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "270769467550",
+    "project_id": "katos-connect",
+    "storage_bucket": "katos-connect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270769467550:android:ec9433ec85c7ffb3518b8f",
+        "android_client_info": {
+          "package_name": "com.katos.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACSRpvB-Adx29SsscEhlwCXjicM4CZ_uY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

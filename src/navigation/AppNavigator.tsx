@@ -18,9 +18,10 @@ import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefChantiersScreen from '../screens/chef/ChefChantiersScreen';
 import ChefGalleryScreen from '../screens/chef/ChefGalleryScreen';
 import ChefProfilScreen from '../screens/chef/ChefProfilScreen';
+import * as SplashScreen from 'expo-splash-screen';
 import ChantierScreen from '../screens/main/ChantierScreen';
 import ProfilScreen from '../screens/main/ProfilScreen';
-import SplashScreen from '../screens/auth/SplashScreen';
+import SplashScreenComponent from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ClientProjectsScreen from '../screens/main/ClientProjectsScreen';
 import ClientDocumentsScreen from '../screens/main/ClientDocumentsScreen';
@@ -351,18 +352,39 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
   );
 };
 
-export default function AppNavigator() {
+export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isSplashReady, setIsSplashReady] = useState(false);
+  const [isWelcomeFinished, setIsWelcomeFinished] = useState(false);
+
+  // Safety timeout for loading state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.warn('⚠️ Initialization timeout - forcing isLoading to false');
+        setIsLoading(false);
+      }
+    }, 8000); // 8 seconds timeout
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Hide splash screen when fonts are loaded and auth check is done
+  useEffect(() => {
+    if (fontsLoaded && !isLoading) {
+      SplashScreen.hideAsync().catch(() => {
+        /* ignore error */
+      });
+    }
+  }, [fontsLoaded, isLoading]);
 
   console.log('🏗️ AppNavigator render:', {
     isLoading,
-    isSplashReady,
+    fontsLoaded,
+    isWelcomeFinished,
     isAuthenticated,
     currentUserRole: currentUser?.role,
-    currentUserEmail: currentUser?.email
   });
 
   // Détecter le rôle de l'utilisateur
@@ -459,7 +481,7 @@ export default function AppNavigator() {
   }, []);
 
   const handleContinueFromSplash = () => {
-    setIsSplashReady(true);
+    setIsWelcomeFinished(true);
   };
 
   const handleLogin = (user: User) => {
@@ -477,12 +499,12 @@ export default function AppNavigator() {
     }
   };
 
-  if (isLoading || !isSplashReady) {
+  if (isLoading || !isWelcomeFinished) {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash">
-            {(props) => <SplashScreen {...props} onContinue={handleContinueFromSplash} />}
+            {(props) => <SplashScreenComponent {...props} onContinue={handleContinueFromSplash} />}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>

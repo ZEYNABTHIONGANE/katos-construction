@@ -15,6 +15,8 @@ export type RootStackParamList = {
   HelpSupport: undefined;
   About: undefined;
   PrivacyPolicy: undefined;
+  Chat: undefined;
+  ChefChat: undefined;
   Main: undefined;
   PhaseDetail: {
     chantierId: string;
@@ -29,6 +31,7 @@ export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
   Documents: undefined;
+  Chat: undefined;
   Profil: undefined;
 };
 
@@ -36,6 +39,7 @@ export type ChefTabParamList = {
   ChefDashboard: undefined;
   ChefChantiers: { selectedChantierId?: string };
   ChefGallery: undefined;
+  ChefChat: undefined;
   ChefProfil: undefined;
 };
 
