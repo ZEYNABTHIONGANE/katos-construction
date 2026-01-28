@@ -6,7 +6,7 @@ import { auth, db } from '../config/firebase';
 import type { FirebaseUser } from '../types/firebase';
 
 // Screens
-import SplashScreen from '../screens/SplashScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
 import ClientProfileScreen from '../screens/ClientProfileScreen';

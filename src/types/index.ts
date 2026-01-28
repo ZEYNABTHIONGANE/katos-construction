@@ -3,7 +3,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 // Navigation types
 export type RootStackParamList = {
   Splash: undefined;
-  Login: undefined;
+  Login: { showPINLogin?: boolean } | undefined;
   InvitationAuth: { token: string };
   CreatePIN: undefined;
   ChangePassword: undefined;

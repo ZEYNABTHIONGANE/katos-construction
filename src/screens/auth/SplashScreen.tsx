@@ -29,15 +29,12 @@ export default function SplashScreen({ navigation, onContinue }: Props) {
         </View>
         <Text style={styles.title}>Katos Connect</Text>
         <Text style={styles.subtitle}>Votre maison, notre passion</Text>
-        <Text style={styles.description}>
-          Bienvenue dans l'application de suivi de chantier.
-          Suivez l'avancement de votre projet en temps réel.
-        </Text>
 
-        <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
+
+        {/* <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
           <Text style={styles.connectButtonText}>Se connecter</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#2B2E83" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </ExpoLinearGradient>
   );
@@ -56,9 +53,9 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     width: 140,
-    height: 140,  
+    height: 140,
     borderRadius: 70,
-    backgroundColor : "#f7f7f9",
+    backgroundColor: "#f7f7f9",
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
