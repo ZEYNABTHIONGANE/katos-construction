@@ -290,7 +290,7 @@ export class ChantierService {
 
       await this.updateChantier(chantierId, {
         phases: updatedPhases,
-        gallery: [...chantier.gallery, newPhoto],
+        gallery: [...(chantier.gallery || []), newPhoto],
         updatedAt: Timestamp.now()
       });
     } catch (error) {

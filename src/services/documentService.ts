@@ -12,8 +12,8 @@ import {
   onSnapshot,
   getDoc
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { db } from '../config/firebase';
+import { storageService } from './storageService';
 import type {
   FirebaseDocument,
   DocumentCategory,
@@ -51,10 +51,12 @@ export class DocumentService {
       const response = await fetch(file.uri);
       const blob = await response.blob();
 
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, storagePath);
-      const snapshot = await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      // Upload to Cloudinary via StorageService
+      const downloadURL = await storageService.uploadMediaFromUri(
+        file.uri,
+        '',
+        (file.mimeType?.includes('video') || file.name.match(/\.(mp4|mov|avi)$/i)) ? 'video' : 'image'
+      );
 
       // Prepare document metadata
       const documentData: Omit<FirebaseDocument, 'id'> = {
@@ -241,12 +243,11 @@ export class DocumentService {
         throw new Error('Document not found');
       }
 
-      // Delete from Firebase Storage
+      // Delete from Cloudinary via StorageService
       try {
-        const storageRef = ref(storage, document.url);
-        await deleteObject(storageRef);
+        await storageService.deleteImage(document.url);
       } catch (storageError) {
-        console.warn('Error deleting file from storage:', storageError);
+        console.warn('Error deleting file from Cloudinary:', storageError);
         // Continue with Firestore deletion even if storage deletion fails
       }
 

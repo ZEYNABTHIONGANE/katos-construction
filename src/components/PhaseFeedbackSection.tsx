@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import VoiceRecorderButton from './VoiceRecorderButton';
 import StepFeedbackList from './StepFeedbackList';
@@ -52,8 +52,13 @@ export default function PhaseFeedbackSection({ chantierId, phaseId, stepId, titl
         duration,
         stepId
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send voice note', error);
+      Alert.alert(
+        'Erreur d\'envoi',
+        'Impossible d\'envoyer la note vocale. Veuillez vérifier votre connexion. ' +
+        (error.message ? `\nDétails: ${error.message}` : '')
+      );
     } finally {
       setUploading(false);
     }

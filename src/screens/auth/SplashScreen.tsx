@@ -31,10 +31,10 @@ export default function SplashScreen({ navigation, onContinue }: Props) {
         <Text style={styles.subtitle}>Votre maison, notre passion</Text>
 
 
-        {/* <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
+        {<TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
           <Text style={styles.connectButtonText}>Se connecter</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#2B2E83" />
-        </TouchableOpacity> */}
+        </TouchableOpacity>}
       </View>
     </ExpoLinearGradient>
   );
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    maxWidth: 350,
+    maxWidth: 340,
   },
   logoContainer: {
     width: 140,

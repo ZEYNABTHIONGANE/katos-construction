@@ -8,7 +8,7 @@ export default {
     newArchEnabled: true,
 
 
-    icon: "./src/assets/logo.png",
+    icon: "./src/assets/WhatsApp Image 2026-01-28 at 17.35.28.jpeg",
 
 
     splash: {
@@ -38,6 +38,7 @@ export default {
       googleServicesFile: "./google-services.json",
       versioncode: 11,
       adaptiveIcon: {
+        foregroundImage: "./src/assets/WhatsApp Image 2026-01-28 at 17.35.28.jpeg",
         backgroundColor: "#ffffff",
       },
       softwareKeyboardLayoutMode: "resize",

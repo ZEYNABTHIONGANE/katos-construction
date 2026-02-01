@@ -1,53 +1,37 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '../config/firebase';
+import { cloudinaryService } from './cloudinaryService';
 
 export class StorageService {
   /**
-   * Upload an image file to Firebase Storage
+   * Upload an image file to Cloudinary (previously Firebase)
    */
-  async uploadImage(file: Blob, path: string): Promise<string> {
-    const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+  async uploadImage(file: Blob, _path: string): Promise<string> {
+    // Note: Cloudinary expects a URI or Base64 in some contexts, but here we use the service
+    // For simplicity with the existing code, we'll try to use the URI from the blob if available
+    // or adapt the calls. Let's provide a bridge.
+    console.warn('StorageService.uploadImage is now using Cloudinary. Path parameter is ignored by Cloudinary.');
+    return cloudinaryService.uploadFile(URL.createObjectURL(file), 'image');
   }
 
   /**
-   * Upload an image from React Native URI to Firebase Storage
+   * Upload an image from React Native URI to Cloudinary
    */
-  async uploadImageFromUri(uri: string, path: string): Promise<string> {
+  async uploadImageFromUri(uri: string, _path: string): Promise<string> {
     try {
-      // Fetch the image from the URI
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      // Generate a unique filename
-      const fileName = this.generateFileName('image.jpg');
-      const fullPath = `${path}/${fileName}`;
-
-      return this.uploadImage(blob, fullPath);
+      return cloudinaryService.uploadFile(uri, 'image');
     } catch (error) {
-      console.error('Error uploading image from URI:', error);
+      console.error('Error uploading image to Cloudinary:', error);
       throw error;
     }
   }
 
   /**
-   * Upload a video from React Native URI to Firebase Storage
+   * Upload a video from React Native URI to Cloudinary
    */
-  async uploadVideoFromUri(uri: string, path: string): Promise<string> {
+  async uploadVideoFromUri(uri: string, _path: string): Promise<string> {
     try {
-      // Fetch the video from the URI
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      // Generate a unique filename with video extension
-      const fileName = this.generateFileName('video.mp4');
-      const fullPath = `${path}/${fileName}`;
-
-      return this.uploadImage(blob, fullPath);
+      return cloudinaryService.uploadFile(uri, 'video');
     } catch (error) {
-      console.error('Error uploading video from URI:', error);
+      console.error('Error uploading video to Cloudinary:', error);
       throw error;
     }
   }
@@ -55,56 +39,36 @@ export class StorageService {
   /**
    * Upload media (image or video) from React Native URI
    */
-  async uploadMediaFromUri(uri: string, path: string, mediaType: 'image' | 'video'): Promise<string> {
-    if (mediaType === 'video') {
-      return this.uploadVideoFromUri(uri, path);
-    } else {
-      return this.uploadImageFromUri(uri, path);
-    }
+  async uploadMediaFromUri(uri: string, _path: string, mediaType: 'image' | 'video'): Promise<string> {
+    return cloudinaryService.uploadFile(uri, mediaType);
   }
 
   /**
    * Upload a project image
    */
-  async uploadProjectImage(file: Blob, projectId: string, fileName: string): Promise<string> {
-    const path = `projects/${projectId}/${fileName}`;
-    return this.uploadImage(file, path);
+  async uploadProjectImage(file: Blob, _projectId: string, _fileName: string): Promise<string> {
+    return this.uploadImage(file, '');
   }
 
   /**
    * Upload a material image
    */
-  async uploadMaterialImage(file: Blob, materialId: string, fileName: string): Promise<string> {
-    const path = `materials/${materialId}/${fileName}`;
-    return this.uploadImage(file, path);
+  async uploadMaterialImage(file: Blob, _materialId: string, _fileName: string): Promise<string> {
+    return this.uploadImage(file, '');
   }
 
   /**
    * Upload a user profile image
    */
-  async uploadUserImage(file: Blob, userId: string, fileName: string): Promise<string> {
-    const path = `users/${userId}/${fileName}`;
-    return this.uploadImage(file, path);
+  async uploadUserImage(file: Blob, _userId: string, _fileName: string): Promise<string> {
+    return this.uploadImage(file, '');
   }
 
   /**
-   * Delete an image from Firebase Storage
+   * Delete an image (stub: Cloudinary deletion requires admin API or token)
    */
-  async deleteImage(url: string): Promise<void> {
-    try {
-      const imageRef = ref(storage, url);
-      await deleteObject(imageRef);
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a reference to a storage path
-   */
-  getStorageRef(path: string) {
-    return ref(storage, path);
+  async deleteImage(_url: string): Promise<void> {
+    console.warn('Delete image on Cloudinary requires signed API or specific setup. Skipping for now.');
   }
 
   /**

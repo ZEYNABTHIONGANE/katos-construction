@@ -10,6 +10,8 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -191,177 +193,184 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
           <View style={styles.headerRight} />
         </View>
 
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          automaticallyAdjustKeyboardInsets={true}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Info de l'étape */}
-          <View style={styles.phaseInfo}>
-            <View style={styles.phaseHeader}>
-              <View style={styles.phaseStatus}>
-                <View
-                  style={[
-                    styles.statusIcon,
-                    { backgroundColor: getPhaseStatusColor(displayItem.status) }
-                  ]}
-                >
-                  <MaterialIcons
-                    name={getPhaseStatusIcon(displayItem.status)}
-                    size={20}
-                    color="#fff"
-                  />
-                </View>
-                <View>
-                  <Text style={styles.statusText}>
-                    {getStatusText(displayItem.status)}
-                  </Text>
-                  <Text style={styles.progressText}>
-                    {displayItem.progress}% complété
-                  </Text>
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets={true}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Info de l'étape */}
+            <View style={styles.phaseInfo}>
+              <View style={styles.phaseHeader}>
+                <View style={styles.phaseStatus}>
+                  <View
+                    style={[
+                      styles.statusIcon,
+                      { backgroundColor: getPhaseStatusColor(displayItem.status) }
+                    ]}
+                  >
+                    <MaterialIcons
+                      name={getPhaseStatusIcon(displayItem.status)}
+                      size={20}
+                      color="#fff"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.statusText}>
+                      {getStatusText(displayItem.status)}
+                    </Text>
+                    <Text style={styles.progressText}>
+                      {displayItem.progress}% complété
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <Text style={styles.phaseDescription}>
-              {displayItem.description}
-            </Text>
+              <Text style={styles.phaseDescription}>
+                {displayItem.description}
+              </Text>
 
-            {/* Barre de progression */}
-            <View style={styles.progressSection}>
-              <ProgressBar
-                progress={displayItem.progress}
-                height={12}
-                progressColor="#2B2E83"
-              />
-            </View>
+              {/* Barre de progression */}
+              <View style={styles.progressSection}>
+                <ProgressBar
+                  progress={displayItem.progress}
+                  height={12}
+                  progressColor="#2B2E83"
+                />
+              </View>
 
-            {/* Informations de mise à jour */}
-            {((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate) && (
-              <View style={styles.updateInfo}>
-                <Text style={styles.updateText}>
-                  Dernière mise à jour: {formatDateWithTime((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate)}
-                </Text>
-                {displayItem.updatedBy && (
-                  <Text style={styles.updateByText}>
-                    par {getUserName(displayItem.updatedBy) || 'Système'}
+              {/* Informations de mise à jour */}
+              {((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate) && (
+                <View style={styles.updateInfo}>
+                  <Text style={styles.updateText}>
+                    Dernière mise à jour: {formatDateWithTime((displayItem as any).lastUpdated || (displayItem as any).actualEndDate || (displayItem as any).actualStartDate)}
                   </Text>
+                  {displayItem.updatedBy && (
+                    <Text style={styles.updateByText}>
+                      par {getUserName(displayItem.updatedBy) || 'Système'}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Sous-étapes si c'est une phase principale */}
+              {!stepId && currentPhase.steps && currentPhase.steps.length > 0 && (
+                <View style={styles.subStepsSection}>
+                  <Text style={styles.subStepsTitle}>Sous-étapes:</Text>
+                  {currentPhase.steps.map((step, index) => (
+                    <TouchableOpacity
+                      key={step.id}
+                      style={styles.subStepItem}
+                      onPress={() =>
+                        navigation.navigate('PhaseDetail', {
+                          chantierId,
+                          phaseId,
+                          phaseName,
+                          stepId: step.id,
+                          stepName: step.name
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.subStepIndicator,
+                          { backgroundColor: getPhaseStatusColor(step.status) }
+                        ]}
+                      />
+                      <View style={styles.subStepContent}>
+                        <Text style={styles.subStepName}>{step.name}</Text>
+                        <Text style={styles.subStepProgress}>{step.progress}%</Text>
+                      </View>
+                      <MaterialIcons name="chevron-right" size={20} color="#999" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Photos de l'étape - Visible seulement si ce n'est pas une phase parente */}
+            {(!(!stepId && currentPhase?.steps && currentPhase.steps.length > 0)) && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  Photos de l'étape ({phasePhotos.length})
+                </Text>
+                {phasePhotos.length > 0 ? (
+                  <View style={styles.galleryGrid}>
+                    {phasePhotos.map((photo, index) => (
+                      <TouchableOpacity
+                        key={photo.id}
+                        style={styles.galleryItem}
+                        onPress={() => openMediaCarousel(index)}
+                        activeOpacity={0.8}
+                      >
+                        {photo.type === 'video' ? (
+                          <View style={styles.galleryImage}>
+                            <Video
+                              source={{ uri: photo.thumbnailUrl || photo.url }}
+                              style={{ width: '100%', height: '100%' }}
+                              resizeMode={ResizeMode.COVER}
+                              shouldPlay={false}
+                              isLooping={false}
+                              useNativeControls={false}
+                            />
+                            <View style={styles.playIconOverlay}>
+                              <MaterialIcons
+                                name="play-circle-filled"
+                                size={30}
+                                color="rgba(255,255,255,0.8)"
+                              />
+                            </View>
+                          </View>
+                        ) : (
+                          <Image
+                            source={{ uri: photo.thumbnailUrl || photo.url }}
+                            style={styles.galleryImage}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={styles.photoOverlay}>
+                          <MaterialIcons
+                            name={photo.type === 'video' ? 'play-circle-filled' : 'zoom-in'}
+                            size={16}
+                            color="#fff"
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyGallery}>
+                    <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
+                    <Text style={styles.emptyGalleryText}>Aucune photo disponible</Text>
+                    <Text style={styles.emptyGallerySubtext}>
+                      Les photos de cette étape apparaîtront ici
+                    </Text>
+                  </View>
                 )}
               </View>
             )}
 
-            {/* Sous-étapes si c'est une phase principale */}
-            {!stepId && currentPhase.steps && currentPhase.steps.length > 0 && (
-              <View style={styles.subStepsSection}>
-                <Text style={styles.subStepsTitle}>Sous-étapes:</Text>
-                {currentPhase.steps.map((step, index) => (
-                  <TouchableOpacity
-                    key={step.id}
-                    style={styles.subStepItem}
-                    onPress={() =>
-                      navigation.navigate('PhaseDetail', {
-                        chantierId,
-                        phaseId,
-                        phaseName,
-                        stepId: step.id,
-                        stepName: step.name
-                      })
-                    }
-                  >
-                    <View
-                      style={[
-                        styles.subStepIndicator,
-                        { backgroundColor: getPhaseStatusColor(step.status) }
-                      ]}
-                    />
-                    <View style={styles.subStepContent}>
-                      <Text style={styles.subStepName}>{step.name}</Text>
-                      <Text style={styles.subStepProgress}>{step.progress}%</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={20} color="#999" />
-                  </TouchableOpacity>
-                ))}
+            {/* Section de feedback */}
+            {true && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Messages et notes vocales</Text>
+                <View style={styles.feedbackContainer}>
+                  <PhaseFeedbackSection
+                    chantierId={chantierId}
+                    phaseId={phaseId}
+                    stepId={stepId}
+                  />
+                </View>
               </View>
             )}
-          </View>
-
-          {/* Photos de l'étape - Visible seulement si ce n'est pas une phase parente */}
-          {(!(!stepId && currentPhase?.steps && currentPhase.steps.length > 0)) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Photos de l'étape ({phasePhotos.length})
-              </Text>
-              {phasePhotos.length > 0 ? (
-                <View style={styles.galleryGrid}>
-                  {phasePhotos.map((photo, index) => (
-                    <TouchableOpacity
-                      key={photo.id}
-                      style={styles.galleryItem}
-                      onPress={() => openMediaCarousel(index)}
-                      activeOpacity={0.8}
-                    >
-                      {photo.type === 'video' ? (
-                        <View style={styles.galleryImage}>
-                          <Video
-                            source={{ uri: photo.thumbnailUrl || photo.url }}
-                            style={{ width: '100%', height: '100%' }}
-                            resizeMode={ResizeMode.COVER}
-                            shouldPlay={false}
-                            isLooping={false}
-                            useNativeControls={false}
-                          />
-                          <View style={styles.playIconOverlay}>
-                            <MaterialIcons
-                              name="play-circle-filled"
-                              size={30}
-                              color="rgba(255,255,255,0.8)"
-                            />
-                          </View>
-                        </View>
-                      ) : (
-                        <Image
-                          source={{ uri: photo.thumbnailUrl || photo.url }}
-                          style={styles.galleryImage}
-                          resizeMode="cover"
-                        />
-                      )}
-                      <View style={styles.photoOverlay}>
-                        <MaterialIcons
-                          name={photo.type === 'video' ? 'play-circle-filled' : 'zoom-in'}
-                          size={16}
-                          color="#fff"
-                        />
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyGallery}>
-                  <MaterialIcons name="photo-library" size={32} color="#E0E0E0" />
-                  <Text style={styles.emptyGalleryText}>Aucune photo disponible</Text>
-                  <Text style={styles.emptyGallerySubtext}>
-                    Les photos de cette étape apparaîtront ici
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Section de feedback - Visible seulement si ce n'est pas une phase parente */}
-          {(!(!stepId && currentPhase?.steps && currentPhase.steps.length > 0)) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Messages et notes vocales</Text>
-              <View style={styles.feedbackContainer}>
-                <PhaseFeedbackSection
-                  chantierId={chantierId}
-                  phaseId={phaseId}
-                  stepId={stepId}
-                />
-              </View>
-            </View>
-          )}
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Media Carousel Modal */}
         <Modal

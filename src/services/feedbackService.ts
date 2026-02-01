@@ -12,8 +12,8 @@ import {
     Timestamp,
     arrayUnion
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebase'; // Adjust path if needed, assuming standard setup
+import { db } from '../config/firebase'; // Adjust path if needed, assuming standard setup
+import { cloudinaryService } from './cloudinaryService';
 import { VoiceNoteFeedback } from '../types/firebase';
 
 const FEEDBACKS_SUBCOLLECTION = 'feedbacks';
@@ -25,14 +25,7 @@ export const feedbackService = {
      */
     uploadAudioFile: async (uri: string, chantierId: string): Promise<string> => {
         try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
-
-            const filename = `voice_notes/${chantierId}/${Date.now()}.m4a`; // Assuming m4a from expo-av
-            const storageRef = ref(storage, filename);
-
-            await uploadBytes(storageRef, blob);
-            const downloadURL = await getDownloadURL(storageRef);
+            const downloadURL = await cloudinaryService.uploadFile(uri, 'video'); // Cloudinary uses 'video' for audio as well
             return downloadURL;
         } catch (error) {
             console.error('Error uploading audio file:', error);
@@ -126,21 +119,26 @@ export const feedbackService = {
     ) => {
         const feedbacksRef = collection(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION);
 
-        let q = query(
+        const q = query(
             feedbacksRef,
             where('phaseId', '==', phaseId),
             orderBy('createdAt', 'asc')
         );
 
-        if (stepId) {
-            q = query(q, where('stepId', '==', stepId));
-        }
-
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const feedbacks = snapshot.docs.map(doc => ({
+            let feedbacks = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             })) as VoiceNoteFeedback[];
+
+            // Filter locally by stepId to avoid needing a composite index
+            if (stepId) {
+                feedbacks = feedbacks.filter(f => f.stepId === stepId);
+            } else {
+                // If no stepId provided, we only want feedbacks belonging to the phase directly
+                // (some might have a stepId if they were sent from a sub-step)
+                feedbacks = feedbacks.filter(f => !f.stepId);
+            }
 
             onUpdate(feedbacks);
         }, (error) => {
@@ -165,14 +163,14 @@ export const feedbackService = {
     },
 
     /**
-     * Deletes a voice note from Firestore
+     * Deletes a feedback document from Firestore
      */
-    deleteVoiceNote: async (chantierId: string, feedbackId: string, audioUrl: string) => {
+    deleteFeedback: async (chantierId: string, feedbackId: string) => {
         try {
             const feedbackRef = doc(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION, feedbackId);
             await deleteDoc(feedbackRef);
         } catch (error) {
-            console.error('Error deleting voice note:', error);
+            console.error('Error deleting feedback:', error);
             throw error;
         }
     }
