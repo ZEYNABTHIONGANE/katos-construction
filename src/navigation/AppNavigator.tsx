@@ -33,6 +33,8 @@ import PhaseDetailScreen from '../screens/main/PhaseDetailScreen';
 import ChefPhaseDetailScreen from '../screens/chef/ChefPhaseDetailScreen';
 import ChefChantierDetailsScreen from '../screens/chef/ChefChantierDetailsScreen';
 import PrivacyPolicyScreen from '../screens/main/PrivacyPolicyScreen';
+import ChatScreen from '../screens/main/ChatScreen';
+import ChefChatScreen from '../screens/chef/ChefChatScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -135,6 +137,35 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 color: focused ? '#2B2E83' : '#9CA3AF',
                 marginTop: 2,
               }}>Chantier</Text>
+            </View>
+          ),
+        }}
+      />
+      <ClientTab.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="chat"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Chat</Text>
             </View>
           ),
         }}
@@ -314,6 +345,35 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 color: focused ? '#2B2E83' : '#9CA3AF',
                 marginTop: 2,
               }}>Galerie</Text>
+            </View>
+          ),
+        }}
+      />
+      <ChefTab.Screen
+        name="ChefChat"
+        component={ChefChatScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="chat"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Chat</Text>
             </View>
           ),
         }}

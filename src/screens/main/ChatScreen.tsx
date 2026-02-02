@@ -195,8 +195,8 @@ export default function ChatScreen({ navigation }: Props) {
 
         <KeyboardAvoidingView
           style={styles.content}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           {/* Chat Header */}
           <View style={styles.chatHeader}>
