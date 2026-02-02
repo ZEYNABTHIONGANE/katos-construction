@@ -12,9 +12,9 @@ export default {
 
 
     splash: {
-      image: "./src/assets/logo.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      image: "./src/assets/splashScreen.png",
+      resizeMode: "cover",
+      backgroundColor: "#2B2E83", // Using the primary blue as fallback
     },
 
     ios: {

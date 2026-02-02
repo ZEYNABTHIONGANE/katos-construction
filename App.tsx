@@ -9,10 +9,8 @@ import useCustomFonts from './src/hooks/useFonts';
 import ToastManager from 'toastify-react-native';
 import { AuthProvider } from './src/contexts/AuthContext';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* reloading the app might cause this to error */
-});
+// Native splash screen will hide as soon as the JS bundle is loaded
+// SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const fontsLoaded = useCustomFonts();

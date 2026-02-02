@@ -370,14 +370,7 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     return () => clearTimeout(timer);
   }, [isLoading]);
 
-  // Hide splash screen when fonts are loaded and auth check is done
-  useEffect(() => {
-    if (fontsLoaded && !isLoading) {
-      SplashScreen.hideAsync().catch(() => {
-        /* ignore error */
-      });
-    }
-  }, [fontsLoaded, isLoading]);
+
 
   console.log('🏗️ AppNavigator render:', {
     isLoading,

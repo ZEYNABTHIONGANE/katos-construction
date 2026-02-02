@@ -322,6 +322,8 @@ export default function LoginScreen({ navigation }: Props) {
                   autoCorrect={false}
                   editable={!loading}
                   maxLength={50}
+                  multiline={false}
+                  numberOfLines={1}
                 />
                 {usernameValid === true && (
                   <MaterialIcons
@@ -376,6 +378,8 @@ export default function LoginScreen({ navigation }: Props) {
                   onBlur={handlePasswordBlur}
                   secureTextEntry={!showPassword}
                   editable={!loading}
+                  multiline={false}
+                  numberOfLines={1}
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
@@ -548,9 +552,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 56,
-    fontSize: 16,
+    fontSize: 14, // Slightly smaller to ensure long placeholder fits
     color: '#1A1A1A',
     fontFamily: 'FiraSans_400Regular',
+    textAlignVertical: 'center', // Fix for Android centering/wrapping
   },
   validationIcon: {
     marginLeft: 8,

@@ -1,7 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 
@@ -10,33 +8,33 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Splash'> & {
 };
 
 export default function SplashScreen({ navigation, onContinue }: Props) {
-  const handleConnect = () => {
-    if (onContinue) {
-      onContinue();
-    }
-  };
+  useEffect(() => {
+    // Transition automatique après 3 secondes
+    const timer = setTimeout(() => {
+      if (onContinue) {
+        onContinue();
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onContinue]);
 
   return (
-    <ExpoLinearGradient
-      colors={['#2B2E83', '#E96C2E']}
-      start={[0, 0]}
-      end={[1, 1]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      <Image
+        source={require('../../assets/splashScreen.png')}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
+
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
         </View>
         <Text style={styles.title}>Katos Connect</Text>
         <Text style={styles.subtitle}>Votre maison, notre passion</Text>
-
-
-        {<TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
-          <Text style={styles.connectButtonText}>Se connecter</Text>
-          <MaterialIcons name="arrow-forward" size={20} color="#2B2E83" />
-        </TouchableOpacity>}
       </View>
-    </ExpoLinearGradient>
+    </View>
   );
 }
 
