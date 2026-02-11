@@ -7,9 +7,9 @@ import {
     ScrollView,
     Image,
     TouchableOpacity,
-    SafeAreaView,
     Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';

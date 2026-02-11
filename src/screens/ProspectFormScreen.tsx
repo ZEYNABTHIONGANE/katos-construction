@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
     View,
@@ -7,20 +6,23 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     Alert,
+    Modal,
+    FlatList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { prospectService } from '../services/prospectService';
+import { useShowcaseData } from '../hooks/useShowcaseData';
 import AppHeader from '../components/AppHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProspectForm'>;
 
 export default function ProspectFormScreen({ navigation, route }: Props) {
+    const { villas } = useShowcaseData();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -29,6 +31,7 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
         project: route.params?.interestedProject || '',
     });
     const [loading, setLoading] = useState(false);
+    const [showPicker, setShowPicker] = useState(false);
 
     const handleSubmit = async () => {
         if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email) {
@@ -57,6 +60,11 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
             Alert.alert('Erreur', 'Une erreur est survenue lors de l\'envoi de votre demande.');
             setLoading(false);
         }
+    };
+
+    const selectProject = (projectName: string) => {
+        setFormData({ ...formData, project: projectName });
+        setShowPicker(false);
     };
 
     return (
@@ -122,12 +130,18 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Projet ou programme souhaité</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Ex: AS SALAM SA KEUR, Villa Oasis..."
-                                value={formData.project}
-                                onChangeText={(text) => setFormData({ ...formData, project: text })}
-                            />
+                            <TouchableOpacity
+                                style={styles.pickerTrigger}
+                                onPress={() => setShowPicker(true)}
+                            >
+                                <Text style={[
+                                    styles.pickerTriggerText,
+                                    !formData.project && { color: '#9CA3AF' }
+                                ]}>
+                                    {formData.project || 'Sélectionner un projet'}
+                                </Text>
+                                <MaterialIcons name="expand-more" size={24} color="#6B7280" />
+                            </TouchableOpacity>
                         </View>
 
                         <TouchableOpacity
@@ -147,6 +161,48 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <Modal
+                visible={showPicker}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Sélectionnez un projet</Text>
+                            <TouchableOpacity onPress={() => setShowPicker(false)}>
+                                <MaterialIcons name="close" size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={villas}
+                            keyExtractor={(item) => item.id || item.name}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.projectItem}
+                                    onPress={() => selectProject(item.name)}
+                                >
+                                    <View style={styles.projectItemContent}>
+                                        <Text style={styles.projectName}>{item.name}</Text>
+                                        <Text style={styles.projectType}>{item.type}</Text>
+                                    </View>
+                                    {formData.project === item.name && (
+                                        <MaterialIcons name="check" size={20} color="#E96C2E" />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={
+                                <View style={styles.emptyContainer}>
+                                    <Text style={styles.emptyText}>Aucun projet disponible pour le moment.</Text>
+                                </View>
+                            }
+                            ItemSeparatorComponent={() => <View style={styles.separator} />}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -221,5 +277,82 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 20,
         fontFamily: 'FiraSans_400Regular',
+    },
+    pickerTrigger: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    pickerTriggerText: {
+        fontSize: 16,
+        color: '#111827',
+        fontFamily: 'FiraSans_400Regular',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        paddingTop: 20,
+        paddingHorizontal: 20,
+        maxHeight: '70%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    modalTitle: {
+        fontSize: 18,
+        color: '#111827',
+        fontFamily: 'FiraSans_700Bold',
+    },
+    projectItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 15,
+    },
+    projectItemContent: {
+        flex: 1,
+    },
+    projectName: {
+        fontSize: 16,
+        color: '#111827',
+        fontFamily: 'FiraSans_600SemiBold',
+    },
+    projectType: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontFamily: 'FiraSans_400Regular',
+        marginTop: 2,
+    },
+    separator: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+    },
+    emptyContainer: {
+        padding: 40,
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        fontFamily: 'FiraSans_400Regular',
+        textAlign: 'center',
     },
 });

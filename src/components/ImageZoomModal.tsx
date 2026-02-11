@@ -8,10 +8,10 @@ import {
   Image,
   Dimensions,
   StatusBar,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
