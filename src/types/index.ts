@@ -21,7 +21,7 @@ export type RootStackParamList = {
   Main: undefined;
   Showcase: undefined;
   ProspectForm: { interestedProject?: string } | undefined;
-  VillaDetail: { villaType: string };
+  VillaDetail: { villa: import('./firebase').FirebaseProject };
   PhaseDetail: {
     chantierId: string;
     phaseId: string;

@@ -39,7 +39,7 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
 
   // Récupérer les vraies données
   const { session, isAuthenticated, logout, deleteAccount } = useClientAuth();
-  const { clientData, loading: clientDataLoading } = useClientData(session?.clientId || null);
+  const { clientData, loading: clielntDataLoading } = useClientData(session?.clientId || null);
   const { chantier, globalProgress, hasChantier } = useClientChantier();
 
   const handleNotificationToggle = (value: boolean) => {

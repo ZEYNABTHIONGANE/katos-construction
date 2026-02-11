@@ -20,43 +20,68 @@ type Props = NativeStackScreenProps<RootStackParamList, 'VillaDetail'>;
 const { width } = Dimensions.get('window');
 
 export default function VillaDetailScreen({ navigation, route }: Props) {
-    const { villaType } = route.params;
+    const { villa } = route.params;
+
+    // Déterminer le nombre de chambres à partir du type (F1, F2, etc.)
+    const getChambres = (type: string) => {
+        const match = type.match(/F(\d+)/);
+        if (match) {
+            return `${match[1]} Chambres`;
+        }
+        return type;
+    };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <AppHeader
-                title={villaType}
+                title={villa.name}
                 showBack={true}
                 showNotification={false}
                 onBackPress={() => navigation.goBack()}
             />
             <ScrollView>
                 <Image
-                    source={{ uri: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop' }}
+                    source={{ uri: villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop' }}
                     style={styles.mainImage}
                 />
 
                 <View style={styles.content}>
-                    <Text style={styles.title}>{villaType}</Text>
+                    <View style={styles.headerRow}>
+                        <Text style={styles.title}>{villa.name}</Text>
+                        {villa.price > 0 && (
+                            <Text style={styles.price}>
+                                {villa.price.toLocaleString()} {villa.currency || 'FCFA'}
+                            </Text>
+                        )}
+                    </View>
+
                     <View style={styles.tagRow}>
-                        <View style={styles.tag}>
-                            <MaterialIcons name="square-foot" size={16} color="#6B7280" />
-                            <Text style={styles.tagText}>150m²</Text>
-                        </View>
+                        {villa.surface ? (
+                            <View style={styles.tag}>
+                                <MaterialIcons name="square-foot" size={16} color="#6B7280" />
+                                <Text style={styles.tagText}>{villa.surface}m²</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.tag}>
+                                <MaterialIcons name="home" size={16} color="#6B7280" />
+                                <Text style={styles.tagText}>{villa.type}</Text>
+                            </View>
+                        )}
                         <View style={styles.tag}>
                             <MaterialIcons name="bed" size={16} color="#6B7280" />
-                            <Text style={styles.tagText}>4 Chambres</Text>
+                            <Text style={styles.tagText}>{villa.bedrooms ? `${villa.bedrooms} Chambres` : getChambres(villa.type)}</Text>
                         </View>
-                        <View style={styles.tag}>
-                            <MaterialIcons name="bathtub" size={16} color="#6B7280" />
-                            <Text style={styles.tagText}>3 SDB</Text>
-                        </View>
+                        {villa.bathrooms && (
+                            <View style={styles.tag}>
+                                <MaterialIcons name="bathtub" size={16} color="#6B7280" />
+                                <Text style={styles.tagText}>{villa.bathrooms} SDB</Text>
+                            </View>
+                        )}
                     </View>
 
                     <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.description}>
-                        La {villaType} offre un cadre de vie exceptionnel avec des finitions de haute qualité.
-                        Conçue pour maximiser l'espace et la lumière naturelle, elle est idéale pour une famille moderne.
+                        {villa.description || `La ${villa.name} offre un cadre de vie exceptionnel avec des finitions de haute qualité. Conçue pour maximiser l'espace et la lumière naturelle, elle est idéale pour une famille moderne.`}
                     </Text>
 
                     <Text style={styles.sectionTitle}>Points Forts</Text>
@@ -75,13 +100,13 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
 
                     <TouchableOpacity
                         style={styles.ctaBtn}
-                        onPress={() => navigation.navigate('ProspectForm', { interestedProject: villaType })}
+                        onPress={() => navigation.navigate('ProspectForm', { interestedProject: villa.name })}
                     >
                         <Text style={styles.ctaBtnText}>Je suis intéressé</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -101,7 +126,18 @@ const styles = StyleSheet.create({
         fontSize: 28,
         color: '#2B2E83',
         fontFamily: 'FiraSans_700Bold',
+        flex: 1,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 10,
+    },
+    price: {
+        fontSize: 18,
+        color: '#E96C2E',
+        fontFamily: 'FiraSans_700Bold',
     },
     tagRow: {
         flexDirection: 'row',

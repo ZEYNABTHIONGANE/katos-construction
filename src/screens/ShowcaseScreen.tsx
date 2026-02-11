@@ -144,7 +144,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                 <TouchableOpacity
                                     key={villa.id}
                                     style={styles.villaCard}
-                                    onPress={() => navigation.navigate('VillaDetail', { villaType: villa.name })}
+                                    onPress={() => navigation.navigate('VillaDetail', { villa })}
                                 >
                                     <Image source={{ uri: villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop' }} style={styles.villaImage} />
                                     <View style={styles.villaInfo}>
