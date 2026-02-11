@@ -575,6 +575,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   component={AboutScreen}
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+                <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+                <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
               </>
             ) : (
               <Stack.Screen name="ChefTabs">
@@ -586,9 +589,6 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
               component={PrivacyPolicyScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="Showcase" component={ShowcaseScreen} />
-            <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
-            <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
           </>
         )}
       </Stack.Navigator>

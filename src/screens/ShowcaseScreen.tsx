@@ -17,6 +17,9 @@ import { RootStackParamList } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useClientAuth } from '../hooks/useClientAuth';
 import { useShowcaseData } from '../hooks/useShowcaseData';
+import { authService } from '../services/authService';
+import { auth } from '../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,16 +36,32 @@ const DEFAULT_HERO = {
 };
 
 export default function ShowcaseScreen({ navigation }: Props) {
-    const { isAuthenticated } = useClientAuth();
-    const { content, villas, loading } = useShowcaseData();
+    const { isAuthenticated: isClientAuthenticated } = useClientAuth();
+    const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = React.useState(!!auth.currentUser);
+    const { content, villas, loading: dataLoading } = useShowcaseData();
+
+    React.useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setIsFirebaseAuthenticated(!!user);
+        });
+        return unsubscribe;
+    }, []);
+
+    const isAuthenticated = isClientAuthenticated || isFirebaseAuthenticated;
 
     const handleBecomeOwner = (projectName?: string) => {
         navigation.navigate('ProspectForm', { interestedProject: projectName });
     };
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (isAuthenticated) {
-            navigation.goBack();
+            // Déterminer vers quel dashboard aller
+            if (isClientAuthenticated) {
+                navigation.navigate('ClientTabs' as any);
+            } else {
+                // Pour les chefs, on vérifie s'ils sont dans le stack ou on reset
+                navigation.navigate('ChefTabs' as any);
+            }
         } else {
             navigation.navigate('Login');
         }
@@ -50,7 +69,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
 
     const canGoBack = navigation.canGoBack();
 
-    if (loading) {
+    if (dataLoading) {
         return (
             <View style={[styles.container, styles.center]}>
                 <ActivityIndicator size="large" color="#2B2E83" />
