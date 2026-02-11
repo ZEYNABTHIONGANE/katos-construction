@@ -135,6 +135,12 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
       onPress: () => navigation.navigate('About'),
     },
     {
+      id: 'showcase',
+      title: 'Découvrir nos Villas',
+      icon: 'storefront',
+      onPress: () => navigation.navigate('Showcase'),
+    },
+    {
       id: '4',
       title: 'Se déconnecter',
       icon: 'exit-to-app',

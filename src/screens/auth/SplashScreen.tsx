@@ -20,12 +20,7 @@ export default function SplashScreen({ navigation, onContinue }: Props) {
   }, [onContinue]);
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../../assets/splashScreen.png')}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
+    <View style={[styles.container, { backgroundColor: '#2B2E83' }]}>
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
@@ -44,6 +39,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    backgroundColor: '#2B2E83',
   },
   content: {
     alignItems: 'center',

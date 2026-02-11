@@ -35,6 +35,10 @@ import ChefChantierDetailsScreen from '../screens/chef/ChefChantierDetailsScreen
 import PrivacyPolicyScreen from '../screens/main/PrivacyPolicyScreen';
 import ChatScreen from '../screens/main/ChatScreen';
 import ChefChatScreen from '../screens/chef/ChefChatScreen';
+import ShowcaseScreen from '../screens/ShowcaseScreen';
+import ProspectFormScreen from '../screens/ProspectFormScreen';
+import VillaDetailScreen from '../screens/VillaDetailScreen';
+import DiagnosticScreen from '../screens/DiagnosticScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -137,35 +141,6 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 color: focused ? '#2B2E83' : '#9CA3AF',
                 marginTop: 2,
               }}>Chantier</Text>
-            </View>
-          ),
-        }}
-      />
-      <ClientTab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              minWidth: 50,
-            }}>
-              <MaterialIcons
-                name="chat"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              <Text style={{
-                fontSize: 10,
-                fontFamily: 'FiraSans_600SemiBold',
-                color: focused ? '#2B2E83' : '#9CA3AF',
-                marginTop: 2,
-              }}>Chat</Text>
             </View>
           ),
         }}
@@ -350,35 +325,6 @@ const ChefTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       />
       <ChefTab.Screen
-        name="ChefChat"
-        component={ChefChatScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              minWidth: 50,
-            }}>
-              <MaterialIcons
-                name="chat"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              <Text style={{
-                fontSize: 10,
-                fontFamily: 'FiraSans_600SemiBold',
-                color: focused ? '#2B2E83' : '#9CA3AF',
-                marginTop: 2,
-              }}>Chat</Text>
-            </View>
-          ),
-        }}
-      />
-      <ChefTab.Screen
         name="ChefProfil"
         options={{
           tabBarIcon: ({ color, focused }) => (
@@ -429,6 +375,20 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
 
     return () => clearTimeout(timer);
   }, [isLoading]);
+
+  // Hide the native splash screen when both auth and fonts are ready
+  useEffect(() => {
+    const hideSplash = async () => {
+      if (!isLoading && fontsLoaded) {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.warn('Error hiding splash screen:', e);
+        }
+      }
+    };
+    hideSplash();
+  }, [isLoading, fontsLoaded]);
 
 
 
@@ -552,7 +512,11 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     }
   };
 
-  if (isLoading || !isWelcomeFinished) {
+  if (isLoading || !fontsLoaded) {
+    return null; // Keep native splash visible
+  }
+
+  if (!isWelcomeFinished) {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -568,7 +532,12 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
+            <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+          </>
         ) : (
           <>
             {currentUser?.role === 'client' ? (
@@ -584,6 +553,11 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                 <Stack.Screen
                   name="ClientProjects"
                   component={ClientProjectsScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Diagnostic"
+                  component={DiagnosticScreen}
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
@@ -612,6 +586,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
               component={PrivacyPolicyScreen}
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+            <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+            <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
           </>
         )}
       </Stack.Navigator>

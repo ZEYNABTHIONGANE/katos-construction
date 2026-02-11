@@ -15,9 +15,13 @@ export type RootStackParamList = {
   HelpSupport: undefined;
   About: undefined;
   PrivacyPolicy: undefined;
+  Diagnostic: undefined;
   Chat: undefined;
   ChefChat: undefined;
   Main: undefined;
+  Showcase: undefined;
+  ProspectForm: { interestedProject?: string } | undefined;
+  VillaDetail: { villaType: string };
   PhaseDetail: {
     chantierId: string;
     phaseId: string;

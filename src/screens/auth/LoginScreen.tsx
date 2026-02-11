@@ -12,6 +12,7 @@ import {
   Image,
   Animated,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -250,206 +251,217 @@ export default function LoginScreen({ navigation }: Props) {
       end={[1, 1]}
       style={styles.container}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.navigate('Showcase')}
+          >
+            <MaterialIcons name="arrow-back" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 50}
         >
-          <View style={styles.content}>
-            {/* Header Section */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <Image source={require('../../assets/logo.png')} style={styles.logo} />
-              </View>
-              <Text style={styles.title}>Katos Connect</Text>
-              <Text style={styles.subtitle}>
-                Connectez-vous avec votre email ou identifiant client
-              </Text>
-
-              {/* Indicateur de type détecté */}
-              {detectedUserType && (
-                <View style={styles.userTypeIndicator}>
-                  <MaterialIcons
-                    name={detectedUserType === 'chef' ? 'engineering' : 'person'}
-                    size={16}
-                    color="#10B981"
-                  />
-                  <Text style={styles.userTypeText}>
-                    {detectedUserType === 'chef' ? 'Chef de chantier' : 'Client'}
-                  </Text>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.content}>
+              {/* Header Section */}
+              <View style={styles.header}>
+                <View style={styles.logoContainer}>
+                  <Image source={require('../../assets/logo.png')} style={styles.logo} />
                 </View>
-              )}
-            </View>
+                <Text style={styles.title}>Katos Connect</Text>
+                <Text style={styles.subtitle}>
+                  Connectez-vous avec votre email ou identifiant client
+                </Text>
 
-            {/* Form Section */}
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Animated.View style={[
-                  styles.inputWrapper,
-                  {
-                    borderColor: usernameInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [
-                        usernameValid === true ? '#10B981' :
-                          usernameValid === false ? '#EF4444' : '#E5E7EB',
-                        '#2B2E83'
-                      ]
-                    }),
-                    borderWidth: usernameInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1.5, 2]
-                    }),
-                    shadowOpacity: usernameInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 0.1]
-                    })
-                  }
-                ]}>
-                  <MaterialIcons
-                    name="person"
-                    size={20}
-                    color={usernameFocused ? '#2B2E83' : usernameValid === true ? '#10B981' : usernameValid === false ? '#EF4444' : '#6B7280'}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="email@exemple.com ou CLI123456789"
-                    placeholderTextColor="#9CA3AF"
-                    value={username}
-                    onChangeText={handleUsernameChange}
-                    onFocus={handleUsernameFocus}
-                    onBlur={handleUsernameBlur}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                    maxLength={50}
-                    multiline={false}
-                    numberOfLines={1}
-                  />
-                  {usernameValid === true && (
+                {/* Indicateur de type détecté */}
+                {detectedUserType && (
+                  <View style={styles.userTypeIndicator}>
                     <MaterialIcons
-                      name="check-circle"
-                      size={18}
+                      name={detectedUserType === 'chef' ? 'engineering' : 'person'}
+                      size={16}
                       color="#10B981"
-                      style={styles.validationIcon}
                     />
-                  )}
-                  {usernameValid === false && username.length > 0 && (
-                    <MaterialIcons
-                      name="error"
-                      size={18}
-                      color="#EF4444"
-                      style={styles.validationIcon}
-                    />
-                  )}
-                </Animated.View>
+                    <Text style={styles.userTypeText}>
+                      {detectedUserType === 'chef' ? 'Chef de chantier' : 'Client'}
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              <View style={styles.inputContainer}>
-                <Animated.View style={[
-                  styles.inputWrapper,
-                  {
-                    borderColor: passwordInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['#E5E7EB', '#2B2E83']
-                    }),
-                    borderWidth: passwordInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1.5, 2]
-                    }),
-                    shadowOpacity: passwordInputAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 0.1]
-                    })
-                  }
-                ]}>
-                  <MaterialIcons
-                    name="lock"
-                    size={20}
-                    color={passwordFocused ? '#2B2E83' : '#6B7280'}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Mot de passe"
-                    placeholderTextColor="#9CA3AF"
-                    value={password}
-                    onChangeText={setPassword}
-                    onFocus={handlePasswordFocus}
-                    onBlur={handlePasswordBlur}
-                    secureTextEntry={!showPassword}
-                    editable={!loading}
-                    multiline={false}
-                    numberOfLines={1}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
+              {/* Form Section */}
+              <View style={styles.form}>
+                <View style={styles.inputContainer}>
+                  <Animated.View style={[
+                    styles.inputWrapper,
+                    {
+                      borderColor: usernameInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [
+                          usernameValid === true ? '#10B981' :
+                            usernameValid === false ? '#EF4444' : '#E5E7EB',
+                          '#2B2E83'
+                        ]
+                      }),
+                      borderWidth: usernameInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1.5, 2]
+                      }),
+                      shadowOpacity: usernameInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 0.1]
+                      })
+                    }
+                  ]}>
                     <MaterialIcons
-                      name={showPassword ? 'visibility' : 'visibility-off'}
+                      name="person"
+                      size={20}
+                      color={usernameFocused ? '#2B2E83' : usernameValid === true ? '#10B981' : usernameValid === false ? '#EF4444' : '#6B7280'}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="email@exemple.com ou CLI123456789"
+                      placeholderTextColor="#9CA3AF"
+                      value={username}
+                      onChangeText={handleUsernameChange}
+                      onFocus={handleUsernameFocus}
+                      onBlur={handleUsernameBlur}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                      maxLength={50}
+                      multiline={false}
+                      numberOfLines={1}
+                    />
+                    {usernameValid === true && (
+                      <MaterialIcons
+                        name="check-circle"
+                        size={18}
+                        color="#10B981"
+                        style={styles.validationIcon}
+                      />
+                    )}
+                    {usernameValid === false && username.length > 0 && (
+                      <MaterialIcons
+                        name="error"
+                        size={18}
+                        color="#EF4444"
+                        style={styles.validationIcon}
+                      />
+                    )}
+                  </Animated.View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Animated.View style={[
+                    styles.inputWrapper,
+                    {
+                      borderColor: passwordInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['#E5E7EB', '#2B2E83']
+                      }),
+                      borderWidth: passwordInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1.5, 2]
+                      }),
+                      shadowOpacity: passwordInputAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 0.1]
+                      })
+                    }
+                  ]}>
+                    <MaterialIcons
+                      name="lock"
                       size={20}
                       color={passwordFocused ? '#2B2E83' : '#6B7280'}
+                      style={styles.inputIcon}
                     />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Mot de passe"
+                      placeholderTextColor="#9CA3AF"
+                      value={password}
+                      onChangeText={setPassword}
+                      onFocus={handlePasswordFocus}
+                      onBlur={handlePasswordBlur}
+                      secureTextEntry={!showPassword}
+                      editable={!loading}
+                      multiline={false}
+                      numberOfLines={1}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <MaterialIcons
+                        name={showPassword ? 'visibility' : 'visibility-off'}
+                        size={20}
+                        color={passwordFocused ? '#2B2E83' : '#6B7280'}
+                      />
+                    </TouchableOpacity>
+                  </Animated.View>
+                </View>
+
+                <Animated.View style={{
+                  transform: [{ scale: buttonAnimation }]
+                }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+                      loading && styles.loginButtonDisabled,
+                      loginSuccess && styles.loginButtonSuccess
+                    ]}
+                    onPress={handleLogin}
+                    disabled={loading}
+                    activeOpacity={0.8}
+                  >
+                    {loading ? (
+                      <View style={styles.buttonContent}>
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                        <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
+                          Connexion...
+                        </Text>
+                      </View>
+                    ) : loginSuccess ? (
+                      <Animated.View
+                        style={[
+                          styles.buttonContent,
+                          {
+                            opacity: successAnimation,
+                            transform: [{
+                              scale: successAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.8, 1]
+                              })
+                            }]
+                          }
+                        ]}
+                      >
+                        <MaterialIcons name="check" color="#FFFFFF" size={20} />
+                        <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
+                          Connecté
+                        </Text>
+                      </Animated.View>
+                    ) : (
+                      <Text style={styles.loginButtonText}>Se connecter</Text>
+                    )}
                   </TouchableOpacity>
                 </Animated.View>
               </View>
-
-              <Animated.View style={{
-                transform: [{ scale: buttonAnimation }]
-              }}>
-                <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    loading && styles.loginButtonDisabled,
-                    loginSuccess && styles.loginButtonSuccess
-                  ]}
-                  onPress={handleLogin}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <View style={styles.buttonContent}>
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                      <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
-                        Connexion...
-                      </Text>
-                    </View>
-                  ) : loginSuccess ? (
-                    <Animated.View
-                      style={[
-                        styles.buttonContent,
-                        {
-                          opacity: successAnimation,
-                          transform: [{
-                            scale: successAnimation.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0.8, 1]
-                            })
-                          }]
-                        }
-                      ]}
-                    >
-                      <MaterialIcons name="check" color="#FFFFFF" size={20} />
-                      <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>
-                        Connecté
-                      </Text>
-                    </Animated.View>
-                  ) : (
-                    <Text style={styles.loginButtonText}>Se connecter</Text>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </ExpoLinearGradient>
   );
 }
@@ -461,8 +473,23 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
-  content: {
+  safeArea: {
     flex: 1,
+  },
+  topHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    height: 50,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  content: {
     justifyContent: 'center',
     paddingHorizontal: 28,
     paddingVertical: 40,

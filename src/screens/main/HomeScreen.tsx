@@ -36,6 +36,8 @@ export default function HomeScreen({ navigation }: Props) {
     clientInfo
   } = useClientSpecificData();
 
+  const { session } = useClientAuth();
+
   const {
     chantier,
     loading: chantierLoading,
@@ -311,6 +313,21 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.emptyProjectSubtext}>
               Votre chantier apparaîtra ici une fois créé par l'administration
             </Text>
+
+            {/* Diagnostic info for developers/admins */}
+            <View style={styles.diagnosticContainer}>
+              <Text style={styles.diagnosticTitle}>Infos Diagnostic :</Text>
+              <Text style={styles.diagnosticText}>Client ID: {clientInfo?.id || 'N/A'}</Text>
+              <Text style={styles.diagnosticText}>Statut Client: {clientInfo?.status || 'N/A'}</Text>
+              <Text style={styles.diagnosticText}>Auth UID: {session?.clientId ? 'Connecté' : 'Non connecté'}</Text>
+
+              <TouchableOpacity
+                style={styles.diagnosticButton}
+                onPress={() => navigation.navigate('Diagnostic' as any)}
+              >
+                <Text style={styles.diagnosticButtonText}>Lancer le diagnostic complet</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -338,6 +355,14 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+        {/* Discreet link to showcase */}
+        <TouchableOpacity
+          style={styles.showcaseLink}
+          onPress={() => navigation.navigate('Showcase' as any)}
+        >
+          <Text style={styles.showcaseLinkText}>Découvrir nos autres programmes</Text>
+          <MaterialIcons name="arrow-forward" size={16} color="#E96C2E" />
+        </TouchableOpacity>
 
       </ScrollView>
     </View>
@@ -1265,5 +1290,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#D1D5DB',
     marginHorizontal: 6,
+  },
+  showcaseLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    marginBottom: 20,
+    gap: 8,
+  },
+  showcaseLinkText: {
+    fontSize: 15,
+    color: '#E96C2E',
+    fontFamily: 'FiraSans_600SemiBold',
+    textDecorationLine: 'underline',
+  },
+  diagnosticContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#FFF4ED',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE0CC',
+    width: '100%',
+  },
+  diagnosticTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#E96C2E',
+    marginBottom: 10,
+  },
+  diagnosticText: {
+    fontSize: 12,
+    color: '#4B5563',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  diagnosticButton: {
+    marginTop: 15,
+    backgroundColor: '#E96C2E',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  diagnosticButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

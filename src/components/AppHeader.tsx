@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { useNavigation } from '@react-navigation/native';
+
 interface AppHeaderProps {
   title: string;
   showBack?: boolean;
@@ -21,11 +23,21 @@ export default function AppHeader({
   showProfile = false,
   onProfilePress,
 }: AppHeaderProps) {
+  const navigation = useNavigation();
+
+  const handleBack = () => {
+    if (onBackPress) {
+      onBackPress();
+    } else {
+      navigation.goBack();
+    }
+  };
+
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         {showBack && (
-          <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
+          <TouchableOpacity style={styles.iconButton} onPress={handleBack}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
         )}
