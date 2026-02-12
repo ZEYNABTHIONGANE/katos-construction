@@ -15,8 +15,6 @@ import {
 import { ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import { Video } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useClientChantier } from '../../hooks/useClientChantier';
@@ -71,10 +69,10 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
     // Find index in filtered list
     const mediaList = getFilteredMedia();
     const index = mediaList.findIndex(m => m.url === mediaUrl);
-    
+
     if (index >= 0) {
-        setSelectedMediaIndex(index);
-        setShowMediaModal(true);
+      setSelectedMediaIndex(index);
+      setShowMediaModal(true);
     }
   };
 
@@ -445,7 +443,7 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
               <Text style={styles.carouselTitle}>
                 {selectedMediaIndex + 1} / {getFilteredMedia().length}
               </Text>
-              <View style={{ width: 40 }} /> 
+              <View style={{ width: 40 }} />
             </View>
 
             {getFilteredMedia().length > 0 && (
@@ -481,13 +479,13 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
                         }}
                       />
                     ) : (
-                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                      <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
                     )}
-                    
+
                     {item.description && (
-                        <Text style={styles.carouselDescription}>
+                      <Text style={styles.carouselDescription}>
                         {item.description}
-                        </Text>
+                      </Text>
                     )}
                   </View>
                 )}
@@ -774,7 +772,7 @@ const styles = StyleSheet.create({
   },
   carouselImage: {
     width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height, 
+    height: Dimensions.get('window').height,
     resizeMode: 'contain', // Ensure styling knows it's contain
   },
   carouselVideo: {

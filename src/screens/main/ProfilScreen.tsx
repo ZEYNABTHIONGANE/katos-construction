@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
   Switch,
 } from 'react-native';
@@ -40,7 +39,7 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
 
   // Récupérer les vraies données
   const { session, isAuthenticated, logout, deleteAccount } = useClientAuth();
-  const { clientData, loading: clientDataLoading } = useClientData(session?.clientId || null);
+  const { clientData, loading: clielntDataLoading } = useClientData(session?.clientId || null);
   const { chantier, globalProgress, hasChantier } = useClientChantier();
 
   const handleNotificationToggle = (value: boolean) => {
@@ -133,6 +132,12 @@ export default function ProfilScreen({ navigation, onLogout }: Props) {
       title: 'À propos',
       icon: 'info',
       onPress: () => navigation.navigate('About'),
+    },
+    {
+      id: 'showcase',
+      title: 'Découvrir nos Villas',
+      icon: 'storefront',
+      onPress: () => navigation.navigate('Showcase'),
     },
     {
       id: '4',

@@ -6,15 +6,11 @@ export default {
     orientation: "portrait",
     userInterfaceStyle: "light",
     newArchEnabled: true,
-
-
-    icon: "./src/assets/WhatsApp Image 2026-01-28 at 17.35.28.jpeg",
-
-
+    icon: "./src/assets/logo.png",
     splash: {
-      image: "./src/assets/splashScreen.png",
+      image: "./src/assets/logo.png",
       resizeMode: "cover",
-      backgroundColor: "#2B2E83", // Using the primary blue as fallback
+      backgroundColor: "#2B2E83",
     },
 
     ios: {
@@ -38,7 +34,7 @@ export default {
       googleServicesFile: "./google-services.json",
       versioncode: 11,
       adaptiveIcon: {
-        foregroundImage: "./src/assets/WhatsApp Image 2026-01-28 at 17.35.28.jpeg",
+        foregroundImage: "./src/assets/logo.png",
         backgroundColor: "#ffffff",
       },
       softwareKeyboardLayoutMode: "resize",

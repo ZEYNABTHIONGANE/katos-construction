@@ -33,6 +33,12 @@ import PhaseDetailScreen from '../screens/main/PhaseDetailScreen';
 import ChefPhaseDetailScreen from '../screens/chef/ChefPhaseDetailScreen';
 import ChefChantierDetailsScreen from '../screens/chef/ChefChantierDetailsScreen';
 import PrivacyPolicyScreen from '../screens/main/PrivacyPolicyScreen';
+import ChatScreen from '../screens/main/ChatScreen';
+import ChefChatScreen from '../screens/chef/ChefChatScreen';
+import ShowcaseScreen from '../screens/ShowcaseScreen';
+import ProspectFormScreen from '../screens/ProspectFormScreen';
+import VillaDetailScreen from '../screens/VillaDetailScreen';
+import DiagnosticScreen from '../screens/DiagnosticScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -370,6 +376,20 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     return () => clearTimeout(timer);
   }, [isLoading]);
 
+  // Hide the native splash screen when both auth and fonts are ready
+  useEffect(() => {
+    const hideSplash = async () => {
+      if (!isLoading && fontsLoaded) {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.warn('Error hiding splash screen:', e);
+        }
+      }
+    };
+    hideSplash();
+  }, [isLoading, fontsLoaded]);
+
 
 
   console.log('🏗️ AppNavigator render:', {
@@ -492,7 +512,11 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     }
   };
 
-  if (isLoading || !isWelcomeFinished) {
+  if (isLoading || !fontsLoaded) {
+    return null; // Keep native splash visible
+  }
+
+  if (!isWelcomeFinished) {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -508,7 +532,12 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
+            <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+          </>
         ) : (
           <>
             {currentUser?.role === 'client' ? (
@@ -527,6 +556,11 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
+                  name="Diagnostic"
+                  component={DiagnosticScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
                   name="ClientDocuments"
                   component={ClientDocumentsScreen}
                   options={{ headerShown: false }}
@@ -541,6 +575,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   component={AboutScreen}
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+                <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+                <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
               </>
             ) : (
               <Stack.Screen name="ChefTabs">

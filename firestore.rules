@@ -6,232 +6,118 @@ service cloud.firestore {
     // Collection users - Allow queries for username lookup
     match /users/{document=**} {
       // Allow unauthenticated list operations for username lookup during authentication
-      // This is required for mobile app username-based login using query().where('username', '==', ...)
-      // Security note: This allows querying user documents during login process
       allow list: if true;
     }
 
     // Collection users - Accès authentifié uniquement
     match /users/{userId} {
-      // Allow users to read/write their own document when authenticated
       allow read, write: if request.auth != null && request.auth.uid == userId;
-
-      // Allow authenticated users to read any user document for admin purposes
       allow read: if request.auth != null;
-
-      // Allow authenticated users (admins) to update user documents
       allow update: if request.auth != null;
-
-      // Allow authenticated admin users to create new user documents (for client account creation from backoffice)
       allow create: if request.auth != null &&
                       request.resource.data.keys().hasAll(['role', 'clientId']) &&
                       request.resource.data.role == 'client';
+      allow delete: if request.auth != null;
 
-      // Special rule: Allow unauthenticated read for username lookup during login
-      // This is necessary for mobile app username-based authentication
-      // Only allow if the document has a username field (indicating it's a client account)
+      // Special rule for username lookup during login
       allow read: if resource.data.keys().hasAll(['username', 'email']) &&
                      resource.data.username is string &&
                      resource.data.username.matches('^CLI[0-9]{9}$');
     }
 
-    // Collection clients - Accès limité pour les utilisateurs mobiles
+    // Collection clients
     match /clients/{clientId} {
-      // Permettre aux utilisateurs authentifiés de créer des clients (backoffice)
       allow create: if request.auth != null;
-
-      // Les utilisateurs peuvent lire les données client auxquelles ils sont liés
-      allow read: if request.auth != null &&
-                     request.auth.uid == resource.data.userId;
-
-      // Permettre aux utilisateurs authentifiés de lire tous les clients (backoffice)
       allow read: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés de lire la liste des clients (pour les chefs de chantier)
       allow list: if request.auth != null;
-
-      // Les utilisateurs peuvent mettre à jour certains champs de leur client
-      allow update: if request.auth != null &&
-                      request.auth.uid == resource.data.userId &&
-                      // Limiter les champs modifiables
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['status', 'acceptedAt', 'invitationStatus']);
-
-      // Permettre aux utilisateurs de mettre à jour leur statut d'invitation même s'ils ne sont pas encore liés
-      // Ceci est nécessaire pour le premier login où userId n'est pas encore défini sur le client
-      allow update: if request.auth != null &&
-                      request.auth.token.email == resource.data.email &&
-                      // Seulement autoriser la modification du statut d'invitation et dates
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['invitationStatus', 'acceptedAt']);
-
-      // Permettre aux utilisateurs authentifiés de mettre à jour les clients (backoffice)
       allow update: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés de supprimer les clients (backoffice)
       allow delete: if request.auth != null;
     }
 
-    // Collection projects - Accès authentifié pour le backoffice, lecture seule pour les clients
+    // Collection projects - MUST BE PUBLIC for the Showcase/Catalog
     match /projects/{projectId} {
-      // Lecture pour tous les utilisateurs authentifiés
-      allow read: if request.auth != null;
-
-      // Écriture pour les utilisateurs authentifiés (backoffice)
-      allow create, update, delete: if request.auth != null;
-    }
-
-    // Règles pour les requêtes de collection projects
-    match /projects/{document=**} {
-      // Permettre aux utilisateurs authentifiés de lister les projets
-      allow list: if request.auth != null;
-    }
-
-    // Collection materials - Accès complet pour les utilisateurs authentifiés
-    match /materials/{materialId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
-    }
-
-    // Règles pour les requêtes de collection materials
-    match /materials/{document=**} {
-      // Permettre aux utilisateurs authentifiés de lister les matériaux
-      allow list: if request.auth != null;
-    }
-
-    // Collection invitations - Accès spécial pour les invitations
-    match /invitations/{invitationId} {
-      // Les utilisateurs peuvent lire leurs propres invitations (règle existante mobile)
-      allow read: if request.auth != null &&
-                     request.auth.token.email == resource.data.email;
-
-      // Les utilisateurs peuvent mettre à jour le statut de leurs invitations (règle existante mobile)
-      allow update: if request.auth != null &&
-                      request.auth.token.email == resource.data.email &&
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['status', 'acceptedAt']);
-
-      // Règles pour les admins (backoffice)
-      // Permettre aux utilisateurs authentifiés de tout faire (lecture, écriture, suppression)
-      // Note: Dans une app plus complexe, on vérifierait le rôle 'admin', mais ici
-      // request.auth != null est la convention utilisée pour le backoffice
-      allow read, create, update, delete: if request.auth != null;
-
-      // Permettre le listing pour les admins
-      allow list: if request.auth != null;
-    }
-
-    // Collection invitationCodes - Gestion des codes d'invitation pour les admins
-    match /invitationCodes/{codeId} {
-      // Permettre la lecture pour validation lors de l'inscription (non-authentifié)
-      // ET pour les utilisateurs authentifiés (backoffice)
+      // Allow public read so the catalog works for everyone
       allow read: if true;
+      // Writing requires authentication (Backoffice)
+      allow create, update, delete: if request.auth != null;
+    }
 
-      // Permettre la mise à jour pour validation lors de l'inscription (non-authentifié)
-      // ET pour les utilisateurs authentifiés (backoffice)
-      allow update: if true;
-
-      // Seuls les utilisateurs authentifiés peuvent créer des codes d'invitation
-      allow create: if request.auth != null;
-
-      // Seuls les utilisateurs authentifiés peuvent supprimer des codes d'invitation
-      allow delete: if request.auth != null;
-
-      // Permettre le listing des codes pour les admins authentifiés ET pour la validation
+    // Allow listing projects publicly
+    match /projects/{document=**} {
       allow list: if true;
     }
 
-    // Collection pour les documents/fichiers - Lecture seule pour les clients
-    match /client_documents/{documentId} {
-      allow read: if request.auth != null;
-      // Les clients ne peuvent pas modifier/supprimer les documents
+    // Collection materials - ALSO PUBLIC for the Catalog
+    match /materials/{materialId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Allow listing materials publicly
+    match /materials/{document=**} {
+      allow list: if true;
+    }
+
+    // Collection invitations
+    match /invitations/{invitationId} {
+      allow read, create, update, delete: if request.auth != null;
+      allow list: if request.auth != null;
+      
+      // Allow client to read their own invitation by email
+      allow read: if request.auth != null &&
+                     request.auth.token.email == resource.data.email;
+    }
+
+    // Collection invitationCodes
+    match /invitationCodes/{codeId} {
+      allow read, update, list: if true;
+      allow create, delete: if request.auth != null;
+    }
+
+    // Collection settings - Paramètres de l'application (Showcase, etc.)
+    match /settings/showcase {
+      // Allow public read for the mobile app
+      allow read: if true;
+      // Only authenticated users can update the showcase
+      allow write: if request.auth != null;
     }
 
     // Collection chantiers - Accès pour chefs et clients
     match /chantiers/{chantierId} {
-      // Les chefs peuvent lire et modifier les chantiers qui leur sont assignés
-      allow read, write: if request.auth != null &&
-                           resource.data.assignedChefId == request.auth.uid;
-
-      // Les clients peuvent lire les chantiers qui leur sont assignés
-      allow read: if request.auth != null &&
-                    resource.data.clientId == request.auth.uid;
-
-      // Permettre la lecture aux utilisateurs authentifiés (règle temporaire pour debug)
-      allow read: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés de lire les chantiers (pour les requêtes de liste)
+      allow read, write: if request.auth != null;
       allow list: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés (admins) de créer, modifier et supprimer des chantiers
-      allow create, update, delete: if request.auth != null;
-
+      
       // Sub-collection feedbacks
       match /feedbacks/{feedbackId} {
-        // Allow read/write for authenticated users (chefs and clients) linked to this chantier
-        // Ideally we check if request.auth.uid is the client or chef, but for now allow authenticated
         allow read, write: if request.auth != null;
       }
     }
 
-    // Collection clientSelections - Sélections de matériaux par les clients
+    // Collection clientSelections
     match /clientSelections/{selectionId} {
-      // Les clients authentifiés peuvent créer des sélections
-      // Vérifier que le clientId dans les données correspond à l'UID de l'utilisateur authentifié
-      allow create: if request.auth != null &&
-                      request.resource.data.clientId == request.auth.uid;
-
-      // Les clients peuvent lire leurs propres sélections
-      allow read: if request.auth != null &&
-                    resource.data.clientId == request.auth.uid;
-
-      // Permettre à tous les utilisateurs authentifiés de lire les sélections (pour le backoffice)
-      allow read: if request.auth != null;
-
-      // Permettre aux utilisateurs authentifiés de lister les sélections (pour les requêtes)
-      allow list: if request.auth != null;
-
-      // Les utilisateurs authentifiés peuvent mettre à jour le statut des sélections
-      allow update: if request.auth != null &&
-                      // Limiter aux champs de statut et révision seulement
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['status', 'reviewedAt', 'reviewedBy', 'notes', 'updatedAt']);
+      allow read, list, create, update: if request.auth != null;
     }
 
-    // Collection documents - Gestion complète des documents
+    // Collection documents
     match /documents/{documentId} {
-      // Permettre à tous les utilisateurs authentifiés de lire tous les documents
-      allow read: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de lister les documents
-      allow list: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de créer des documents
-      allow create: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de mettre à jour les documents
-      allow update: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de supprimer les documents
-      allow delete: if request.auth != null;
+      allow read, list, create, update, delete: if request.auth != null;
     }
 
-    // Collection documentNotifications - Notifications de documents
+    // Collection documentNotifications
     match /documentNotifications/{notificationId} {
-      // Permettre à tous les utilisateurs authentifiés de lire les notifications
-      allow read: if request.auth != null;
+      allow read, list, create, update, delete: if request.auth != null;
+    }
 
-      // Permettre à tous les utilisateurs authentifiés de lister les notifications
+    // Collection prospects - Public creation permitted, read restricted to admins
+    match /prospects/{prospectId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
       allow list: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de créer des notifications
-      allow create: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de mettre à jour les notifications
-      allow update: if request.auth != null;
-
-      // Permettre à tous les utilisateurs authentifiés de supprimer les notifications
-      allow delete: if request.auth != null;
+    }
+    
+    // Default rules for any other documents
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

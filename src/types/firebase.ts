@@ -71,6 +71,9 @@ export interface FirebaseProject {
   type: string;
   price: number;
   currency: string;
+  surface?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   createdAt: Timestamp;
 }
 
