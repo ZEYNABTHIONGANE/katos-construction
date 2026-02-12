@@ -16,7 +16,6 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.katos.app",
-      buildNumber: "2",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
@@ -32,7 +31,7 @@ export default {
     android: {
       package: "com.katos.app",
       googleServicesFile: "./google-services.json",
-      versioncode: 11,
+      versioncode: 12,
       adaptiveIcon: {
         foregroundImage: "./src/assets/logo.png",
         backgroundColor: "#ffffff",
