@@ -2,11 +2,15 @@ export default {
   expo: {
     name: "katos-connect",
     slug: "katos-connect",
+
     version: "1.0.0",
     orientation: "portrait",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     icon: "./src/assets/logo.png",
+    plugins: [
+      "expo-font"
+    ],
     splash: {
       image: "./src/assets/logo.png",
       resizeMode: "cover",

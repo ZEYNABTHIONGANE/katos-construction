@@ -17,6 +17,8 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   Diagnostic: undefined;
   Chat: undefined;
+  Notifications: undefined;
+  ClientInvoices: undefined;
   ChefChat: undefined;
   Main: undefined;
   Showcase: undefined;
@@ -35,6 +37,7 @@ export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
   Documents: undefined;
+  ClientInvoices: undefined;
   Chat: undefined;
   Profil: undefined;
 };
@@ -112,5 +115,16 @@ export interface ProjectPhase {
   startDate?: string;
   endDate?: string;
   description: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'document_upload' | 'material_selection' | 'client_update' | 'payment';
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: any;
+  userId?: string;
+  clientId?: string;
 }
 

@@ -10,6 +10,7 @@ interface AppHeaderProps {
   onBackPress?: () => void;
   showNotification?: boolean;
   onNotificationPress?: () => void;
+  notificationCount?: number;
   showProfile?: boolean;
   onProfilePress?: () => void;
 }
@@ -20,6 +21,7 @@ export default function AppHeader({
   onBackPress,
   showNotification = false,
   onNotificationPress,
+  notificationCount = 0,
   showProfile = false,
   onProfilePress,
 }: AppHeaderProps) {
@@ -46,7 +48,16 @@ export default function AppHeader({
       <View style={styles.headerRight}>
         {showNotification && (
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress}>
-            <MaterialIcons name="notifications" size={24} color="#fff" />
+            <View>
+              <MaterialIcons name="notifications" size={24} color="#fff" />
+              {notificationCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         )}
         {showProfile && (
@@ -94,5 +105,25 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E96C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#2B2E83',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontFamily: 'FiraSans_700Bold',
+    textAlign: 'center',
   },
 });
