@@ -39,6 +39,8 @@ import ShowcaseScreen from '../screens/ShowcaseScreen';
 import ProspectFormScreen from '../screens/ProspectFormScreen';
 import VillaDetailScreen from '../screens/VillaDetailScreen';
 import DiagnosticScreen from '../screens/DiagnosticScreen';
+import ClientInvoicesScreen from '../screens/main/ClientInvoicesScreen';
+import NotificationScreen from '../screens/main/NotificationScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -170,6 +172,35 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 color: focused ? '#2B2E83' : '#9CA3AF',
                 marginTop: 2,
               }}>Documents</Text>
+            </View>
+          ),
+        }}
+      />
+      <ClientTab.Screen
+        name="ClientInvoices"
+        component={ClientInvoicesScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: focused ? '#F0F1FF' : 'transparent',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              minWidth: 50,
+            }}>
+              <MaterialIcons
+                name="receipt"
+                size={24}
+                color={focused ? '#2B2E83' : '#9CA3AF'}
+              />
+              <Text style={{
+                fontSize: 10,
+                fontFamily: 'FiraSans_600SemiBold',
+                color: focused ? '#2B2E83' : '#9CA3AF',
+                marginTop: 2,
+              }}>Paiements</Text>
             </View>
           ),
         }}
@@ -573,6 +604,16 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                 <Stack.Screen
                   name="About"
                   component={AboutScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="ClientInvoices"
+                  component={ClientInvoicesScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Notifications"
+                  component={NotificationScreen}
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen name="Showcase" component={ShowcaseScreen} />

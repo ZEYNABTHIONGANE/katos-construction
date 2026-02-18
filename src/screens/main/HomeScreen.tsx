@@ -22,6 +22,7 @@ import AppHeader from "../../components/AppHeader";
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { useClientDocuments } from "../../hooks/useDocuments";
 import { useUserNames } from "../../hooks/useUserNames";
+import { useNotifications } from "../../hooks/useNotifications";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -53,6 +54,8 @@ export default function HomeScreen({ navigation }: Props) {
     mainImage,
     recentUpdates
   } = useClientChantier();
+
+  const { unreadCount } = useNotifications();
 
   // Récupérer le nom du chef de chantier
   const { getUserName } = useUserNames(assignedChefId ? [assignedChefId] : []);
@@ -207,8 +210,9 @@ export default function HomeScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Tableau de bord"
-        showNotification={false}
-        onNotificationPress={() => { }}
+        showNotification={true}
+        notificationCount={unreadCount}
+        onNotificationPress={() => navigation.navigate('Notifications')}
       />
       <ScrollView
         style={styles.content}

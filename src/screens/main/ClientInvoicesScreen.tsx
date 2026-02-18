@@ -10,50 +10,59 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card } from '../../components/ui/Card';
-import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { EmptyState } from '../../components/ui/EmptyState';
+import { Card, LoadingSpinner, EmptyState } from '../../components/ui';
 import { FilterModal } from '../../components/modals/FilterModal';
 import {
   mobileInvoiceService,
   type MobileInvoice,
   type MobilePaymentHistory
 } from '../../services/mobileInvoiceService';
-import { useAuthContext } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import AppHeader from '../../components/AppHeader';
+import { useNavigation } from '@react-navigation/native';
+import { useNotifications } from '../../hooks/useNotifications';
+import { ReceiptDetailModal } from '../../components/modals/ReceiptDetailModal';
 
 export const ClientInvoicesScreen: React.FC = () => {
-  const { user } = useAuthContext();
+  const { userData } = useAuth();
   const [invoices, setInvoices] = useState<MobileInvoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<MobileInvoice[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<MobilePaymentHistory[]>([]);
+  const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [activeTab, setActiveTab] = useState<'overdue' | 'history'>('history');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<MobilePaymentHistory | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const { unreadCount } = useNotifications();
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
-    if (user?.clientId) {
+    if (userData?.clientId) {
       loadInvoices();
     }
-  }, [user?.clientId]);
+  }, [userData?.clientId]);
 
   useEffect(() => {
     filterInvoices();
   }, [invoices, activeTab]);
 
   const loadInvoices = async () => {
-    if (!user?.clientId) return;
+    if (!userData?.clientId) return;
 
     try {
       setError(null);
-      const [invoicesData, paymentsData] = await Promise.all([
-        mobileInvoiceService.getClientInvoices(user.clientId),
-        mobileInvoiceService.getClientPaymentHistory(user.clientId)
+      const [invoicesData, paymentsData, dashboardData] = await Promise.all([
+        mobileInvoiceService.getClientInvoices(userData.clientId),
+        mobileInvoiceService.getClientPaymentHistory(userData.clientId),
+        mobileInvoiceService.getMobilePaymentDashboard(userData.clientId)
       ]);
 
       setInvoices(invoicesData);
       setPaymentHistory(paymentsData);
+      setDashboard(dashboardData);
     } catch (err) {
       console.error('Erreur lors du chargement des factures:', err);
       setError('Erreur lors du chargement des factures');
@@ -91,14 +100,12 @@ export const ClientInvoicesScreen: React.FC = () => {
 
   const getTabCount = (tab: typeof activeTab) => {
     switch (tab) {
-      case 'paid':
-        return invoices.filter(inv => inv.paymentStatus === 'paid').length;
-      case 'pending':
-        return invoices.filter(inv => inv.paymentStatus === 'pending').length;
       case 'overdue':
         return invoices.filter(inv => inv.paymentStatus === 'overdue').length;
+      case 'history':
+        return paymentHistory.length;
       default:
-        return invoices.length;
+        return 0;
     }
   };
 
@@ -106,6 +113,11 @@ export const ClientInvoicesScreen: React.FC = () => {
     // Navigation vers les détails de la facture
     // TODO: Implémenter la navigation
     console.log('Ouvrir facture:', invoice.id);
+  };
+
+  const handlePaymentPress = (payment: MobilePaymentHistory) => {
+    setSelectedPayment(payment);
+    setShowReceiptModal(true);
   };
 
   const handleDownloadInvoice = (invoice: MobileInvoice) => {
@@ -201,6 +213,45 @@ export const ClientInvoicesScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const renderHistoryItem = ({ item: payment }: { item: MobilePaymentHistory }) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => handlePaymentPress(payment)}
+      style={styles.historyCardWrapper}
+    >
+      <Card style={styles.historyCard}>
+        <View style={styles.historyIcon}>
+          <Ionicons name="receipt-outline" size={24} color="#2B2E83" />
+        </View>
+        <View style={styles.historyContent}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>Reçu de paiement</Text>
+            <Text style={styles.historyAmount}>
+              {mobileInvoiceService.formatCurrency(payment.amount)}
+            </Text>
+          </View>
+          <Text style={styles.historyMethod}>
+            Méthode: {payment.method === 'bank_transfer' ? 'Virement' :
+              payment.method === 'mobile_money' ? 'Mobile Money' :
+                payment.method === 'cash' ? 'Espèces' : payment.method}
+          </Text>
+          <View style={styles.historyFooter}>
+            <Text style={styles.historyDate}>
+              {mobileInvoiceService.formatDate(payment.date)}
+            </Text>
+            <View style={styles.viewBadge}>
+              <Text style={styles.viewBadgeText}>Voir reçu</Text>
+              <Ionicons name="chevron-forward" size={12} color="#3B82F6" />
+            </View>
+          </View>
+          {payment.reference && (
+            <Text style={styles.historyRef}>Réf: {payment.reference}</Text>
+          )}
+        </View>
+      </Card>
+    </TouchableOpacity>
+  );
+
   const renderEmptyState = () => {
     const emptyStates = {
       all: {
@@ -222,6 +273,11 @@ export const ClientInvoicesScreen: React.FC = () => {
         icon: "alert-circle-outline",
         title: "Aucune facture en retard",
         description: "Félicitations ! Tous vos paiements sont à jour."
+      },
+      history: {
+        icon: "receipt-outline",
+        title: "Aucun historique",
+        description: "Vous n'avez pas encore effectué de paiements."
       }
     };
 
@@ -240,7 +296,7 @@ export const ClientInvoicesScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <LoadingSpinner size="large" />
-        <Text style={styles.loadingText}>Chargement des factures...</Text>
+        <Text style={styles.loadingText}>Chargement des paiements...</Text>
       </SafeAreaView>
     );
   }
@@ -261,39 +317,35 @@ export const ClientInvoicesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes factures</Text>
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Ionicons name="filter-outline" size={20} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        title="Mes Paiements"
+        showBack={false}
+        showNotification={true}
+        notificationCount={unreadCount}
+        onNotificationPress={() => navigation.navigate('Notifications')}
+      />
 
-      {/* Résumé rapide */}
+
+      {/* Résumé financier */}
       <View style={styles.summary}>
         <Card style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total des factures</Text>
-          <Text style={styles.summaryValue}>{invoices.length}</Text>
-        </Card>
-
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Montant total</Text>
+          <Text style={styles.summaryLabel}>Montant Total Project</Text>
           <Text style={styles.summaryValue}>
-            {mobileInvoiceService.formatCurrency(
-              invoices.reduce((sum, inv) => sum + inv.totalAmount, 0)
-            )}
+            {mobileInvoiceService.formatCurrency(dashboard?.totalProjectCost || 0)}
           </Text>
         </Card>
 
         <Card style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Restant à payer</Text>
+          <Text style={styles.summaryLabel}>Montant Versé</Text>
+          <Text style={[styles.summaryValue, styles.paidValue]}>
+            {mobileInvoiceService.formatCurrency(dashboard?.totalPaid || 0)}
+          </Text>
+        </Card>
+
+        <Card style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Reste à Payer</Text>
           <Text style={[styles.summaryValue, styles.remainingValue]}>
-            {mobileInvoiceService.formatCurrency(
-              invoices.reduce((sum, inv) => sum + inv.remainingAmount, 0)
-            )}
+            {mobileInvoiceService.formatCurrency(dashboard?.totalRemaining || 0)}
           </Text>
         </Card>
       </View>
@@ -302,10 +354,8 @@ export const ClientInvoicesScreen: React.FC = () => {
       <View style={styles.tabsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs}>
           {[
-            { key: 'all', label: 'Toutes' },
-            { key: 'pending', label: 'En attente' },
-            { key: 'paid', label: 'Payées' },
-            { key: 'overdue', label: 'En retard' }
+            { key: 'overdue', label: 'Retards' },
+            { key: 'history', label: 'Historique' }
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
@@ -328,8 +378,8 @@ export const ClientInvoicesScreen: React.FC = () => {
 
       {/* Liste des factures */}
       <FlatList
-        data={filteredInvoices}
-        renderItem={renderInvoiceItem}
+        data={(activeTab === 'history' ? paymentHistory : filteredInvoices) as any[]}
+        renderItem={activeTab === 'history' ? renderHistoryItem : renderInvoiceItem as any}
         keyExtractor={(item) => item.id!}
         style={styles.invoicesList}
         contentContainerStyle={styles.invoicesListContent}
@@ -345,10 +395,16 @@ export const ClientInvoicesScreen: React.FC = () => {
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         onApplyFilters={(filters) => {
-          // TODO: Implémenter les filtres avancés
-          console.log('Filtres appliqués:', filters);
+          console.log('Appliquer filtres:', filters);
           setShowFilterModal(false);
         }}
+      />
+
+      <ReceiptDetailModal
+        isVisible={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        payment={selectedPayment}
+        clientName={`${userData?.displayName || 'Client'}`}
       />
     </SafeAreaView>
   );
@@ -421,6 +477,9 @@ const styles = StyleSheet.create({
   },
   remainingValue: {
     color: '#F59E0B',
+  },
+  paidValue: {
+    color: '#10B981',
   },
   tabsContainer: {
     backgroundColor: 'white',
@@ -540,6 +599,79 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  historyCard: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  historyCardWrapper: {
+    marginBottom: 12,
+  },
+  historyIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  historyContent: {
+    flex: 1,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  historyAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10B981',
+  },
+  historyMethod: {
+    fontSize: 12,
+    color: '#6B7280',
+    textTransform: 'capitalize',
+    marginBottom: 2,
+  },
+  historyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  historyDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  historyRef: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  viewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  viewBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
 });
 

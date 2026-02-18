@@ -55,7 +55,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
 
   // Filter only viewable media (images and videos) from the current list
   const getViewableMedia = () => {
-    return filteredDocuments().filter(doc => 
+    return filteredDocuments().filter(doc =>
       doc.mimeType.startsWith('image/') || doc.mimeType.startsWith('video/')
     ).map(doc => ({
       ...doc,
@@ -67,10 +67,10 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
   const openMediaViewer = (mediaUrl: string) => {
     const viewableMedia = getViewableMedia();
     const index = viewableMedia.findIndex(m => m.url === mediaUrl);
-    
+
     if (index >= 0) {
-        setSelectedMediaIndex(index);
-        setShowMediaModal(true);
+      setSelectedMediaIndex(index);
+      setShowMediaModal(true);
     }
   };
 
@@ -82,7 +82,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
     const isViewable = item.mimeType.startsWith('image/') || item.mimeType.startsWith('video/');
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.documentCard}
         disabled={!isViewable}
         onPress={() => isViewable && openMediaViewer(item.url)}
@@ -135,11 +135,8 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
     const labels: Record<DocumentCategory, string> = {
       'contract': 'Contrat',
       'plan': 'Plan',
-      'invoice': 'Facture',
-      'permit': 'Autorisation',
       photo: 'Photos',
       video: 'Vidéos',
-      report: 'Rapports',
       'other': 'Autre'
     };
     return labels[category] || category;
@@ -149,10 +146,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
     { label: 'Tous', value: 'all' as const },
     { label: 'Contrats', value: 'contract' as const },
     { label: 'Plans', value: 'plan' as const },
-    { label: 'Factures', value: 'invoice' as const },
-    { label: 'Autorisations', value: 'permit' as const },
     { label: 'Photos', value: 'photo' as const },
-    { label: 'Rapports', value: 'report' as const },
     { label: 'Autres', value: 'other' as const },
   ];
 
@@ -287,7 +281,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
               <Text style={styles.carouselTitle}>
                 {selectedMediaIndex + 1} / {getViewableMedia().length}
               </Text>
-              <View style={{ width: 40 }} /> 
+              <View style={{ width: 40 }} />
             </View>
 
             {getViewableMedia().length > 0 && (
@@ -323,13 +317,13 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
                         }}
                       />
                     ) : (
-                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                      <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
                     )}
-                    
+
                     {item.description && (
-                        <Text style={styles.carouselDescription}>
+                      <Text style={styles.carouselDescription}>
                         {item.description}
-                        </Text>
+                      </Text>
                     )}
                   </View>
                 )}
@@ -598,7 +592,7 @@ const styles = StyleSheet.create({
   },
   carouselHeader: {
     position: 'absolute',
-     top: -60, // Adjusted for SafeAreaView
+    top: -60, // Adjusted for SafeAreaView
     left: 0,
     right: 0,
     zIndex: 10,

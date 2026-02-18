@@ -122,7 +122,7 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
   // Filter only viewable media (images and videos) from the current list
   const getViewableMedia = () => {
     const docs = selectedCategory === 'all' ? documents : filteredDocuments;
-    return docs.filter(doc => 
+    return docs.filter(doc =>
       doc.mimeType.startsWith('image/') || doc.mimeType.startsWith('video/')
     ).map(doc => ({
       ...doc,
@@ -134,10 +134,10 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
   const openMediaViewer = (mediaUrl: string) => {
     const viewableMedia = getViewableMedia();
     const index = viewableMedia.findIndex(m => m.url === mediaUrl);
-    
+
     if (index >= 0) {
-        setSelectedMediaIndex(index);
-        setShowMediaModal(true);
+      setSelectedMediaIndex(index);
+      setShowMediaModal(true);
     }
   };
   // Handle document press (mark as read and show details)
@@ -146,16 +146,16 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
     const docType = (doc as any).type || doc.category;
 
     if (doc.category === 'video' || doc.mimeType?.includes('video') || doc.mimeType?.includes('image') || docType === 'photo') {
-       openMediaViewer(doc.url);
-       return;
+      openMediaViewer(doc.url);
+      return;
     }
-    
+
     // Always open viewer if supported, otherwise do nothing or show toast (for now, assume viewer handles supported types)
     if (doc.mimeType?.includes('pdf') || docType === 'plan' || docType === 'contract' || docType === 'invoice' || docType === 'report' || docType === 'permit') {
       setViewingDocument(doc);
       setModalVisible(true);
     } else {
-       Alert.alert('Info', 'Ce type de document ne peut pas être visualisé dans l\'application.');
+      Alert.alert('Info', 'Ce type de document ne peut pas être visualisé dans l\'application.');
     }
   };
 
@@ -182,11 +182,8 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
     const labels: Record<DocumentCategory, string> = {
       'contract': 'Contrat',
       'plan': 'Plan',
-      'invoice': 'Facture',
-      'permit': 'Autorisation',
       'photo': 'Photo',
       'video': 'Vidéo',
-      'report': 'Rapport',
       'other': 'Autre'
     };
     return labels[category] || category;
@@ -196,10 +193,7 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
     switch (category) {
       case 'contract': return '#2B2E83';
       case 'plan': return '#E96C2E';
-      case 'invoice': return '#4CAF50';
-      case 'permit': return '#FF9800';
       case 'photo': return '#03A9F4';
-      case 'report': return '#9C27B0';
       case 'other': return '#607D8B';
       default: return '#6B7280';
     }
@@ -253,11 +247,8 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
     { label: 'Tous', value: 'all' as const, count: totalDocuments },
     { label: 'Contrats', value: 'contract' as const, count: documentsByCategory['contract']?.length || 0 },
     { label: 'Plans', value: 'plan' as const, count: documentsByCategory['plan']?.length || 0 },
-    { label: 'Factures', value: 'invoice' as const, count: documentsByCategory['invoice']?.length || 0 },
-    { label: 'Autorisations', value: 'permit' as const, count: documentsByCategory['permit']?.length || 0 },
     { label: 'Photos', value: 'photo' as const, count: documentsByCategory['photo']?.length || 0 },
     { label: 'Vidéos', value: 'video' as const, count: documentsByCategory['video']?.length || 0 },
-    { label: 'Rapports', value: 'report' as const, count: documentsByCategory['report']?.length || 0 },
     { label: 'Autres', value: 'other' as const, count: documentsByCategory['other']?.length || 0 },
   ];
 
@@ -413,8 +404,8 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
           onRequestClose={() => setViewingDocument(null)}
         >
           <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee', marginTop: 10}}>
-              <TouchableOpacity 
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee', marginTop: 10 }}>
+              <TouchableOpacity
                 onPress={() => setViewingDocument(null)}
                 hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                 style={{ padding: 10, backgroundColor: '#F3F4F6', borderRadius: 20 }}
@@ -424,7 +415,7 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
               <Text style={{ fontSize: 16, fontWeight: '600', maxWidth: '80%' }} numberOfLines={1}>
                 {viewingDocument?.originalName}
               </Text>
-              <View style={{ width: 44 }} /> 
+              <View style={{ width: 44 }} />
             </View>
             {viewingDocument?.url && (
               <WebView
@@ -445,8 +436,8 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
           visible={isVideoModalVisible}
           videoUri={selectedVideo?.url || ''}
           onClose={() => {
-              setIsVideoModalVisible(false);
-              setSelectedVideo(null);
+            setIsVideoModalVisible(false);
+            setSelectedVideo(null);
           }}
         />
 
@@ -466,7 +457,7 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
               <Text style={styles.carouselTitle}>
                 {selectedMediaIndex + 1} / {getViewableMedia().length}
               </Text>
-              <View style={{ width: 40 }} /> 
+              <View style={{ width: 40 }} />
             </View>
 
             {getViewableMedia().length > 0 && (
@@ -502,7 +493,7 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
                         }}
                       />
                     ) : (
-                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                      <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
                     )}
                   </View>
                 )}

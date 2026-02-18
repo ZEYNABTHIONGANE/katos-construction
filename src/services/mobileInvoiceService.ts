@@ -105,25 +105,86 @@ export interface MobilePaymentDashboard {
 export class MobileInvoiceService {
   private invoicesCollection = 'invoices';
   private paymentsCollection = 'paymentHistory';
+  private schedulesCollection = 'paymentSchedules';
+
+  /**
+   * Réconcilier les factures avec l'historique des paiements
+   * Cette fonction recalcule dynamiquement le statut de chaque facture
+   */
+  reconcileInvoices(invoices: MobileInvoice[], payments: MobilePaymentHistory[]): MobileInvoice[] {
+    // 1. Trier les factures par date d'échéance/émission (les plus anciennes d'abord)
+    const sortedInvoices = [...invoices].sort((a, b) =>
+      (a.issueDate?.seconds || 0) - (b.issueDate?.seconds || 0)
+    );
+
+    // 2. Calculer le montant total payé
+    let totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    // 3. Distribuer le montant payé sur les factures
+    return sortedInvoices.map(inv => {
+      if (totalPaid <= 0) {
+        return {
+          ...inv,
+          paidAmount: 0,
+          remainingAmount: inv.totalAmount,
+          paymentStatus: 'pending' as const
+        };
+      }
+
+      const amountToApply = Math.min(totalPaid, inv.totalAmount);
+      const remainingOnInvoice = inv.totalAmount - amountToApply;
+      totalPaid -= amountToApply;
+
+      let paymentStatus: MobileInvoice['paymentStatus'] = 'pending';
+      if (remainingOnInvoice <= 0) {
+        paymentStatus = 'paid';
+      } else {
+        const now = new Date();
+        if (inv.dueDate && inv.dueDate.toDate() < now) {
+          paymentStatus = 'overdue';
+        } else if (amountToApply > 0) {
+          paymentStatus = 'partial';
+        }
+      }
+
+      return {
+        ...inv,
+        paidAmount: amountToApply,
+        remainingAmount: remainingOnInvoice,
+        paymentStatus
+      };
+    }).sort((a, b) => (b.issueDate?.seconds || 0) - (a.issueDate?.seconds || 0)); // Retrier par date décroissante pour l'affichage
+  }
+
+  /**
+   * Récupérer toutes les factures brutes d'un client
+   */
+  private async getClientInvoicesRaw(clientId: string): Promise<MobileInvoice[]> {
+    const q = query(
+      collection(db, this.invoicesCollection),
+      where('clientId', '==', clientId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as MobileInvoice[];
+  }
 
   /**
    * Récupérer toutes les factures d'un client (côté mobile)
    */
   async getClientInvoices(clientId: string): Promise<MobileInvoice[]> {
     try {
-      const q = query(
-        collection(db, this.invoicesCollection),
-        where('clientId', '==', clientId),
-        where('status', '!=', 'draft'), // Ne pas afficher les brouillons côté mobile
-        orderBy('status'),
-        orderBy('issueDate', 'desc')
-      );
+      const [rawInvoices, payments] = await Promise.all([
+        this.getClientInvoicesRaw(clientId),
+        this.getClientPaymentHistory(clientId)
+      ]);
 
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MobileInvoice[];
+      const validInvoices = rawInvoices.filter(inv => inv.status !== 'draft');
+
+      // Réconcilier avec les paiements
+      return this.reconcileInvoices(validInvoices, payments);
     } catch (error) {
       console.error('Erreur lors de la récupération des factures:', error);
       throw error;
@@ -139,18 +200,24 @@ export class MobileInvoiceService {
   ): () => void {
     const q = query(
       collection(db, this.invoicesCollection),
-      where('clientId', '==', clientId),
-      where('status', '!=', 'draft'),
-      orderBy('status'),
-      orderBy('issueDate', 'desc')
+      where('clientId', '==', clientId)
     );
 
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, async (snapshot) => {
       const invoices = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as MobileInvoice[];
-      callback(invoices);
+
+      try {
+        const payments = await this.getClientPaymentHistory(clientId);
+        const validInvoices = invoices.filter(inv => inv.status !== 'draft');
+        const reconciled = this.reconcileInvoices(validInvoices, payments);
+        callback(reconciled);
+      } catch (error) {
+        console.error('Erreur lors de la réconciliation temps réel:', error);
+        callback(invoices.filter(inv => inv.status !== 'draft'));
+      }
     });
   }
 
@@ -183,18 +250,48 @@ export class MobileInvoiceService {
     try {
       const q = query(
         collection(db, this.paymentsCollection),
-        where('clientId', '==', clientId),
-        orderBy('date', 'desc')
+        where('clientId', '==', clientId)
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
+      const payments = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as MobilePaymentHistory[];
+
+      // Trier par date décroissante
+      return payments.sort((a, b) => {
+        const dateA = a.date?.seconds || 0;
+        const dateB = b.date?.seconds || 0;
+        return dateB - dateA;
+      });
     } catch (error) {
       console.error('Erreur lors de la récupération des paiements:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Récupérer l'échéancier d'un client
+   */
+  async getClientPaymentSchedule(clientId: string): Promise<any | null> {
+    try {
+      const q = query(
+        collection(db, this.schedulesCollection),
+        where('clientId', '==', clientId),
+        where('status', '==', 'active')
+      );
+
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+
+      return {
+        id: snapshot.docs[0].id,
+        ...snapshot.docs[0].data()
+      };
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'échéancier:', error);
+      return null;
     }
   }
 
@@ -203,15 +300,18 @@ export class MobileInvoiceService {
    */
   async getMobilePaymentDashboard(clientId: string): Promise<MobilePaymentDashboard> {
     try {
-      const [invoices, payments] = await Promise.all([
-        this.getClientInvoices(clientId),
-        this.getClientPaymentHistory(clientId)
+      const [payments, schedule] = await Promise.all([
+        this.getClientPaymentHistory(clientId),
+        this.getClientPaymentSchedule(clientId)
       ]);
 
-      // Calculs principaux
-      const totalProjectCost = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+      const rawInvoices = await this.getClientInvoicesRaw(clientId);
+      const invoices = this.reconcileInvoices(rawInvoices, payments);
+
+      // Calculs principaux alignés sur le backoffice
+      const totalProjectCost = schedule ? schedule.totalAmount : invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
       const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-      const totalRemaining = totalProjectCost - totalPaid;
+      const totalRemaining = Math.max(0, totalProjectCost - totalPaid);
       const paymentProgress = totalProjectCost > 0 ? Math.round((totalPaid / totalProjectCost) * 100) : 0;
 
       // Compteurs de factures
