@@ -148,35 +148,6 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       />
       <ClientTab.Screen
-        name="Documents"
-        component={ClientDocumentsScreenV3}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? '#F0F1FF' : 'transparent',
-              borderRadius: 16,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
-              minWidth: 53,
-            }}>
-              <MaterialIcons
-                name="description"
-                size={24}
-                color={focused ? '#2B2E83' : '#9CA3AF'}
-              />
-              <Text style={{
-                fontSize: 10,
-                fontFamily: 'FiraSans_600SemiBold',
-                color: focused ? '#2B2E83' : '#9CA3AF',
-                marginTop: 2,
-              }}>Documents</Text>
-            </View>
-          ),
-        }}
-      />
-      <ClientTab.Screen
         name="ClientInvoices"
         component={ClientInvoicesScreen}
         options={{
@@ -191,7 +162,7 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
               minWidth: 50,
             }}>
               <MaterialIcons
-                name="receipt"
+                name="payments"
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
@@ -592,8 +563,8 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
-                  name="ClientDocuments"
-                  component={ClientDocumentsScreen}
+                  name="Documents"
+                  component={ClientDocumentsScreenV3}
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
