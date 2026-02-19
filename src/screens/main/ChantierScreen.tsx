@@ -294,14 +294,14 @@ export default function ChantierScreen({ navigation, route }: Props) {
       <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
         {/* Header moderne */}
         <View style={styles.header}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <Text style={styles.headerTitle}>Chantier</Text>
-          <View style={styles.headerRight} />
+          {/* <View style={styles.headerRight} /> */}
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -617,8 +617,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: 80,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    // borderBottomLeftRadius: 20,
+    // borderBottomRightRadius: 20,
     marginBottom: 20,
   },
   backButton: {
