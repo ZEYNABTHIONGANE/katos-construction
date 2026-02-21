@@ -22,6 +22,7 @@ import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { optimizeCloudinaryUrl } from '../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Showcase'>;
 
@@ -78,40 +79,87 @@ export default function ShowcaseScreen({ navigation }: Props) {
     return (
         <View style={styles.container} >
             <StatusBar barStyle="dark-content" />
-            <SafeAreaView edges={["bottom"]}>
+            <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                     {/* Hero section with image background */}
                     <View style={styles.heroWrapper}>
                         <Image
-                            source={{ uri: require('../utils/cloudinaryUtils').optimizeCloudinaryUrl(heroProject.imageUrl, { width: 1000, quality: 'auto' }) }}
+                            source={{ uri: optimizeCloudinaryUrl(heroProject.imageUrl, { width: 1000, quality: 'auto' }) }}
                             style={styles.heroBg}
                         />
                         <LinearGradient
-                            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
+                            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)'] as const}
                             style={styles.heroOverlay}
                         >
+                            <TouchableOpacity
+                                style={styles.loginHeaderBtn}
+                                onPress={handleLogin}
+                            >
+                                <MaterialIcons name="account-circle" size={26} color="#FFFFFF" />
+                                <Text style={styles.loginHeaderBtnText}>
+                                    {isAuthenticated ? 'Mon Espace' : 'Connexion'}
+                                </Text>
+                            </TouchableOpacity>
+
                             <View style={styles.heroContent}>
                                 {/* <View style={styles.logoContainer}>
                                     <Image source={require('../assets/logo.png')} style={styles.heroLogo} />
                                 </View> */}
 
-                                <Text style={styles.heroTagline}>Vous possédez un terrain ?</Text>
-                                <Text style={styles.heroMainTitle}>Construisons votre villa ensemble.</Text>
+                                <Text style={styles.heroTagline}>Votre partenaire de confiance au Sénégal</Text>
+                                <Text style={styles.heroMainTitle}>Concevez et réalisez la villa de vos rêves</Text>
 
                                 <TouchableOpacity
                                     style={styles.heroCTA}
                                     onPress={() => handleBecomeOwner()}
                                 >
-                                    <Text style={styles.heroCTAText}>Lancer mon projet</Text>
+                                    <Text style={styles.heroCTAText}>Démarrer mon projet</Text>
                                     <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
                                 </TouchableOpacity>
                             </View>
                         </LinearGradient>
                     </View>
 
-                    {/* Main Hub - 4 Strategic Buttons */}
+                    {/* Quick Services Section - PROMINENT FOR APPLE */}
+                    <View style={styles.servicesSection}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.hubTitle}>Outils & Services Publics</Text>
+                            <View style={styles.publicBadge}>
+                                <Text style={styles.publicBadgeText}>ACCÈS LIBRE</Text>
+                            </View>
+                        </View>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
+                            <ServiceCard
+                                icon="calculate"
+                                title="Simulateur"
+                                desc="Estimez votre budget de construction"
+                                onPress={() => navigation.navigate('BudgetEstimator' as any)}
+                                color="#2B2E83"
+                                badge="Outil"
+                            />
+                            <ServiceCard
+                                icon="fact-check"
+                                title="Guide d'Achat"
+                                desc="Checklist sécurisée pour votre terrain"
+                                onPress={() => navigation.navigate('BuyerChecklist' as any)}
+                                color="#10B981"
+                                badge="Guide"
+                            />
+                            <ServiceCard
+                                icon="support-agent"
+                                title="Katos Conseil"
+                                desc="Expertise & Assistance BTP interactive"
+                                onPress={() => navigation.navigate('BTPAdvice' as any)}
+                                color="#6366F1"
+                                badge="Expert"
+                            />
+                        </ScrollView>
+                    </View>
+
+                    {/* Main Hub - Category 1: Projects */}
                     <View style={styles.hubContainer}>
-                        <Text style={styles.hubTitle}>Comment pouvons-nous vous aider ?</Text>
+                        <Text style={styles.hubTitle}>Nos Solutions Clé en Main</Text>
 
                         <View style={styles.hubGrid}>
                             <HubButton
@@ -131,19 +179,19 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                 color="#E96C2E"
                             />
                             <HubButton
-                                icon="event"
-                                title="Prendre RDV"
-                                subtitle="Étude technique offerte"
-                                onPress={() => handleBecomeOwner('Rendez-vous')}
-                                color="#10B981"
-                            />
-                            {/* <HubButton
-                                icon="account-circle"
-                                title="Espace Client"
-                                subtitle="Suivez votre chantier"
-                                onPress={handleLogin}
+                                icon="support-agent"
+                                title="Katos Conseil"
+                                subtitle="Expertise & Assistance BTP"
+                                onPress={() => navigation.navigate('BTPAdvice' as any)}
                                 color="#6366F1"
-                            /> */}
+                            />
+                            <HubButton
+                                icon="landscape"
+                                title="Terrains"
+                                subtitle="Nos parcelles disponibles"
+                                onPress={() => navigation.navigate('TerrainList' as any)}
+                                color="#F59E0B"
+                            />
                         </View>
                     </View>
 
@@ -194,7 +242,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                     >
                                         <View style={styles.villaImageContainer}>
                                             <Image
-                                                source={{ uri: require('../utils/cloudinaryUtils').optimizeCloudinaryUrl(villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop', { width: 600, quality: 'auto' }) }}
+                                                source={{ uri: optimizeCloudinaryUrl(villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop', { width: 600, quality: 'auto' }) }}
                                                 style={styles.villaImagePremium}
                                             />
                                             <View style={styles.villaBadge}>
@@ -273,6 +321,34 @@ function HubButton({ icon, title, subtitle, onPress, color }: any) {
     );
 }
 
+function ServiceCard({ icon, title, desc, onPress, color, badge }: any) {
+    return (
+        <TouchableOpacity
+            style={[styles.serviceCard, { borderBottomColor: color }]}
+            onPress={onPress}
+            activeOpacity={0.8}
+        >
+            <View style={styles.serviceBadgeCorner}>
+                <View style={[styles.serviceBadge, { backgroundColor: color }]}>
+                    <Text style={styles.serviceBadgeText}>{badge}</Text>
+                </View>
+            </View>
+
+            <View style={[styles.serviceIconContainer, { backgroundColor: color + '15' }]}>
+                <MaterialIcons name={icon} size={28} color={color} />
+            </View>
+
+            <Text style={styles.serviceTitle}>{title}</Text>
+            <Text style={styles.serviceDesc}>{desc}</Text>
+
+            <View style={styles.serviceFooter}>
+                <Text style={[styles.serviceLink, { color: color }]}>Découvrir</Text>
+                <MaterialIcons name="chevron-right" size={18} color={color} />
+            </View>
+        </TouchableOpacity>
+    );
+}
+
 function FeatureItem({ icon, title, desc }: any) {
     return (
         <View style={styles.featureItem}>
@@ -332,6 +408,31 @@ const styles = StyleSheet.create({
     heroContent: {
         marginBottom: 20,
     },
+    loginHeaderBtn: {
+        position: 'absolute',
+        top: 60,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(43, 46, 131, 0.85)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 25,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        zIndex: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    loginHeaderBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontFamily: 'FiraSans_700Bold',
+        marginLeft: 8,
+    },
     logoContainer: {
         marginBottom: 20,
         width: 200,
@@ -346,18 +447,18 @@ const styles = StyleSheet.create({
     },
     heroTagline: {
         color: '#E96C2E',
-        fontSize: 18,
-        fontFamily: 'FiraSans_700Bold',
+        fontSize: 16,
+        fontFamily: 'Outfit_700Bold',
         marginBottom: 8,
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 2,
     },
     heroMainTitle: {
-        fontSize: 36,
+        fontSize: 38,
         color: '#FFFFFF',
-        fontFamily: 'FiraSans_700Bold',
+        fontFamily: 'Outfit_700Bold',
         marginBottom: 24,
-        lineHeight: 42,
+        lineHeight: 46,
     },
     heroCTA: {
         flexDirection: 'row',
@@ -379,13 +480,130 @@ const styles = StyleSheet.create({
         fontFamily: 'FiraSans_700Bold',
         marginRight: 8,
     },
-    // Hub Styles
-    hubContainer: {
-        padding: 24,
+    heroActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    heroSecondaryCTA: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 30,
+        marginLeft: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    heroSecondaryCTAText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontFamily: 'FiraSans_600SemiBold',
+        marginLeft: 8,
+    },
+    // Services Styles
+    servicesSection: {
+        paddingVertical: 24,
+        paddingHorizontal: 20,
         backgroundColor: '#FFFFFF',
         marginTop: -30,
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 4,
+    },
+    publicBadge: {
+        backgroundColor: '#F0F1FF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    publicBadgeText: {
+        color: '#6366F1',
+        fontSize: 10,
+        fontFamily: 'FiraSans_700Bold',
+    },
+    servicesScroll: {
+        paddingRight: 20,
+        paddingBottom: 10,
+    },
+    serviceCard: {
+        width: 200,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        marginRight: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 3,
+        borderBottomWidth: 4,
+        alignItems: 'center', // Added to center everything
+    },
+    serviceBadgeCorner: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+    },
+    serviceHeader: {
+        marginBottom: 16,
+        alignItems: 'center',
+    },
+    serviceIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    serviceBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    serviceBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 9,
+        fontFamily: 'FiraSans_700Bold',
+    },
+    serviceTitle: {
+        fontSize: 18,
+        color: '#1F2937',
+        fontFamily: 'FiraSans_700Bold',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    serviceDesc: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontFamily: 'FiraSans_400Regular',
+        lineHeight: 18,
+        height: 54,
+        textAlign: 'center',
+    },
+    serviceFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
+        justifyContent: 'center',
+    },
+    serviceLink: {
+        fontSize: 14,
+        fontFamily: 'FiraSans_700Bold',
+        marginRight: 4,
+    },
+    // Hub Styles
+    hubContainer: {
+        padding: 24,
+        backgroundColor: '#F9FAFB',
     },
     hubTitle: {
         fontSize: 20,
@@ -400,10 +618,16 @@ const styles = StyleSheet.create({
     },
     hubBtn: {
         width: '48%',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
         padding: 16,
         borderRadius: 20,
         marginBottom: 16,
+        alignItems: 'center', // Added to center title/subtitle too as it looks more premium centered
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2,
     },
     hubIconBg: {
         width: 48,
@@ -411,6 +635,7 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
+        alignSelf: 'center', // Added to ensure visual centering
         marginBottom: 12,
     },
     hubBtnTitle: {

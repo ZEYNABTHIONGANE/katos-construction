@@ -44,6 +44,9 @@ import TerrainDetailScreen from '../screens/TerrainDetailScreen';
 import DiagnosticScreen from '../screens/DiagnosticScreen';
 import ClientInvoicesScreen from '../screens/main/ClientInvoicesScreen';
 import NotificationScreen from '../screens/main/NotificationScreen';
+import BTPAdviceScreen from '../screens/BTPAdviceScreen';
+import BudgetEstimatorScreen from '../screens/BudgetEstimatorScreen';
+import BuyerChecklistScreen from '../screens/BuyerChecklistScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -545,6 +548,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
             <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+            <Stack.Screen name="BTPAdvice" component={BTPAdviceScreen} />
+            <Stack.Screen name="BudgetEstimator" component={BudgetEstimatorScreen} />
+            <Stack.Screen name="BuyerChecklist" component={BuyerChecklistScreen} />
           </>
         ) : (
           <>
@@ -599,6 +605,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                 <Stack.Screen name="TerrainDetail" component={TerrainDetailScreen} />
                 <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
                 <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
+                <Stack.Screen name="BTPAdvice" component={BTPAdviceScreen} />
+                <Stack.Screen name="BudgetEstimator" component={BudgetEstimatorScreen} />
+                <Stack.Screen name="BuyerChecklist" component={BuyerChecklistScreen} />
               </>
             ) : (
               <Stack.Screen name="ChefTabs">

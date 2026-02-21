@@ -248,7 +248,7 @@ export interface FirebaseChantier {
 }
 
 // Document types for chantier documents
-export type DocumentCategory = 'contract' | 'plan' | 'photo' | 'video' | 'other';
+export type DocumentCategory = 'contract' | 'plan' | 'invoice' | 'permit' | 'report' | 'photo' | 'video' | 'other';
 export type DocumentVisibility = 'client_only' | 'chef_only' | 'both';
 
 export interface FirebaseDocument {

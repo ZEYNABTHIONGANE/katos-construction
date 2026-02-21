@@ -7,6 +7,8 @@ export type UnifiedDocumentType =
   | 'invoice'
   | 'photo'
   | 'progress_update'
+  | 'report'
+  | 'permit'
   | 'other';
 
 export type DocumentSource = 'client_upload' | 'admin_upload';

@@ -1,7 +1,7 @@
-import { collection, getDocs, query, where, setDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, setDoc, addDoc, doc, Timestamp } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
-import { COLLECTIONS } from '../types/firebase';
+import { COLLECTIONS, UserRole } from '../types/firebase';
 import type { FirebaseUser, FirebaseClient } from '../types/firebase';
 
 export interface GeneratedCredentials {
@@ -106,6 +106,7 @@ export class CredentialGeneratorService {
         displayName,
         username,
         clientId,
+        role: UserRole.CLIENT,
         isTemporaryPassword: true, // Le client devra changer son mot de passe
         createdAt: Timestamp.now(),
         createdBy: 'system' // ou l'ID de l'admin qui a créé le client

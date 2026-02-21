@@ -17,34 +17,53 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { prospectService } from '../services/prospectService';
 import { useShowcaseData } from '../hooks/useShowcaseData';
+import { useClientSpecificData } from '../hooks/useClientSpecificData';
 import AppHeader from '../components/AppHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProspectForm'>;
 
 export default function ProspectFormScreen({ navigation, route }: Props) {
+    const { clientInfo } = useClientSpecificData();
     const { villas } = useShowcaseData();
+
     const initialType = route.params?.interestedProject === 'Personnalisé' ? 'Custom' :
         route.params?.interestedProject === 'Rendez-vous' ? 'Meeting' : 'Standard';
 
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
+        firstName: clientInfo?.firstName || '',
+        lastName: clientInfo?.lastName || '',
+        phone: '', // Keep phone empty or use a specific field if available
+        email: clientInfo?.email || '',
         project: route.params?.interestedProject || '',
         type: initialType as 'Standard' | 'Custom' | 'Meeting',
         terrainLocation: '',
         terrainSurface: '',
         hasTitreFoncier: false,
-        budget: '',
+        budget: route.params?.estimatedBudget?.toLocaleString('fr-FR') || '',
         description: '',
+        projectStage: 'Ideation', // New field
+        finishingLevel: 'Medium',  // New field
     });
+
     const [loading, setLoading] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
 
+    // Synchroniser les changements de paramètres (ex: retour du simulateur)
+    React.useEffect(() => {
+        if (route.params?.interestedProject || route.params?.estimatedBudget) {
+            setFormData(prev => ({
+                ...prev,
+                project: (route.params?.interestedProject as string) || prev.project,
+                budget: route.params?.estimatedBudget ? route.params.estimatedBudget.toLocaleString('fr-FR') : prev.budget,
+                type: (route.params?.interestedProject === 'Personnalisé' ? 'Custom' :
+                    route.params?.interestedProject === 'Rendez-vous' ? 'Meeting' : 'Standard')
+            }));
+        }
+    }, [route.params?.interestedProject, route.params?.estimatedBudget]);
+
     const handleSubmit = async () => {
-        if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires.');
+        if (!formData.firstName || !formData.lastName || !formData.email) {
+            Alert.alert('Erreur', 'Veuillez remplir les informations de contact.');
             return;
         }
 
@@ -224,17 +243,62 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                             </>
                         )}
 
-                        {/* Custom Only Details */}
-                        {formData.type === 'Custom' && (
+                        {/* Niveau de finition souhaité (Conditional) */}
+                        {formData.type !== 'Meeting' && (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Niveau de finition souhaité</Text>
+                                <View style={styles.switchRow}>
+                                    {[
+                                        { id: 'Economic', label: 'Éco' },
+                                        { id: 'Medium', label: 'Standing' },
+                                        { id: 'High', label: 'Luxe' }
+                                    ].map((level) => (
+                                        <TouchableOpacity
+                                            key={level.id}
+                                            style={[styles.smallSwitchOption, formData.finishingLevel === level.id && styles.switchActive]}
+                                            onPress={() => setFormData({ ...formData, finishingLevel: level.id })}
+                                        >
+                                            <Text style={[styles.switchText, formData.finishingLevel === level.id && styles.switchTextActive]}>
+                                                {level.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Custom OR Simulation Budget */}
+                        {(formData.type === 'Custom' || (formData.type === 'Standard' && formData.budget)) && (
                             <>
                                 <View style={styles.divider} />
                                 <View style={styles.sectionHeader}>
                                     <MaterialIcons name="engineering" size={20} color="#2B2E83" />
-                                    <Text style={styles.sectionTitle}>Etude technique</Text>
+                                    <Text style={styles.sectionTitle}>{formData.type === 'Custom' ? 'Étude technique' : 'Estimation Simulation'}</Text>
                                 </View>
 
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Budget estimé (FCFA)</Text>
+                                    <Text style={styles.label}>État d'avancement de votre projet</Text>
+                                    <View style={styles.switchRow}>
+                                        {[
+                                            { id: 'Ideation', label: 'Idée' },
+                                            { id: 'Planning', label: 'Prêt' },
+                                            { id: 'Urgent', label: 'Urgent' }
+                                        ].map((stage) => (
+                                            <TouchableOpacity
+                                                key={stage.id}
+                                                style={[styles.smallSwitchOption, formData.projectStage === stage.id && styles.switchActive]}
+                                                onPress={() => setFormData({ ...formData, projectStage: stage.id })}
+                                            >
+                                                <Text style={[styles.switchText, formData.projectStage === stage.id && styles.switchTextActive]}>
+                                                    {stage.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>{formData.type === 'Custom' ? 'Budget estimé (FCFA)' : 'Budget calculé (FCFA)'}</Text>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="Votre budget prévisionnel"
@@ -243,19 +307,22 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                                         onChangeText={(text) => setFormData({ ...formData, budget: text })}
                                     />
                                 </View>
-
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Description du projet</Text>
-                                    <TextInput
-                                        style={[styles.input, styles.textArea]}
-                                        placeholder="Décrivez brièvement vos besoins..."
-                                        multiline
-                                        numberOfLines={4}
-                                        value={formData.description}
-                                        onChangeText={(text) => setFormData({ ...formData, description: text })}
-                                    />
-                                </View>
                             </>
+                        )}
+
+                        {/* Custom Only Description */}
+                        {formData.type === 'Custom' && (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Description du projet</Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Décrivez brièvement vos besoins..."
+                                    multiline
+                                    numberOfLines={4}
+                                    value={formData.description}
+                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                />
+                            </View>
                         )}
 
                         <TouchableOpacity
@@ -425,13 +492,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 10,
     },
+    smallSwitchOption: {
+        flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        marginHorizontal: 3,
+    },
     switchActive: {
         backgroundColor: '#FFFFFF',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowRadius: 10,
+        elevation: 5,
     },
     switchText: {
         fontSize: 14,

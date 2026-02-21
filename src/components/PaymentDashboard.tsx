@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card } from '../ui/Card';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { EmptyState } from '../ui/EmptyState';
+import { Card } from './ui/Card';
+import { LoadingSpinner } from './ui/LoadingSpinner';
+import { EmptyState } from './ui/EmptyState';
 import { mobileInvoiceService, type MobilePaymentDashboard } from '../services/mobileInvoiceService';
 
 interface PaymentDashboardProps {
@@ -46,10 +46,10 @@ export const PaymentDashboard: React.FC<PaymentDashboardProps> = ({
     setRefreshing(false);
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return ['#10B981', '#34D399']; // green
-    if (progress >= 50) return ['#F59E0B', '#FCD34D']; // yellow
-    return ['#EF4444', '#F87171']; // red
+  const getProgressColor = (progress: number): readonly [string, string] => {
+    if (progress >= 80) return ['#10B981', '#34D399'] as const; // green
+    if (progress >= 50) return ['#F59E0B', '#FCD34D'] as const; // yellow
+    return ['#EF4444', '#F87171'] as const; // red
   };
 
   if (loading) {

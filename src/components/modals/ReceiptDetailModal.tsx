@@ -113,7 +113,7 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
             animationType="slide"
             transparent={true}
             visible={isVisible}
-            onClose={onClose}
+            onRequestClose={onClose}
         >
             <View style={styles.centeredView}>
                 <View style={styles.modalView}>

@@ -25,7 +25,10 @@ export type RootStackParamList = {
   TerrainList: undefined;
   TerrainDetail: { terrain: import('./firebase').FirebaseTerrain };
   VillaList: undefined;
-  ProspectForm: { interestedProject?: string } | undefined;
+  BTPAdvice: undefined;
+  BudgetEstimator: undefined;
+  BuyerChecklist: undefined;
+  ProspectForm: { interestedProject?: string, estimatedBudget?: number } | undefined;
   VillaDetail: { villa: import('./firebase').FirebaseProject };
   PhaseDetail: {
     chantierId: string;
