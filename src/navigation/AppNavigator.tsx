@@ -38,6 +38,9 @@ import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ShowcaseScreen from '../screens/ShowcaseScreen';
 import ProspectFormScreen from '../screens/ProspectFormScreen';
 import VillaDetailScreen from '../screens/VillaDetailScreen';
+import VillaListScreen from '../screens/VillaListScreen';
+import TerrainListScreen from '../screens/TerrainListScreen';
+import TerrainDetailScreen from '../screens/TerrainDetailScreen';
 import DiagnosticScreen from '../screens/DiagnosticScreen';
 import ClientInvoicesScreen from '../screens/main/ClientInvoicesScreen';
 import NotificationScreen from '../screens/main/NotificationScreen';
@@ -536,6 +539,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
         {!isAuthenticated ? (
           <>
             <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+            <Stack.Screen name="VillaList" component={VillaListScreen} />
+            <Stack.Screen name="TerrainList" component={TerrainListScreen} />
+            <Stack.Screen name="TerrainDetail" component={TerrainDetailScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
             <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
@@ -588,6 +594,9 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+                <Stack.Screen name="VillaList" component={VillaListScreen} />
+                <Stack.Screen name="TerrainList" component={TerrainListScreen} />
+                <Stack.Screen name="TerrainDetail" component={TerrainDetailScreen} />
                 <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
                 <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
               </>

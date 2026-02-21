@@ -311,13 +311,10 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       >
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
-                            <Video
+                            <Image
                               source={{ uri: photo.thumbnailUrl || photo.url }}
                               style={{ width: '100%', height: '100%' }}
-                              resizeMode={ResizeMode.COVER}
-                              shouldPlay={false}
-                              isLooping={false}
-                              useNativeControls={false}
+                              resizeMode="cover"
                             />
                             <View style={styles.playIconOverlay}>
                               <MaterialIcons
@@ -411,6 +408,10 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                   setSelectedMediaIndex(index);
                 }}
                 keyExtractor={(item) => item.id}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={2}
+                windowSize={3}
+                initialNumToRender={1}
                 renderItem={({ item, index }) => (
                   <View style={styles.carouselItemContainer}>
                     {item.type === 'video' ? (
@@ -424,7 +425,7 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: item.url }}
+                        source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />

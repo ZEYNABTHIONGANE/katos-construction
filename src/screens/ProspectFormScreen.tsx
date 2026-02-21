@@ -23,12 +23,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProspectForm'>;
 
 export default function ProspectFormScreen({ navigation, route }: Props) {
     const { villas } = useShowcaseData();
+    const initialType = route.params?.interestedProject === 'Personnalisé' ? 'Custom' :
+        route.params?.interestedProject === 'Rendez-vous' ? 'Meeting' : 'Standard';
+
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
         phone: '',
         email: '',
         project: route.params?.interestedProject || '',
+        type: initialType as 'Standard' | 'Custom' | 'Meeting',
+        terrainLocation: '',
+        terrainSurface: '',
+        hasTitreFoncier: false,
+        budget: '',
+        description: '',
     });
     const [loading, setLoading] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
@@ -47,6 +56,12 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                 phone: formData.phone,
                 email: formData.email,
                 project: formData.project,
+                type: formData.type,
+                terrainLocation: formData.terrainLocation,
+                terrainSurface: formData.terrainSurface,
+                hasTitreFoncier: formData.hasTitreFoncier,
+                budget: formData.budget,
+                description: formData.description,
             });
 
             setLoading(false);
@@ -63,14 +78,14 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
     };
 
     const selectProject = (projectName: string) => {
-        setFormData({ ...formData, project: projectName });
+        setFormData({ ...formData, project: projectName, type: 'Standard' });
         setShowPicker(false);
     };
 
     return (
         <View style={styles.container}>
             <AppHeader
-                title="Devenir Propriétaire"
+                title={formData.type === 'Meeting' ? "Prendre Rendez-vous" : "Lancer mon projet"}
                 showBack={true}
                 showNotification={false}
                 onBackPress={() => navigation.goBack()}
@@ -82,27 +97,36 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                 <ScrollView contentContainerStyle={styles.scrollContent}>
                     <View style={styles.formCard}>
                         <Text style={styles.formIntro}>
-                            Remplissez ce formulaire pour recevoir une documentation complète et être contacté par l'un de nos conseillers.
+                            {formData.type === 'Meeting'
+                                ? "Demandez une étude technique offerte pour votre projet de construction."
+                                : "Remplissez ce formulaire pour une étude réelle de votre projet construction."}
                         </Text>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Prénom *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Votre prénom"
-                                value={formData.firstName}
-                                onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-                            />
+                        {/* Basic Contact Info */}
+                        <View style={styles.sectionHeader}>
+                            <MaterialIcons name="person" size={20} color="#2B2E83" />
+                            <Text style={styles.sectionTitle}>Coordonnées</Text>
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Nom *</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Votre nom"
-                                value={formData.lastName}
-                                onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-                            />
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                                <Text style={styles.label}>Prénom *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Prénom"
+                                    value={formData.firstName}
+                                    onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                                />
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1 }]}>
+                                <Text style={styles.label}>Nom *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Nom"
+                                    value={formData.lastName}
+                                    onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                                />
+                            </View>
                         </View>
 
                         <View style={styles.inputGroup}>
@@ -128,21 +152,111 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                             />
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Projet ou programme souhaité</Text>
-                            <TouchableOpacity
-                                style={styles.pickerTrigger}
-                                onPress={() => setShowPicker(true)}
-                            >
-                                <Text style={[
-                                    styles.pickerTriggerText,
-                                    !formData.project && { color: '#9CA3AF' }
-                                ]}>
-                                    {formData.project || 'Sélectionner un projet'}
-                                </Text>
-                                <MaterialIcons name="expand-more" size={24} color="#6B7280" />
-                            </TouchableOpacity>
-                        </View>
+                        {/* Project Choice if not direct */}
+                        {formData.type === 'Standard' && (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Modèle immobilier choisi</Text>
+                                <TouchableOpacity
+                                    style={styles.pickerTrigger}
+                                    onPress={() => setShowPicker(true)}
+                                >
+                                    <View style={styles.pickerContent}>
+                                        <MaterialIcons name="holiday-village" size={20} color="#2B2E83" style={{ marginRight: 10 }} />
+                                        <Text style={[
+                                            styles.pickerTriggerText,
+                                            !formData.project && { color: '#9CA3AF' }
+                                        ]}>
+                                            {formData.project || 'Sélectionner un modèle'}
+                                        </Text>
+                                    </View>
+                                    <MaterialIcons name="expand-more" size={24} color="#6B7280" />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Technical Details (Conditional) */}
+                        {formData.type !== 'Meeting' && (
+                            <>
+                                <View style={styles.divider} />
+                                <View style={styles.sectionHeader}>
+                                    <MaterialIcons name="landscape" size={20} color="#2B2E83" />
+                                    <Text style={styles.sectionTitle}>Détails du terrain</Text>
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Localisation du terrain *</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Ex: Yenne, Diamniadio..."
+                                        value={formData.terrainLocation}
+                                        onChangeText={(text) => setFormData({ ...formData, terrainLocation: text })}
+                                    />
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Surface approximative (m²) *</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Ex: 200"
+                                        keyboardType="numeric"
+                                        value={formData.terrainSurface}
+                                        onChangeText={(text) => setFormData({ ...formData, terrainSurface: text })}
+                                    />
+                                </View>
+
+                                <View style={styles.switchGroup}>
+                                    <Text style={styles.label}>Détenez-vous un Titre Foncier ?</Text>
+                                    <View style={styles.switchRow}>
+                                        <TouchableOpacity
+                                            style={[styles.switchOption, formData.hasTitreFoncier && styles.switchActive]}
+                                            onPress={() => setFormData({ ...formData, hasTitreFoncier: true })}
+                                        >
+                                            <Text style={[styles.switchText, formData.hasTitreFoncier && styles.switchTextActive]}>Oui</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.switchOption, !formData.hasTitreFoncier && styles.switchActive]}
+                                            onPress={() => setFormData({ ...formData, hasTitreFoncier: false })}
+                                        >
+                                            <Text style={[styles.switchText, !formData.hasTitreFoncier && styles.switchTextActive]}>Non / En cours</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </>
+                        )}
+
+                        {/* Custom Only Details */}
+                        {formData.type === 'Custom' && (
+                            <>
+                                <View style={styles.divider} />
+                                <View style={styles.sectionHeader}>
+                                    <MaterialIcons name="engineering" size={20} color="#2B2E83" />
+                                    <Text style={styles.sectionTitle}>Etude technique</Text>
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Budget estimé (FCFA)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Votre budget prévisionnel"
+                                        keyboardType="numeric"
+                                        value={formData.budget}
+                                        onChangeText={(text) => setFormData({ ...formData, budget: text })}
+                                    />
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Description du projet</Text>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea]}
+                                        placeholder="Décrivez brièvement vos besoins..."
+                                        multiline
+                                        numberOfLines={4}
+                                        value={formData.description}
+                                        onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                    />
+                                </View>
+                            </>
+                        )}
 
                         <TouchableOpacity
                             style={[styles.submitBtn, loading && styles.disabledBtn]}
@@ -150,13 +264,13 @@ export default function ProspectFormScreen({ navigation, route }: Props) {
                             disabled={loading}
                         >
                             <Text style={styles.submitBtnText}>
-                                {loading ? 'Envoi en cours...' : 'Envoyer ma demande'}
+                                {loading ? 'Envoi en cours...' : formData.type === 'Meeting' ? 'Demander RDV' : 'Envoyer ma demande'}
                             </Text>
                             {!loading && <MaterialIcons name="send" size={20} color="#FFFFFF" />}
                         </TouchableOpacity>
 
                         <Text style={styles.privacyNote}>
-                            En envoyant ce formulaire, vous acceptez que Katos Construction utilise vos données pour vous recontacter.
+                            * Champs obligatoires. En envoyant ce formulaire, vous acceptez d'être recontacté pour une étude technique.
                         </Text>
                     </View>
                 </ScrollView>
@@ -227,14 +341,32 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     formIntro: {
-        fontSize: 16,
+        fontSize: 15,
         color: '#4B5563',
         fontFamily: 'FiraSans_400Regular',
-        lineHeight: 24,
+        lineHeight: 22,
         marginBottom: 25,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+        marginTop: 5,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        color: '#2B2E83',
+        fontFamily: 'FiraSans_700Bold',
+        marginLeft: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
     inputGroup: {
-        marginBottom: 20,
+        marginBottom: 18,
     },
     label: {
         fontSize: 14,
@@ -253,31 +385,6 @@ const styles = StyleSheet.create({
         color: '#111827',
         fontFamily: 'FiraSans_400Regular',
     },
-    submitBtn: {
-        backgroundColor: '#E96C2E',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 12,
-        marginTop: 10,
-        gap: 10,
-    },
-    disabledBtn: {
-        opacity: 0.7,
-    },
-    submitBtnText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontFamily: 'FiraSans_700Bold',
-    },
-    privacyNote: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        textAlign: 'center',
-        marginTop: 20,
-        fontFamily: 'FiraSans_400Regular',
-    },
     pickerTrigger: {
         backgroundColor: '#F9FAFB',
         borderWidth: 1,
@@ -289,10 +396,80 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    pickerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     pickerTriggerText: {
         fontSize: 16,
         color: '#111827',
         fontFamily: 'FiraSans_400Regular',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginVertical: 20,
+    },
+    switchGroup: {
+        marginBottom: 20,
+    },
+    switchRow: {
+        flexDirection: 'row',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 12,
+        padding: 4,
+    },
+    switchOption: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    switchActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    switchText: {
+        fontSize: 14,
+        fontFamily: 'FiraSans_600SemiBold',
+        color: '#6B7280',
+    },
+    switchTextActive: {
+        color: '#2B2E83',
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
+    submitBtn: {
+        backgroundColor: '#E96C2E',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 12,
+        marginTop: 20,
+        gap: 10,
+    },
+    disabledBtn: {
+        opacity: 0.7,
+    },
+    submitBtnText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontFamily: 'FiraSans_700Bold',
+    },
+    privacyNote: {
+        fontSize: 11,
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginTop: 20,
+        fontFamily: 'FiraSans_400Regular',
+        lineHeight: 16,
     },
     modalOverlay: {
         flex: 1,

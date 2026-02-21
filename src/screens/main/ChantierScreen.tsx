@@ -330,7 +330,10 @@ export default function ChantierScreen({ navigation, route }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
+                <Image
+                  source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' }) }}
+                  style={styles.mainImage}
+                />
                 <View style={styles.mainImageOverlay}>
                   <MaterialIcons
                     name="zoom-in"
@@ -575,6 +578,10 @@ export default function ChantierScreen({ navigation, route }: Props) {
                   setSelectedMediaIndex(index);
                 }}
                 keyExtractor={(item) => item.id}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={2}
+                windowSize={3}
+                initialNumToRender={1}
                 renderItem={({ item, index }) => (
                   <View style={styles.carouselItemContainer}>
                     {item.type === 'video' ? (
@@ -588,7 +595,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: item.url }}
+                        source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />

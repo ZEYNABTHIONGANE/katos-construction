@@ -102,7 +102,7 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
                         style={styles.ctaBtn}
                         onPress={() => navigation.navigate('ProspectForm', { interestedProject: villa.name })}
                     >
-                        <Text style={styles.ctaBtnText}>Je suis intéressé</Text>
+                        <Text style={styles.ctaBtnText}>Lancer mon projet</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

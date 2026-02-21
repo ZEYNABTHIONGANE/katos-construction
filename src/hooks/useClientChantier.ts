@@ -103,15 +103,25 @@ export const useClientChantier = (specificChantierId?: string) => {
   // Get photos from gallery and phases
   const getPhotos = () => {
     if (!chantier) return [];
+    const { optimizeCloudinaryUrl, getVideoThumbnailUrl } = require('../utils/cloudinaryUtils');
 
-    const galleryPhotos = chantier.gallery.map(photo => ({
-      id: photo.id,
-      url: photo.url,
-      description: photo.description || 'Photo du chantier',
-      uploadedAt: photo.uploadedAt,
-      type: photo.type,
-      thumbnailUrl: photo.thumbnailUrl
-    }));
+    const galleryPhotos = chantier.gallery.map(photo => {
+      const isVideo = photo.type === 'video';
+      const optimizedUrl = optimizeCloudinaryUrl(photo.url);
+      const thumb = isVideo
+        ? (photo.thumbnailUrl ? optimizeCloudinaryUrl(photo.thumbnailUrl, { width: 400 }) : getVideoThumbnailUrl(photo.url, { width: 400 }))
+        : optimizeCloudinaryUrl(photo.url, { width: 400 });
+
+      return {
+        id: photo.id,
+        url: photo.url, // Original for carousel
+        description: photo.description || 'Photo du chantier',
+        uploadedAt: photo.uploadedAt,
+        type: photo.type,
+        thumbnailUrl: thumb,
+        optimizedUrl: optimizedUrl
+      };
+    });
 
     // Add phase photos
     const phasePhotos = chantier.phases
@@ -122,7 +132,8 @@ export const useClientChantier = (specificChantierId?: string) => {
           description: `Photo ${phase.name}`,
           uploadedAt: phase.lastUpdated,
           type: 'image' as const,
-          thumbnailUrl: undefined
+          thumbnailUrl: optimizeCloudinaryUrl(photoUrl, { width: 400 }),
+          optimizedUrl: optimizeCloudinaryUrl(photoUrl)
         }))
       );
 
