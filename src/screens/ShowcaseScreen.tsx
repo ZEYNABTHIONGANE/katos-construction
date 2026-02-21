@@ -137,13 +137,13 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                 onPress={() => handleBecomeOwner('Rendez-vous')}
                                 color="#10B981"
                             />
-                            <HubButton
+                            {/* <HubButton
                                 icon="account-circle"
                                 title="Espace Client"
                                 subtitle="Suivez votre chantier"
                                 onPress={handleLogin}
                                 color="#6366F1"
-                            />
+                            /> */}
                         </View>
                     </View>
 
