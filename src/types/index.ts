@@ -22,6 +22,9 @@ export type RootStackParamList = {
   ChefChat: undefined;
   Main: undefined;
   Showcase: undefined;
+  TerrainList: undefined;
+  TerrainDetail: { terrain: import('./firebase').FirebaseTerrain };
+  VillaList: undefined;
   ProspectForm: { interestedProject?: string } | undefined;
   VillaDetail: { villa: import('./firebase').FirebaseProject };
   PhaseDetail: {
