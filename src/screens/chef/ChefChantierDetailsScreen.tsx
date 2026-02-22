@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
     Modal,
     Dimensions,
     Alert,
@@ -13,6 +12,7 @@ import {
     ActivityIndicator,
     FlatList,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,7 +21,7 @@ import AppHeader from '../../components/AppHeader';
 import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 
 const { width } = Dimensions.get('window');
@@ -187,7 +187,12 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Project Header Image */}
                 {selectedProject.coverImage ? (
-                    <Image source={{ uri: selectedProject.coverImage }} style={styles.projectCoverImage} />
+                    <Image
+                        source={{ uri: optimizeCloudinaryUrl(selectedProject.coverImage, { width: 800 }) }}
+                        style={styles.projectCoverImage}
+                        contentFit="cover"
+                        transition={300}
+                    />
                 ) : selectedProject.gallery && selectedProject.gallery.length > 0 ? (
                     <Image
                         source={{
@@ -196,6 +201,8 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
                                 : optimizeCloudinaryUrl(selectedProject.gallery[0].url, { width: 800 })
                         }}
                         style={styles.projectCoverImage}
+                        contentFit="cover"
+                        transition={300}
                     />
                 ) : (
                     <View style={[styles.projectCoverImage, styles.placeholderImage]}>

@@ -6,11 +6,13 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
     Dimensions,
     StatusBar,
     Linking,
+    FlatList,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -21,8 +23,8 @@ import { authService } from '../services/authService';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ActivityIndicator } from 'react-native';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../utils/cloudinaryUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { optimizeCloudinaryUrl } from '../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Showcase'>;
 
@@ -35,11 +37,55 @@ const DEFAULT_HERO = {
     imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?q=80&w=2070&auto=format&fit=crop',
     description: "Votre partenaire de confiance pour des projets immobiliers d'exception au Sénégal. Découvrez notre expertise et nos réalisations."
 };
+const DEFAULT_CAROUSEL_DATA = [
+    {
+        id: '1',
+        title: "Des villas d'exception au Sénégal",
+        tagline: "Construisons l'avenir ensemble",
+        image: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: '2',
+        title: "Simulation gratuite en 2 minutes",
+        tagline: "Planifiez votre budget",
+        image: 'https://images.unsplash.com/photo-1541888086414-b80c33fb3537?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: '3',
+        title: "Un expert BTP à votre écoute",
+        tagline: "Conseils techniques gratuits",
+        image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2070&auto=format&fit=crop',
+    }
+];
 
 export default function ShowcaseScreen({ navigation }: Props) {
     const { isAuthenticated: isClientAuthenticated } = useClientAuth();
     const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = React.useState(!!auth.currentUser);
     const { content, villas, loading: dataLoading } = useShowcaseData();
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const flatListRef = React.useRef<FlatList>(null);
+
+    const carouselData = content?.carousel && content.carousel.length > 0 ? content.carousel : DEFAULT_CAROUSEL_DATA;
+
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            let nextIndex = activeIndex + 1;
+            if (nextIndex >= carouselData.length) {
+                nextIndex = 0;
+            }
+            if (flatListRef.current) {
+                flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+            }
+            setActiveIndex(nextIndex);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [activeIndex, carouselData.length]);
+
+    const handleScroll = (event: any) => {
+        const scrollPosition = event.nativeEvent.contentOffset.x;
+        const index = Math.round(scrollPosition / width);
+        setActiveIndex(index);
+    };
 
     React.useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -116,19 +162,60 @@ export default function ShowcaseScreen({ navigation }: Props) {
             <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
                 <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
 
-                    {/* Hero section simplifiée */}
-                    <View style={styles.heroSimple}>
-                        <Image
-                            source={{ uri: optimizeCloudinaryUrl(heroProject.imageUrl, { width: 1000, quality: 'auto' }) }}
-                            style={styles.heroImageSimple}
+                    {/* Hero section : Carousel publicitaire */}
+                    <View style={styles.carouselContainer}>
+                        <FlatList
+                            ref={flatListRef}
+                            data={carouselData}
+                            keyExtractor={(item) => item.id}
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            onScroll={handleScroll}
+                            scrollEventThrottle={16}
+                            renderItem={({ item }) => (
+                                <View style={styles.heroSimple}>
+                                    {(item.type === 'video' || /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(item.image || '')) ? (
+                                        <Video
+                                            source={{ uri: optimizeCloudinaryVideoUrl(item.image) }}
+                                            style={styles.heroImageSimple}
+                                            resizeMode={ResizeMode.COVER}
+                                            shouldPlay
+                                            isLooping
+                                            isMuted
+                                            usePoster
+                                            posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: 800 }) }}
+                                            posterStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+                                        />
+                                    ) : (
+                                        <Image
+                                            source={{ uri: optimizeCloudinaryUrl(item.image || DEFAULT_HERO.imageUrl, { width: 800 }) }}
+                                            style={styles.heroImageSimple}
+                                            contentFit="cover"
+                                            transition={300}
+                                        />
+                                    )}
+                                    <LinearGradient
+                                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                                        style={styles.heroOverlaySimple}
+                                    >
+                                        <Text style={styles.heroTaglineSimple}>{item.tagline}</Text>
+                                        <Text style={styles.heroTitleSimple}>{item.title}</Text>
+                                    </LinearGradient>
+                                </View>
+                            )}
                         />
-                        <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.9)']}
-                            style={styles.heroOverlaySimple}
-                        >
-                            <Text style={styles.heroTaglineSimple}>Construisons l'avenir ensemble</Text>
-                            <Text style={styles.heroTitleSimple}>Des villas d'exception au Sénégal</Text>
-                        </LinearGradient>
+                        <View style={styles.pagination}>
+                            {carouselData.map((_, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.dot,
+                                        activeIndex === index ? styles.activeDot : {}
+                                    ]}
+                                />
+                            ))}
+                        </View>
                     </View>
 
                     {/* Grille de services (Pas de carrousel) */}
@@ -319,12 +406,35 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Hero Simple
+    // Carousel Header
+    carouselContainer: {
+        marginBottom: 20,
+    },
     heroSimple: {
         height: height * 0.3,
-        margin: 20,
+        width: width - 40,
+        marginHorizontal: 20,
+        marginTop: 20,
         borderRadius: 25,
         overflow: 'hidden',
+    },
+    pagination: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 15,
+        marginBottom: 5,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#D1D5DB',
+        marginHorizontal: 4,
+    },
+    activeDot: {
+        backgroundColor: '#E96C2E',
+        width: 24,
     },
     heroImageSimple: {
         width: '100%',
@@ -333,11 +443,11 @@ const styles = StyleSheet.create({
     },
     heroOverlaySimple: {
         position: 'absolute',
+        top: 0,
         bottom: 0,
         left: 0,
         right: 0,
         padding: 20,
-        height: '60%',
         justifyContent: 'flex-end',
     },
     heroTaglineSimple: {

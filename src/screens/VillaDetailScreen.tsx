@@ -5,10 +5,11 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    Image,
     TouchableOpacity,
     Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { optimizeCloudinaryUrl } from '../utils/cloudinaryUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -41,8 +42,10 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
             />
             <ScrollView>
                 <Image
-                    source={{ uri: villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop' }}
+                    source={{ uri: optimizeCloudinaryUrl(villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop', { width: 800 }) }}
                     style={styles.mainImage}
+                    contentFit="cover"
+                    transition={300}
                 />
 
                 <View style={styles.content}>

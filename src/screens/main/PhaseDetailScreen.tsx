@@ -5,14 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
   FlatList,
   Modal,
   Dimensions,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,7 +23,7 @@ import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { useUserNames } from '../../hooks/useUserNames';
 import { ResizeMode, Video } from 'expo-av';
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PhaseDetail'>;
 
@@ -312,10 +312,14 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       >
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
-                            <Image
-                              source={{ uri: photo.thumbnailUrl || photo.url }}
+                            <Video
+                              source={{ uri: optimizeCloudinaryVideoUrl(photo.url) }}
                               style={{ width: '100%', height: '100%' }}
-                              resizeMode="cover"
+                              resizeMode={ResizeMode.COVER}
+                              shouldPlay={false}
+                              positionMillis={100}
+                              isMuted={true}
+                              useNativeControls={false}
                             />
                             <View style={styles.playIconOverlay}>
                               <MaterialIcons
@@ -327,9 +331,10 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                           </View>
                         ) : (
                           <Image
-                            source={{ uri: photo.thumbnailUrl || photo.url }}
+                            source={{ uri: optimizeCloudinaryUrl(photo.url, { width: 400 }) }}
                             style={styles.galleryImage}
-                            resizeMode="cover"
+                            contentFit="cover"
+                            transition={200}
                           />
                         )}
                         <View style={styles.photoOverlay}>

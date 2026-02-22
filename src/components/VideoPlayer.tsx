@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,6 +9,7 @@ import {
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ResizeMode } from 'expo-av'; // Keep for prop compatibility if needed, though expo-video uses string
+import { optimizeCloudinaryVideoUrl } from '../utils/cloudinaryUtils';
 
 // Map legacy props to new ones
 interface VideoPlayerProps {
@@ -36,8 +37,13 @@ export default function VideoPlayer({
   onError,
   onLoad,
 }: VideoPlayerProps) {
+  // Optimiser l'URL si c'est du Cloudinary
+  const optimizedUri = useMemo(() => {
+    return optimizeCloudinaryVideoUrl(source.uri);
+  }, [source.uri]);
+
   // Configurer le player expo-video
-  const player = useVideoPlayer(source.uri, (player) => {
+  const player = useVideoPlayer(optimizedUri, (player) => {
     player.loop = isLooping;
     player.staysActiveInBackground = false;
     // Autoplay based on shouldPlay if provided initially
@@ -52,7 +58,7 @@ export default function VideoPlayer({
   // Sync props with player state
   useEffect(() => {
     if (!player) return;
-    
+
     // Looping
     player.loop = isLooping;
 

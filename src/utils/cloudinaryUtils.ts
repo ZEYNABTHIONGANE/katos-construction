@@ -118,3 +118,44 @@ export const getVideoThumbnailUrl = (
         startOffset: timeOffset
     });
 };
+
+/**
+ * Optimizes a Cloudinary Video URL by injecting transformation parameters.
+ * 
+ * @param url The original video URL
+ * @param options Optimization options
+ * @returns The optimized video URL
+ */
+export const optimizeCloudinaryVideoUrl = (
+    url: string | undefined,
+    options: {
+        quality?: string | number;
+        format?: string;
+        bitrate?: string | number;
+        codec?: string;
+    } = {}
+): string => {
+    if (!url) return '';
+    if (!url.includes('cloudinary.com')) return url;
+
+    const parts = url.split('/');
+    const uploadIndex = parts.findIndex(part => part === 'upload');
+
+    if (uploadIndex === -1) return url;
+
+    const {
+        quality = 'auto',
+        format = 'auto',
+        bitrate = 'auto',
+        codec = 'auto'
+    } = options;
+
+    // vc_auto (video codec), br_auto (bitrate)
+    let transformation = `q_${quality},f_${format},br_${bitrate},vc_${codec}`;
+
+    // Inject transformation after 'upload'
+    parts.splice(uploadIndex + 1, 0, transformation);
+
+    return parts.join('/');
+};
+

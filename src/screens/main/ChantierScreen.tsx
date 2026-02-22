@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  ActivityIndicator,
   Modal,
   FlatList,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -23,7 +23,7 @@ import { useClientChantier } from '../../hooks/useClientChantier';
 import { ResizeMode, Video } from 'expo-av';
 import type { KatosChantierPhase } from '../../types/firebase';
 import { useUserNames } from '../../hooks/useUserNames';
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 
 type Props = CompositeScreenProps<
@@ -331,17 +331,27 @@ export default function ChantierScreen({ navigation, route }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Image
-                  source={{
-                    uri: (mainImage as any).type === 'video'
-                      ? getVideoThumbnailUrl(mainImage.url, { width: 800 })
-                      : optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' })
-                  }}
-                  style={styles.mainImage}
-                />
+                {(mainImage as any).type === 'video' ? (
+                  <Video
+                    source={{ uri: optimizeCloudinaryVideoUrl(mainImage.url) }}
+                    style={styles.mainImage}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={false}
+                    positionMillis={100}
+                    isMuted={true}
+                    useNativeControls={false}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: optimizeCloudinaryUrl(mainImage.url, { width: 800 }) }}
+                    style={styles.mainImage}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                )}
                 <View style={styles.mainImageOverlay}>
                   <MaterialIcons
-                    name="zoom-in"
+                    name={(mainImage as any).type === 'video' ? 'play-circle-filled' : 'zoom-in'}
                     size={24}
                     color="#fff"
                     style={styles.mainImageZoomIcon}

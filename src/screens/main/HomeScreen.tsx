@@ -6,10 +6,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Dimensions,
   ActivityIndicator,
 } from "react-native";
+import { Image } from 'expo-image';
 import { MaterialIcons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeScreenProps } from '@react-navigation/native';
@@ -23,7 +23,7 @@ import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { useClientDocuments } from "../../hooks/useDocuments";
 import { useUserNames } from "../../hooks/useUserNames";
 import { useNotifications } from "../../hooks/useNotifications";
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from "../../utils/cloudinaryUtils";
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from "../../utils/cloudinaryUtils";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -243,10 +243,11 @@ export default function HomeScreen({ navigation }: Props) {
                   source={{
                     uri: (mainImage as any).type === 'video'
                       ? getVideoThumbnailUrl(mainImage.url, { width: 800 })
-                      : optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' })
+                      : optimizeCloudinaryUrl(mainImage.url, { width: 800 })
                   }}
                   style={styles.heroImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  transition={300}
                 />
                 <View style={styles.heroOverlay}>
                   <Text style={styles.heroProjectName}>{chantierName}</Text>

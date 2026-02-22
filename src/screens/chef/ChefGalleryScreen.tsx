@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Modal,
   FlatList,
   Dimensions,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,7 +22,7 @@ import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { FirebaseChantier, ProgressPhoto } from '../../types/firebase';
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -150,10 +150,14 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         {item.type === 'video' ? (
           <View style={styles.videoContainer}>
-            <Image
-              source={{ uri: item.thumbnailUrl || (item.type === 'video' ? getVideoThumbnailUrl(item.url) : item.url) }}
+            <Video
+              source={{ uri: optimizeCloudinaryVideoUrl(item.url) }}
               style={styles.mediaItem}
-              resizeMode="cover"
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={false}
+              positionMillis={100}
+              isMuted={true}
+              useNativeControls={false}
             />
             <View style={styles.videoOverlay}>
               <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.9)" />
@@ -165,7 +169,12 @@ export default function ChefGalleryScreen({ navigation }: Props) {
             </View>
           </View>
         ) : (
-          <Image source={{ uri: item.url }} style={styles.mediaItem} />
+          <Image
+            source={{ uri: optimizeCloudinaryUrl(item.url, { width: 400 }) }}
+            style={styles.mediaItem}
+            contentFit="cover"
+            transition={300}
+          />
         )}
       </TouchableOpacity>
       <TouchableOpacity
