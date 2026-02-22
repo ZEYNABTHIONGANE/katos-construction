@@ -107,7 +107,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
                             style={styles.profileCircle}
                             onPress={handleLogin}
                         >
-                            <MaterialIcons name="account-circle" size={32} color="#FFFFFF" />
+                            <MaterialIcons name="login" size={28} color="#FFFFFF" />
                         </TouchableOpacity>
                     </View>
                 </SafeAreaView>
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     brandName: {
         color: '#FFFFFF',
         fontSize: 22,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'FiraSans_700Bold',
     },
     profileCircle: {
         width: 48,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     heroTitleSimple: {
         color: '#FFFFFF',
         fontSize: 24,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'FiraSans_700Bold',
         marginTop: 4,
     },
     // Tools Grid
@@ -359,8 +359,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     sectionTitle: {
-        fontSize: 20,
-        fontFamily: 'Outfit_700Bold',
+        fontSize: 22,
+        fontFamily: 'FiraSans_700Bold',
         color: '#111827',
         marginBottom: 20,
     },
@@ -374,13 +374,16 @@ const styles = StyleSheet.create({
     },
     toolCard: {
         width: '48%',
-        backgroundColor: '#F9FAFB',
+        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
         marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     toolIconContainer: {
         width: 50,
@@ -443,8 +446,13 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         marginRight: 15,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+        marginBottom: 10,
+        marginLeft: 2,
     },
     villaImageMobile: {
         width: '100%',
@@ -456,7 +464,7 @@ const styles = StyleSheet.create({
     },
     villaNameMobile: {
         fontSize: 16,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'FiraSans_700Bold',
         color: '#111827',
     },
     villaPriceMobile: {
@@ -480,7 +488,7 @@ const styles = StyleSheet.create({
     },
     missionTitle: {
         fontSize: 18,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'FiraSans_700Bold',
         color: '#111827',
         marginBottom: 8,
     },
@@ -528,7 +536,7 @@ const styles = StyleSheet.create({
     whatsappTitle: {
         color: '#FFFFFF',
         fontSize: 22,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'FiraSans_700Bold',
         marginBottom: 8,
     },
     whatsappSubtitle: {

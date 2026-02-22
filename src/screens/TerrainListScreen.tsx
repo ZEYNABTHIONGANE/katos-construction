@@ -9,7 +9,8 @@ import {
     TouchableOpacity,
     Image,
     ActivityIndicator,
-    SafeAreaView
+    SafeAreaView,
+    StatusBar
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -78,49 +79,56 @@ export default function TerrainListScreen({ navigation }: Props) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#2B2E83" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <MaterialIcons name="arrow-back" size={24} color="#1F2937" />
+                    <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Trouver un terrain</Text>
                 <View style={{ width: 24 }} />
             </View>
+            <View style={styles.contentContainer}>
 
-            <View style={styles.searchContainer}>
-                <MaterialIcons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Rechercher une zone (ex: Yenne)"
-                    value={searchZone}
-                    onChangeText={setSearchZone}
-                    placeholderTextColor="#9CA3AF"
-                />
-            </View>
-
-            {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#2B2E83" />
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Rechercher une zone (ex: Yenne)"
+                        value={searchZone}
+                        onChangeText={setSearchZone}
+                        placeholderTextColor="#9CA3AF"
+                    />
                 </View>
-            ) : (
-                <FlatList
-                    data={filteredTerrains}
-                    renderItem={renderTerrain}
-                    keyExtractor={(item) => item.id!}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={
-                        <View style={styles.empty}>
-                            <MaterialIcons name="landscape" size={64} color="#D1D5DB" />
-                            <Text style={styles.emptyText}>Aucun terrain disponible dans cette zone.</Text>
-                        </View>
-                    }
-                />
-            )}
+
+                {loading ? (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color="#2B2E83" />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredTerrains}
+                        renderItem={renderTerrain}
+                        keyExtractor={(item) => item.id!}
+                        contentContainerStyle={styles.list}
+                        ListEmptyComponent={
+                            <View style={styles.empty}>
+                                <MaterialIcons name="landscape" size={64} color="#D1D5DB" />
+                                <Text style={styles.emptyText}>Aucun terrain disponible dans cette zone.</Text>
+                            </View>
+                        }
+                    />
+                )}
+            </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: '#2B2E83',
+    },
+    contentContainer: {
         flex: 1,
         backgroundColor: '#F9FAFB',
     },
@@ -130,12 +138,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingVertical: 15,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#2B2E83',
     },
     title: {
         fontSize: 18,
         fontFamily: 'FiraSans_700Bold',
-        color: '#1F2937',
+        color: '#FFFFFF',
     },
     searchContainer: {
         flexDirection: 'row',

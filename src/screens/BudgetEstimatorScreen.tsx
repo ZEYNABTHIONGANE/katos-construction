@@ -42,7 +42,7 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView edges={['top']} style={styles.safeArea}>
+            <SafeAreaView edges={['bottom']} style={styles.safeArea}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -177,8 +177,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#2B2E83',
+        paddingTop: 70,
         paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingBottom: 16,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
     },

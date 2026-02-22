@@ -102,7 +102,7 @@ export default function BuyerChecklistScreen({ navigation }: Props) {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView edges={['top']} style={styles.safeArea}>
+            <SafeAreaView edges={['bottom']} style={styles.safeArea}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
@@ -200,8 +200,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#2B2E83',
+        paddingTop: 70,
         paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingBottom: 16,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
     },

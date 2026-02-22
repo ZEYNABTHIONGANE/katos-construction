@@ -87,67 +87,68 @@ export default function VillaListScreen({ navigation }: Props) {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#2B2E83" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <MaterialIcons name="arrow-back" size={24} color="#1F2937" />
+                    <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Modèles de Villas</Text>
                 <View style={{ width: 40 }} />
             </View>
+            <View style={styles.contentContainer}>
+                <View style={styles.searchSection}>
+                    <View style={styles.searchContainer}>
+                        <MaterialIcons name="search" size={20} color="#9CA3AF" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Rechercher un modèle..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            placeholderTextColor="#9CA3AF"
+                        />
+                    </View>
 
-            <View style={styles.searchSection}>
-                <View style={styles.searchContainer}>
-                    <MaterialIcons name="search" size={20} color="#9CA3AF" />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Rechercher un modèle..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor="#9CA3AF"
-                    />
-                </View>
-
-                <View style={styles.filterRow}>
-                    <TouchableOpacity
-                        style={[styles.filterChip, !selectedType && styles.filterChipActive]}
-                        onPress={() => setSelectedType(null)}
-                    >
-                        <Text style={[styles.filterChipText, !selectedType && styles.filterChipTextActive]}>Tous</Text>
-                    </TouchableOpacity>
-                    {types.map(type => (
+                    <View style={styles.filterRow}>
                         <TouchableOpacity
-                            key={type}
-                            style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
-                            onPress={() => setSelectedType(type)}
+                            style={[styles.filterChip, !selectedType && styles.filterChipActive]}
+                            onPress={() => setSelectedType(null)}
                         >
-                            <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>{type}</Text>
+                            <Text style={[styles.filterChipText, !selectedType && styles.filterChipTextActive]}>Tous</Text>
                         </TouchableOpacity>
-                    ))}
+                        {types.map(type => (
+                            <TouchableOpacity
+                                key={type}
+                                style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
+                                onPress={() => setSelectedType(type)}
+                            >
+                                <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>{type}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
-            </View>
 
-            {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#2B2E83" />
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredVillas}
-                    renderItem={renderVilla}
-                    keyExtractor={(item) => item.id!}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.empty}>
-                            <MaterialIcons name="home-work" size={64} color="#D1D5DB" />
-                            <Text style={styles.emptyText}>Aucun modèle ne correspond à votre recherche.</Text>
-                        </View>
-                    }
-                />
-            )}
-        </SafeAreaView>
+                {loading ? (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color="#2B2E83" />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredVillas}
+                        renderItem={renderVilla}
+                        keyExtractor={(item) => item.id!}
+                        contentContainerStyle={styles.list}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.empty}>
+                                <MaterialIcons name="home-work" size={64} color="#D1D5DB" />
+                                <Text style={styles.emptyText}>Aucun modèle ne correspond à votre recherche.</Text>
+                            </View>
+                        }
+                    />
+                )}
+            </View>
+        </View>
     );
 }
 
@@ -156,13 +157,21 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F9FAFB',
     },
+    contentContainer: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingTop: 70,
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#2B2E83',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+
     },
     backBtn: {
         padding: 8,
@@ -170,7 +179,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontFamily: 'FiraSans_700Bold',
-        color: '#1F2937',
+        color: '#FFFFFF',
     },
     searchSection: {
         backgroundColor: '#FFFFFF',
@@ -178,6 +187,7 @@ const styles = StyleSheet.create({
         paddingBottom: 15,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
+        marginTop: 15,
     },
     searchContainer: {
         flexDirection: 'row',
