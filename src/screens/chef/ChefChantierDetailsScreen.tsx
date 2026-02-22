@@ -21,6 +21,7 @@ import AppHeader from '../../components/AppHeader';
 import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier, TeamMember, calculateGlobalProgress, getPhaseStatus } from '../../types/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 
 const { width } = Dimensions.get('window');
@@ -188,7 +189,14 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
                 {selectedProject.coverImage ? (
                     <Image source={{ uri: selectedProject.coverImage }} style={styles.projectCoverImage} />
                 ) : selectedProject.gallery && selectedProject.gallery.length > 0 ? (
-                    <Image source={{ uri: selectedProject.gallery[0].url }} style={styles.projectCoverImage} />
+                    <Image
+                        source={{
+                            uri: selectedProject.gallery[0].type === 'video'
+                                ? getVideoThumbnailUrl(selectedProject.gallery[0].url, { width: 800 })
+                                : optimizeCloudinaryUrl(selectedProject.gallery[0].url, { width: 800 })
+                        }}
+                        style={styles.projectCoverImage}
+                    />
                 ) : (
                     <View style={[styles.projectCoverImage, styles.placeholderImage]}>
                         <MaterialIcons name="image" size={48} color="#E0E0E0" />
@@ -411,7 +419,7 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
                                     {item.type === 'video' ? (
                                         <Video source={{ uri: item.url }} style={styles.carouselVideo} resizeMode={ResizeMode.CONTAIN} shouldPlay={false} isLooping={false} useNativeControls={true} />
                                     ) : (
-                                        <Image source={{ uri: item.url }} style={styles.carouselImage} resizeMode="contain" />
+                                        <Image source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }} style={styles.carouselImage} resizeMode="contain" />
                                     )}
                                     {item.description && <Text style={styles.carouselImageDescription}>{item.description}</Text>}
                                 </View>

@@ -132,12 +132,15 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
   };
 
   const getCategoryLabel = (category: DocumentCategory): string => {
-    const labels: Record<DocumentCategory, string> = {
+    const labels: Record<string, string> = {
       'contract': 'Contrat',
       'plan': 'Plan',
-      photo: 'Photos',
-      video: 'Vidéos',
-      'other': 'Autre'
+      'photo': 'Photos',
+      'video': 'Vidéos',
+      'other': 'Autre',
+      'permit': 'Autorisation',
+      'invoice': 'Facture',
+      'report': 'Rapport'
     };
     return labels[category] || category;
   };
@@ -248,7 +251,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
             <FlatList
               data={filteredDocuments()}
               renderItem={renderDocument}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item.id || index.toString()}
               scrollEnabled={false}
               contentContainerStyle={styles.documentsContainer}
             />
@@ -300,7 +303,7 @@ export default function ClientDocumentsScreen({ navigation }: Props) {
                   const index = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
                   setSelectedMediaIndex(index);
                 }}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => item.id || index.toString()}
                 renderItem={({ item, index }) => (
                   <View style={styles.carouselItemContainer}>
                     {item.type === 'video' ? (

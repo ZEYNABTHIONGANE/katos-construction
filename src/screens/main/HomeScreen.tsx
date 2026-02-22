@@ -23,6 +23,7 @@ import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { useClientDocuments } from "../../hooks/useDocuments";
 import { useUserNames } from "../../hooks/useUserNames";
 import { useNotifications } from "../../hooks/useNotifications";
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from "../../utils/cloudinaryUtils";
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<HomeTabParamList, "Home">,
@@ -239,7 +240,11 @@ export default function HomeScreen({ navigation }: Props) {
             {mainImage && (
               <View style={styles.heroImageContainer}>
                 <Image
-                  source={{ uri: mainImage.url }}
+                  source={{
+                    uri: (mainImage as any).type === 'video'
+                      ? getVideoThumbnailUrl(mainImage.url, { width: 800 })
+                      : optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' })
+                  }}
                   style={styles.heroImage}
                   resizeMode="cover"
                 />

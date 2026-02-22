@@ -19,6 +19,7 @@ export const optimizeCloudinaryUrl = (
         quality?: string | number;
         format?: string;
         crop?: string;
+        startOffset?: string | number;
     } = {}
 ): string => {
     if (!url) return '';
@@ -37,7 +38,8 @@ export const optimizeCloudinaryUrl = (
         height,
         quality = 'auto',
         format = 'auto',
-        crop = 'fill'
+        crop = 'fill',
+        startOffset
     } = options;
 
     let transformation = `q_${quality},f_${format}`;
@@ -45,6 +47,7 @@ export const optimizeCloudinaryUrl = (
     if (width) transformation += `,w_${width}`;
     if (height) transformation += `,h_${height}`;
     if (width || height) transformation += `,c_${crop}`;
+    if (startOffset) transformation += `,so_${startOffset}`;
 
     // Inject transformation after 'upload'
     parts.splice(uploadIndex + 1, 0, transformation);
@@ -111,6 +114,7 @@ export const getVideoThumbnailUrl = (
         height,
         quality,
         format: 'webp', // WebP is efficient for mobile
-        crop: 'fill'
-    }) + (timeOffset ? `,so_${timeOffset}` : '');
+        crop: 'fill',
+        startOffset: timeOffset
+    });
 };

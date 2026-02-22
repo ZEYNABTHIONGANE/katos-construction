@@ -22,6 +22,7 @@ import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { FirebaseChantier, ProgressPhoto } from '../../types/firebase';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -141,7 +142,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
 
   const renderMediaItem = ({ item }: { item: ProgressPhoto }) => (
     <View style={styles.mediaItemContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           const originalIndex = selectedProject?.gallery.findIndex(g => g.id === item.id) ?? 0;
           openImageCarousel(originalIndex);
@@ -149,13 +150,10 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         {item.type === 'video' ? (
           <View style={styles.videoContainer}>
-            <Video
-              source={{ uri: item.thumbnailUrl || item.url }}
+            <Image
+              source={{ uri: item.thumbnailUrl || (item.type === 'video' ? getVideoThumbnailUrl(item.url) : item.url) }}
               style={styles.mediaItem}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={false}
-              isLooping={false}
-              useNativeControls={false}
+              resizeMode="cover"
             />
             <View style={styles.videoOverlay}>
               <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.9)" />
@@ -176,7 +174,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         <MaterialIcons name="delete" size={20} color="#FFFFFF" />
       </TouchableOpacity>
-  
+
     </View>
   );
 
@@ -186,7 +184,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
         <AppHeader
           title="Galerie"
           showNotification={true}
-          onNotificationPress={() => {}}
+          onNotificationPress={() => { }}
         />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#2B2E83" />
@@ -200,8 +198,8 @@ export default function ChefGalleryScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Galerie"
-            showNotification={false}
-        onNotificationPress={() => {}}
+        showNotification={false}
+        onNotificationPress={() => { }}
       />
 
       {/* Project Selector */}
@@ -324,12 +322,12 @@ export default function ChefGalleryScreen({ navigation }: Props) {
                     />
                   ) : (
                     <Image
-                      source={{ uri: item.url }}
+                      source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                       style={styles.carouselImage}
                       resizeMode="contain"
                     />
                   )}
-                
+
                 </View>
               )}
             />
@@ -399,7 +397,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   mediaGrid: {
-    paddingBottom: 10, 
+    paddingBottom: 10,
   },
   mediaRow: {
     justifyContent: 'space-between',

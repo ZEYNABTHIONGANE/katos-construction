@@ -28,6 +28,7 @@ import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useUserNames } from '../../hooks/useUserNames';
 import { FirebaseChantier, getPhaseStatus } from '../../types/firebase';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<ChefStackParamList, 'ChefPhaseDetail'>;
 
@@ -75,7 +76,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
         description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
-        thumbnailUrl: photo.thumbnailUrl
+        thumbnailUrl: photo.thumbnailUrl || (photo.type === 'video' ? getVideoThumbnailUrl(photo.url) : undefined)
       }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
 
@@ -563,13 +564,10 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                       >
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
-                            <Video
+                            <Image
                               source={{ uri: photo.thumbnailUrl || photo.url }}
                               style={{ width: '100%', height: '100%' }}
-                              resizeMode={ResizeMode.COVER}
-                              shouldPlay={false}
-                              isLooping={false}
-                              useNativeControls={false}
+                              resizeMode="cover"
                             />
                             <View style={styles.playIconOverlay}>
                               <MaterialIcons

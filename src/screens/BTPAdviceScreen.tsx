@@ -26,7 +26,7 @@ export default function BTPAdviceScreen({ navigation }: Props) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: "Bonjour ! Je suis l'expert BTP de Katos. Comment puis-je vous aider dans votre projet de construction aujourd'hui ?",
+            text: "Bonjour ! Je suis l'expert BTP de Katos. Je suis ici pour vous conseiller exclusivement sur vos projets de construction, rénovation et foncier au Sénégal. Comment puis-je vous aider ?",
             senderId: 'bot',
             senderName: 'Katos Expert',
             timestamp: new Date(),
@@ -128,7 +128,7 @@ export default function BTPAdviceScreen({ navigation }: Props) {
                     {!isTyping && messages[messages.length - 1]?.isFromUser === false && (
                         <View style={styles.suggestionsContainer}>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
-                                {['Vérifier terrain', 'Titre foncier', 'NICAD', 'Notaire', 'Fondations', 'Prix devis'].map((tag, idx) => (
+                                {['Construction', 'Finitions', 'Vérifier terrain', 'Titre foncier', 'NICAD', 'Notaire', 'Fondations', 'Prix devis'].map((tag, idx) => (
                                     <TouchableOpacity
                                         key={idx}
                                         style={styles.suggestionTag}

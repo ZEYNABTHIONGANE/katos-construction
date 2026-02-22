@@ -179,12 +179,15 @@ export default function ClientDocumentsScreenV3({ navigation }: Props) {
   };
 
   const getCategoryLabel = (category: DocumentCategory): string => {
-    const labels: Record<DocumentCategory, string> = {
+    const labels: Record<string, string> = {
       'contract': 'Contrat',
       'plan': 'Plan',
       'photo': 'Photo',
       'video': 'Vidéo',
-      'other': 'Autre'
+      'other': 'Autre',
+      'permit': 'Autorisation',
+      'invoice': 'Facture',
+      'report': 'Rapport'
     };
     return labels[category] || category;
   };

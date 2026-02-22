@@ -29,7 +29,7 @@ class BTPAdviceService {
             suggestions: ["Ciment utilisé", "Dosage béton"]
         },
         "dalle": {
-            text: "Le coulage de la dalle nécessite une préparation minutieuse : ferraillage, coffrage et surtout un temps de séchage (cure) de 21 jours pour une résistance optimale.",
+            text: "Le coulage de la dalles nécessite une préparation minutieuse : ferraillage, coffrage et surtout un temps de séchage (cure) de 21 jours pour une résistance optimale.",
             suggestions: ["Étanchéité", "Finition sol"]
         },
         "terrain": {
@@ -52,9 +52,25 @@ class BTPAdviceService {
             text: "Le NICAD (Numéro d'Identification Cadastrale) est l'immatriculation unique de votre parcelle. Il est indispensable pour payer vos taxes et pour toute démarche administrative foncière.",
             suggestions: ["Impôts et Domaines", "Plan cadastral"]
         },
+        "finition": {
+            text: "Les finitions (carrelage, peinture, menuiserie) représentent environ 30% du budget. C'est l'étape qui donne tout son cachet à votre villa. Nous proposons différents niveaux de finition, du standard au haut de gamme.",
+            suggestions: ["Types de carrelage", "Peinture intérieure", "Budget finitions"]
+        },
+        "construction": {
+            text: "La construction d'une villa avec Katos suit un processus rigoureux : gros œuvre, second œuvre et finitions. Nous assurons un suivi hebdomadaire avec photos pour que vous puissiez suivre l'avancement à distance.",
+            suggestions: ["Délais de construction", "Garantie décennale", "Nos réalisations"]
+        },
+        "architecture": {
+            text: "Nos architectes conçoivent des plans modernes et optimisés pour le climat tropical. Vous pouvez choisir l'un de nos modèles ou opter pour une conception sur-mesure selon vos besoins.",
+            suggestions: ["Plans 3D", "Modification de plan", "Permis de construire"]
+        },
+        "btp": {
+            text: "Le BTP au Sénégal est en pleine mutation. Katos Construction s'engage sur la qualité des matériaux et le respect des normes de sécurité pour assurer la pérennité de votre investissement.",
+            suggestions: ["Normes de sécurité", "Qualité matériaux"]
+        },
         "default": {
-            text: "C'est une excellente question ! En tant qu'expert BTP et Foncier, je vous suggère d'approfondir ce point lors d'un rendez-vous avec l'un de nos conseillers. Sur quoi portait précisément votre interrogation ?",
-            suggestions: ["Vérifier un terrain", "Fondations", "Permis de construire", "Notaire"]
+            text: "Désolé, je suis un assistant spécialisé uniquement dans le BTP, la construction et l'immobilier au Sénégal. Je ne peux pas vous répondre sur d'autres sujets. Auriez-vous une question concernant votre projet de maison ou de terrain ?",
+            suggestions: ["Construire une villa", "Acheter un terrain", "Finitions", "Prix devis"]
         }
     };
 

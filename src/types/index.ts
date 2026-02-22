@@ -11,6 +11,7 @@ export type RootStackParamList = {
   ClientTabs: NavigatorScreenParams<HomeTabParamList> | undefined;
   ChefTabs: NavigatorScreenParams<ChefTabParamList> | undefined;
   ClientProjects: undefined;
+  ClientDocuments: undefined;
   Documents: undefined;
   HelpSupport: undefined;
   About: undefined;
@@ -44,6 +45,8 @@ export type HomeTabParamList = {
   Chantier: { chantierId?: string };
   ClientInvoices: undefined;
   Chat: undefined;
+  Documents: undefined;
+  ClientDocuments: undefined; // Missing screen
   Profil: undefined;
 };
 
@@ -52,6 +55,7 @@ export type ChefTabParamList = {
   ChefChantiers: { selectedChantierId?: string };
   ChefGallery: undefined;
   ChefChat: undefined;
+  Documents: undefined;
   ChefProfil: undefined;
 };
 
@@ -88,6 +92,17 @@ export interface Project {
   imageUrl: string;
   startDate: string;
   endDate?: string;
+}
+
+export interface Material {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  supplier: string;
+  description: string;
+  createdAt: any;
 }
 
 export interface Message {

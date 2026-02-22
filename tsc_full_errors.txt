@@ -1,0 +1,1 @@
+src/hooks/useDeepLinking.ts(84,46): error TS2353: Object literal may only specify known properties, and 'token' does not exist in type 'CreateURLOptions'.

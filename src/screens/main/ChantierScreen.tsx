@@ -23,6 +23,7 @@ import { useClientChantier } from '../../hooks/useClientChantier';
 import { ResizeMode, Video } from 'expo-av';
 import type { KatosChantierPhase } from '../../types/firebase';
 import { useUserNames } from '../../hooks/useUserNames';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 
 type Props = CompositeScreenProps<
@@ -331,7 +332,11 @@ export default function ChantierScreen({ navigation, route }: Props) {
                 activeOpacity={0.8}
               >
                 <Image
-                  source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' }) }}
+                  source={{
+                    uri: (mainImage as any).type === 'video'
+                      ? getVideoThumbnailUrl(mainImage.url, { width: 800 })
+                      : optimizeCloudinaryUrl(mainImage.url, { width: 800, quality: 'auto' })
+                  }}
                   style={styles.mainImage}
                 />
                 <View style={styles.mainImageOverlay}>
@@ -595,7 +600,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
+                        source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />

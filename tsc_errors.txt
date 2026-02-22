@@ -1,0 +1,23 @@
+src/config/firebase.ts(3,35): error TS2305: Module '"firebase/auth"' has no exported member 'getReactNativePersistence'.
+src/hooks/index.ts(5,91): error TS2307: Cannot find module './useFirebaseMaterials' or its corresponding type declarations.
+src/hooks/useClientDocuments.ts(112,22): error TS2339: Property 'readByClient' does not exist on type 'FirebaseDocument'.
+src/hooks/useDeepLinking.ts(84,46): error TS2353: Object literal may only specify known properties, and 'token' does not exist in type 'CreateURLOptions'.
+src/screens/chef/ChefDocumentsScreen.tsx(534,11): error TS2322: Type '{ visible: boolean; onClose: () => void; onUpload: (file: { uri: string; name: string; size: number; mimeType?: string; }, category: DocumentCategory, title: string, description?: string, visibility?: DocumentVisibility) => Promise<...>; uploading: boolean; userRole: string; availableClients: { ...; }[]; }' is not assignable to type 'IntrinsicAttributes & DocumentUploadModalProps'.
+  Property 'userRole' does not exist on type 'IntrinsicAttributes & DocumentUploadModalProps'.
+src/screens/main/ClientDocumentsScreen.tsx(26,57): error TS2344: Type '"ClientDocuments"' does not satisfy the constraint 'keyof RootStackParamList'.
+src/screens/main/ClientDocumentsScreen.tsx(135,11): error TS2739: Type '{ contract: string; plan: string; photo: string; video: string; other: string; }' is missing the following properties from type 'Record<DocumentCategory, string>': invoice, permit, report
+src/screens/main/ClientDocumentsScreenV3.tsx(33,55): error TS2344: Type '"Documents"' does not satisfy the constraint 'keyof HomeTabParamList'.
+src/screens/main/ClientDocumentsScreenV3.tsx(182,11): error TS2739: Type '{ contract: string; plan: string; photo: string; video: string; other: string; }' is missing the following properties from type 'Record<DocumentCategory, string>': invoice, permit, report
+src/screens/main/ClientProjectsScreen.tsx(169,92): error TS2769: No overload matches this call.
+  Argument of type '["ClientDocuments"]' is not assignable to parameter of type '[screen: "ChefChat"] | [screen: "ChefChat", params: undefined] | [screen: "ChefTabs"] | [screen: "ChefTabs", params: NavigatorScreenParams<ChefTabParamList>] | [screen: "ClientInvoices"] | ... 52 more ... | [screen: ...]'.
+    Type '["ClientDocuments"]' is not assignable to type '[screen: "ChefChat"] | [screen: "ChefTabs"] | [screen: "ClientInvoices"] | [screen: "Chat"] | [screen: "PrivacyPolicy"] | [screen: "Splash"] | [screen: "Login"] | [screen: "InvitationAuth"] | [screen: "CreatePIN"] | [screen: "ChangePassword"] | [screen: "ClientProfile"] | ... 17 more ... | [screen: ...]'.
+      Type '["ClientDocuments"]' is not assignable to type '[screen: "PhaseDetail"]'.
+        Type '"ClientDocuments"' is not assignable to type '"PhaseDetail"'.
+  Overload 2 of 2, '(options: { key: string; params?: undefined; merge?: boolean; } | { name: "ClientInvoices"; key?: string; params: undefined; merge?: boolean; } | { key: string; params?: undefined; merge?: boolean; } | { name: "Chat"; key?: string; params: undefined; merge?: boolean; } | ... 53 more ... | { ...; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ key: string; params?: undefined; merge?: boolean; } | { name: "ClientInvoices"; key?: string; params: undefined; merge?: boolean; } | { key: string; params?: undefined; merge?: boolean; } | { name: "Chat"; key?: string; params: undefined; merge?: boolean; } | ... 53 more ... | { ...; }'.
+src/services/clientDocumentService.ts(42,28): error TS2352: Conversion of type '{ uploadedAt: any; updatedAt: any; id: string; }' to type 'FirebaseDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ uploadedAt: any; updatedAt: any; id: string; }' is missing the following properties from type 'FirebaseDocument': chantierId, name, originalName, category, and 6 more.
+src/services/clientDocumentService.ts(116,60): error TS2339: Property 'readByClient' does not exist on type 'FirebaseDocument'.
+src/services/clientDocumentService.ts(248,46): error TS2339: Property 'readByClient' does not exist on type 'FirebaseDocument'.
+src/utils/testDataSync.ts(200,15): error TS2339: Property 'groupMaterialsByCategory' does not exist on type 'typeof import("C:/Users/Hp/Desktop/APP FINAL/katos-construction-master/src/utils/dataTransformers")'.
+src/utils/testDataSync.ts(200,41): error TS2339: Property 'transformFirebaseMaterialToMaterial' does not exist on type 'typeof import("C:/Users/Hp/Desktop/APP FINAL/katos-construction-master/src/utils/dataTransformers")'.

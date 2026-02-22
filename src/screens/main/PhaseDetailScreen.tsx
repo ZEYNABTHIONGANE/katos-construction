@@ -23,6 +23,7 @@ import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { useUserNames } from '../../hooks/useUserNames';
 import { ResizeMode, Video } from 'expo-av';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PhaseDetail'>;
 
@@ -68,7 +69,7 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
         description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
-        thumbnailUrl: photo.thumbnailUrl
+        thumbnailUrl: photo.thumbnailUrl || (photo.type === 'video' ? getVideoThumbnailUrl(photo.url) : undefined)
       }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
   }, [chantier, phaseId, phaseName, stepId, stepName, currentPhase]);
@@ -425,7 +426,7 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: require('../../utils/cloudinaryUtils').optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
+                        source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />

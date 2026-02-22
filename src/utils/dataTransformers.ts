@@ -1,5 +1,5 @@
-import type { FirebaseProject, FirebaseClient } from '../types/firebase';
-import type { Project, User, ProjectUpdate, ProjectPhase } from '../types';
+import type { FirebaseProject, FirebaseClient, FirebaseMaterial } from '../types/firebase';
+import type { Project, User, ProjectUpdate, ProjectPhase, Material } from '../types';
 
 /**
  * Transform Firebase project data to mobile app project format
@@ -30,6 +30,42 @@ export const transformFirebaseClientToUser = (firebaseClient: FirebaseClient): U
     role: 'client',
     avatar: undefined // Could be added to Firebase schema if needed
   };
+};
+
+
+/**
+ * Transform Firebase material data to mobile app material format
+ */
+export const transformFirebaseMaterialToMaterial = (firebaseMaterial: FirebaseMaterial): Material => {
+  return {
+    id: firebaseMaterial.id!,
+    name: firebaseMaterial.name,
+    category: firebaseMaterial.category,
+    price: firebaseMaterial.price,
+    image: firebaseMaterial.image,
+    supplier: firebaseMaterial.supplier,
+    description: firebaseMaterial.description,
+    createdAt: firebaseMaterial.createdAt
+  };
+};
+
+/**
+ * Group materials by category
+ */
+export const groupMaterialsByCategory = (materials: FirebaseMaterial[]): { category: string, materials: FirebaseMaterial[] }[] => {
+  const groups: Record<string, FirebaseMaterial[]> = {};
+
+  materials.forEach(material => {
+    if (!groups[material.category]) {
+      groups[material.category] = [];
+    }
+    groups[material.category].push(material);
+  });
+
+  return Object.entries(groups).map(([category, materials]) => ({
+    category,
+    materials
+  }));
 };
 
 

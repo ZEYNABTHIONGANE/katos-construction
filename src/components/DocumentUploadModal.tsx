@@ -31,6 +31,8 @@ interface DocumentUploadModalProps {
     visibility?: DocumentVisibility
   ) => Promise<boolean>;
   uploading?: boolean;
+  userRole?: string;
+  availableClients?: ClientOption[];
 }
 
 interface CategoryOption {

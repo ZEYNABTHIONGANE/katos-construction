@@ -273,6 +273,7 @@ export interface FirebaseDocument {
 
   // Access control
   isVisible: boolean;
+  readByClient?: boolean; // Added property
   isDeleted?: boolean;
   deletedAt?: Timestamp;
   deletedBy?: string;
