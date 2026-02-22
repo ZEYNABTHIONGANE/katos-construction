@@ -11,6 +11,7 @@ import {
     Platform,
     Keyboard,
     TouchableWithoutFeedback,
+    Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -89,7 +90,7 @@ export default function BTPAdviceScreen({ navigation }: Props) {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safeArea}>
+            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -119,7 +120,8 @@ export default function BTPAdviceScreen({ navigation }: Props) {
                     />
 
                     {isTyping && (
-                        <View style={styles.typingContainer}>
+                        <View style={styles.typingWrapper}>
+                            <TypingIndicator />
                             <Text style={styles.typingText}>L'expert analyse votre question...</Text>
                         </View>
                     )}
@@ -171,6 +173,62 @@ export default function BTPAdviceScreen({ navigation }: Props) {
 
 import { ScrollView } from 'react-native';
 
+function TypingIndicator() {
+    const animation1 = useRef(new Animated.Value(0)).current;
+    const animation2 = useRef(new Animated.Value(0)).current;
+    const animation3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const createAnimation = (anim: Animated.Value, delay: number) => {
+            return Animated.sequence([
+                Animated.delay(delay),
+                Animated.loop(
+                    Animated.sequence([
+                        Animated.timing(anim, {
+                            toValue: 1,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(anim, {
+                            toValue: 0,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
+                        Animated.delay(400) // pause between jumps
+                    ])
+                )
+            ]);
+        };
+
+        Animated.parallel([
+            createAnimation(animation1, 0),
+            createAnimation(animation2, 200),
+            createAnimation(animation3, 400),
+        ]).start();
+    }, []);
+
+    const dotStyle = (anim: Animated.Value) => ({
+        transform: [{
+            translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -5]
+            })
+        }],
+        opacity: anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.4, 1]
+        })
+    });
+
+    return (
+        <View style={styles.typingDotsContainer}>
+            <Animated.View style={[styles.dot, dotStyle(animation1)]} />
+            <Animated.View style={[styles.dot, dotStyle(animation2)]} />
+            <Animated.View style={[styles.dot, dotStyle(animation3)]} />
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -183,8 +241,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#2B2E83',
+        paddingTop: 70,
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingBottom: 15,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
     },
@@ -214,14 +273,43 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingBottom: 24,
     },
-    typingContainer: {
+    typingWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 8,
+        paddingVertical: 10,
+        backgroundColor: '#FFFFFF',
+        alignSelf: 'flex-start',
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
+        borderTopLeftRadius: 2,
+        borderBottomLeftRadius: 20,
+        marginLeft: 16,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2,
+    },
+    typingDotsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 10,
+        height: 12,
+    },
+    dot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#E96C2E',
+        marginHorizontal: 3,
     },
     typingText: {
         fontSize: 12,
         fontStyle: 'italic',
         color: '#6B7280',
+        fontFamily: 'FiraSans_400Regular',
     },
     suggestionsContainer: {
         paddingVertical: 10,

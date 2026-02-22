@@ -123,7 +123,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
                             style={styles.heroImageSimple}
                         />
                         <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.7)']}
+                            colors={['transparent', 'rgba(0,0,0,0.9)']}
                             style={styles.heroOverlaySimple}
                         >
                             <Text style={styles.heroTaglineSimple}>Construisons l'avenir ensemble</Text>
@@ -346,12 +346,18 @@ const styles = StyleSheet.create({
         fontFamily: 'FiraSans_700Bold',
         textTransform: 'uppercase',
         letterSpacing: 2,
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
     heroTitleSimple: {
         color: '#FFFFFF',
         fontSize: 24,
         fontFamily: 'FiraSans_700Bold',
         marginTop: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     // Tools Grid
     toolsSection: {
