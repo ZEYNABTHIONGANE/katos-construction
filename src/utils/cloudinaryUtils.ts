@@ -19,6 +19,7 @@ export const optimizeCloudinaryUrl = (
         quality?: string | number;
         format?: string;
         crop?: string;
+        gravity?: string;
         startOffset?: string | number;
     } = {}
 ): string => {
@@ -42,11 +43,14 @@ export const optimizeCloudinaryUrl = (
         startOffset
     } = options;
 
+    const gravity = options.gravity || (crop === 'fill' ? 'auto' : undefined);
+
     let transformation = `q_${quality},f_${format}`;
 
     if (width) transformation += `,w_${width}`;
     if (height) transformation += `,h_${height}`;
     if (width || height) transformation += `,c_${crop}`;
+    if (gravity) transformation += `,g_${gravity}`;
     if (startOffset) transformation += `,so_${startOffset}`;
 
     // Inject transformation after 'upload'
@@ -76,6 +80,8 @@ export const getVideoThumbnailUrl = (
     options: {
         width?: number;
         height?: number;
+        crop?: string;
+        gravity?: string;
         quality?: string | number;
         timeOffset?: string | number;
     } = {}
@@ -95,6 +101,8 @@ export const getVideoThumbnailUrl = (
     const {
         width = 400,
         height,
+        crop = 'fill',
+        gravity,
         quality = 'auto',
         timeOffset = '1'
     } = options;
@@ -114,7 +122,8 @@ export const getVideoThumbnailUrl = (
         height,
         quality,
         format: 'webp', // WebP is efficient for mobile
-        crop: 'fill',
+        crop,
+        gravity,
         startOffset: timeOffset
     });
 };
@@ -129,6 +138,10 @@ export const getVideoThumbnailUrl = (
 export const optimizeCloudinaryVideoUrl = (
     url: string | undefined,
     options: {
+        width?: number;
+        height?: number;
+        crop?: string;
+        gravity?: string;
         quality?: string | number;
         format?: string;
         bitrate?: string | number;
@@ -144,14 +157,21 @@ export const optimizeCloudinaryVideoUrl = (
     if (uploadIndex === -1) return url;
 
     const {
+        width,
+        height,
+        crop = 'fill',
         quality = 'auto',
-        format = 'auto',
-        bitrate = 'auto',
-        codec = 'auto'
+        format = 'mp4'
     } = options;
 
-    // vc_auto (video codec), br_auto (bitrate)
-    let transformation = `q_${quality},f_${format},br_${bitrate},vc_${codec}`;
+    const gravity = options.gravity || (crop === 'fill' ? 'auto' : undefined);
+
+    let transformation = `q_${quality},f_${format}`;
+
+    if (width) transformation += `,w_${width}`;
+    if (height) transformation += `,h_${height}`;
+    if (width || height) transformation += `,c_${crop}`;
+    if (gravity) transformation += `,g_${gravity}`;
 
     // Inject transformation after 'upload'
     parts.splice(uploadIndex + 1, 0, transformation);

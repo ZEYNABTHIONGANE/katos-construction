@@ -19,6 +19,7 @@ export interface ShowcaseContent {
         title: string;
         tagline: string;
         image: string;
+        type?: 'image' | 'video';
     }[];
 }
 

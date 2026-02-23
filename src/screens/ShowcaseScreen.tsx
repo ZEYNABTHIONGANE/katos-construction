@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import { Video, ResizeMode } from 'expo-av';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useIsFocused } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useClientAuth } from '../hooks/useClientAuth';
@@ -37,7 +38,7 @@ const DEFAULT_HERO = {
     imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?q=80&w=2070&auto=format&fit=crop',
     description: "Votre partenaire de confiance pour des projets immobiliers d'exception au Sénégal. Découvrez notre expertise et nos réalisations."
 };
-const DEFAULT_CAROUSEL_DATA = [
+const DEFAULT_CAROUSEL_DATA: any[] = [
     {
         id: '1',
         title: "Des villas d'exception au Sénégal",
@@ -59,6 +60,7 @@ const DEFAULT_CAROUSEL_DATA = [
 ];
 
 export default function ShowcaseScreen({ navigation }: Props) {
+    const isFocused = useIsFocused();
     const { isAuthenticated: isClientAuthenticated } = useClientAuth();
     const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = React.useState(!!auth.currentUser);
     const { content, villas, loading: dataLoading } = useShowcaseData();
@@ -68,6 +70,16 @@ export default function ShowcaseScreen({ navigation }: Props) {
     const carouselData = content?.carousel && content.carousel.length > 0 ? content.carousel : DEFAULT_CAROUSEL_DATA;
 
     React.useEffect(() => {
+        const currentItem = carouselData[activeIndex];
+        const isCurrentVideo = currentItem?.type === 'video' ||
+            /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(currentItem?.image || '') ||
+            (currentItem?.image?.includes('/video/upload/'));
+
+        // Pause automatic scrolling if the current item is a video
+        if (isCurrentVideo) {
+            return;
+        }
+
         const interval = setInterval(() => {
             let nextIndex = activeIndex + 1;
             if (nextIndex >= carouselData.length) {
@@ -79,7 +91,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
             setActiveIndex(nextIndex);
         }, 5000);
         return () => clearInterval(interval);
-    }, [activeIndex, carouselData.length]);
+    }, [activeIndex, carouselData]);
 
     const handleScroll = (event: any) => {
         const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -173,37 +185,57 @@ export default function ShowcaseScreen({ navigation }: Props) {
                             showsHorizontalScrollIndicator={false}
                             onScroll={handleScroll}
                             scrollEventThrottle={16}
-                            renderItem={({ item }) => (
-                                <View style={styles.heroSimple}>
-                                    {(item.type === 'video' || /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(item.image || '')) ? (
-                                        <Video
-                                            source={{ uri: optimizeCloudinaryVideoUrl(item.image) }}
-                                            style={styles.heroImageSimple}
-                                            resizeMode={ResizeMode.COVER}
-                                            shouldPlay
-                                            isLooping
-                                            isMuted
-                                            usePoster
-                                            posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: 800 }) }}
-                                            posterStyle={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-                                        />
-                                    ) : (
-                                        <Image
-                                            source={{ uri: optimizeCloudinaryUrl(item.image || DEFAULT_HERO.imageUrl, { width: 800 }) }}
-                                            style={styles.heroImageSimple}
-                                            contentFit="cover"
-                                            transition={300}
-                                        />
-                                    )}
-                                    <LinearGradient
-                                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
-                                        style={styles.heroOverlaySimple}
-                                    >
-                                        <Text style={styles.heroTaglineSimple}>{item.tagline}</Text>
-                                        <Text style={styles.heroTitleSimple}>{item.title}</Text>
-                                    </LinearGradient>
-                                </View>
-                            )}
+                            renderItem={({ item, index }) => {
+                                const isVideo = item.type === 'video' ||
+                                    /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(item.image || '') ||
+                                    (item.image?.includes('/video/upload/'));
+
+                                return (
+                                    <View style={[styles.heroSimple, { backgroundColor: '#F9FAFB' }]}>
+                                        {isVideo ? (
+                                            <Video
+                                                source={{
+                                                    uri: optimizeCloudinaryVideoUrl(item.image, {
+                                                        width: Math.round(width - 40),
+                                                        height: Math.round(height * 0.3),
+                                                        crop: 'fit'
+                                                    })
+                                                }}
+                                                style={styles.heroImageSimple}
+                                                resizeMode={ResizeMode.CONTAIN}
+                                                shouldPlay={activeIndex === index && isFocused}
+                                                isLooping
+                                                isMuted={false}
+                                                usePoster
+                                                posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: Math.round(width - 40), height: Math.round(height * 0.3), crop: 'fit' }) }}
+                                                posterStyle={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                                onError={(error) => console.log('Video Error:', error)}
+                                            />
+                                        ) : (
+                                            <Image
+                                                source={{
+                                                    uri: optimizeCloudinaryUrl(item.image || DEFAULT_HERO.imageUrl, {
+                                                        width: Math.round(width - 40),
+                                                        height: Math.round(height * 0.3),
+                                                        crop: 'fit'
+                                                    })
+                                                }}
+                                                style={styles.heroImageSimple}
+                                                contentFit="contain"
+                                                contentPosition="top"
+                                                transition={300}
+                                            />
+                                        )}
+                                        <LinearGradient
+                                            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                                            style={styles.heroOverlaySimple}
+                                        >
+                                            <Text style={styles.heroTaglineSimple}>{item.tagline}</Text>
+                                            <Text style={styles.heroTitleSimple}>{item.title}</Text>
+                                        </LinearGradient>
+                                    </View>
+                                );
+                            }}
                         />
                         <View style={styles.pagination}>
                             {carouselData.map((_, index) => (
@@ -378,9 +410,10 @@ const styles = StyleSheet.create({
     welcomeHeader: {
         backgroundColor: '#2B2E83',
         paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingBottom: 30,
         borderBottomLeftRadius: 25,
         borderBottomRightRadius: 25,
+        zIndex: 10,
     },
     headerContent: {
         flexDirection: 'row',
@@ -414,7 +447,7 @@ const styles = StyleSheet.create({
         height: height * 0.3,
         width: width - 40,
         marginHorizontal: 20,
-        marginTop: 20,
+        marginTop: 15,
         borderRadius: 25,
         overflow: 'hidden',
     },

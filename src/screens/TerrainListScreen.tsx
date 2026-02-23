@@ -78,7 +78,7 @@ export default function TerrainListScreen({ navigation }: Props) {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#2B2E83" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -98,6 +98,11 @@ export default function TerrainListScreen({ navigation }: Props) {
                         onChangeText={setSearchZone}
                         placeholderTextColor="#9CA3AF"
                     />
+                    {searchZone.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchZone('')} style={{ padding: 5 }}>
+                            <MaterialIcons name="close" size={20} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {loading ? (
@@ -119,7 +124,7 @@ export default function TerrainListScreen({ navigation }: Props) {
                     />
                 )}
             </View>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -139,7 +144,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         backgroundColor: '#2B2E83',
+        paddingTop: 50,
     },
+
     title: {
         fontSize: 18,
         fontFamily: 'FiraSans_700Bold',
