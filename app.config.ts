@@ -2,8 +2,7 @@ export default {
   expo: {
     name: "katos-connect",
     slug: "katos-connect",
-
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     userInterfaceStyle: "light",
     newArchEnabled: true,
@@ -20,6 +19,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.katos.app",
+      buildNumber: "3",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
@@ -35,7 +35,7 @@ export default {
     android: {
       package: "com.katos.app",
       googleServicesFile: "./google-services.json",
-      versioncode: 12,
+      versionCode: 30,
       adaptiveIcon: {
         foregroundImage: "./src/assets/logo.png",
         backgroundColor: "#ffffff",
@@ -59,7 +59,7 @@ export default {
       "url": "https://u.expo.dev/079a76f8-c4fe-420b-8c2d-b08fcfd5d63c",
     },
 
-    runtimeVersion: "1.0.0",
+    runtimeVersion: "1.0.1",
 
 
     scheme: "katos",
