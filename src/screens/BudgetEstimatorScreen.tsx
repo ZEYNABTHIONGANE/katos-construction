@@ -17,20 +17,40 @@ import { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BudgetEstimator'>;
 
-const FINISH_LEVELS = [
-    { id: 'social', label: 'Social', pricePerM2: 245000, description: 'Essentiel & Durable' },
-    { id: 'medium', label: 'Standing', pricePerM2: 385000, description: 'Confort & Design' },
-    { id: 'high', label: 'Grand Standing', pricePerM2: 550000, description: 'Luxe & Prestige' },
+const ZONES_DAKAR = [
+    { id: 'ville', label: 'Ville', pricePerM2: 350000, description: 'Dakar Plateau, Almadies, etc.' },
+    { id: 'centre', label: 'Centre', pricePerM2: 250000, description: 'Médina, Grand Dakar, etc.' },
+    { id: 'banlieue', label: 'Banlieue', pricePerM2: 150000, description: 'Pikine, Guédiawaye, Keur Massar, etc.' },
+];
+
+const BUILDING_LEVELS = [
+    { id: 'RC', label: 'RC', multiplier: 1 },
+    { id: 'R+1', label: 'R+1', multiplier: 2 },
+    { id: 'R+2', label: 'R+2', multiplier: 3 },
+    { id: 'R+3', label: 'R+3', multiplier: 4 },
+    { id: 'R+4', label: 'R+4', multiplier: 5 },
+    { id: 'R+5', label: 'R+5', multiplier: 6 },
+    { id: 'R+6', label: 'R+6', multiplier: 7 },
+    { id: 'R+7', label: 'R+7', multiplier: 8 },
+    { id: 'R+8', label: 'R+8', multiplier: 9 },
+    { id: 'R+9', label: 'R+9', multiplier: 10 },
+    { id: 'R+10', label: 'R+10', multiplier: 11 },
 ];
 
 export default function BudgetEstimatorScreen({ navigation }: Props) {
-    const [surface, setSurface] = useState<number>(100);
-    const [finishLevel, setFinishLevel] = useState(FINISH_LEVELS[1]);
+    const [surface, setSurface] = useState<number>(0);
+    const [selectedZone, setSelectedZone] = useState<typeof ZONES_DAKAR[number] | null>(null);
+    const [selectedLevel, setSelectedLevel] = useState<typeof BUILDING_LEVELS[number] | null>(null);
     const [totalBudget, setTotalBudget] = useState(0);
 
     useEffect(() => {
-        setTotalBudget(surface * finishLevel.pricePerM2);
-    }, [surface, finishLevel]);
+        if (surface > 0 && selectedZone && selectedLevel) {
+            const buildSurface = surface * selectedLevel.multiplier;
+            setTotalBudget(buildSurface * selectedZone.pricePerM2 * 0.75);
+        } else {
+            setTotalBudget(0);
+        }
+    }, [surface, selectedZone, selectedLevel]);
 
     const formatPrice = (price: number) => {
         return price.toLocaleString('fr-FR') + ' FCFA';
@@ -77,7 +97,7 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <MaterialIcons name="straighten" size={20} color="#2B2E83" />
-                            <Text style={styles.sectionTitle}>Surface de construction (m²)</Text>
+                            <Text style={styles.sectionTitle}>Surface au sol (m²)</Text>
                         </View>
 
                         <View style={styles.surfaceControl}>
@@ -101,36 +121,61 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                         </View>
                     </View>
 
-                    {/* Finishing Level Section */}
+                    {/* Niveau Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <MaterialIcons name="layers" size={20} color="#2B2E83" />
-                            <Text style={styles.sectionTitle}>Niveau de Finition</Text>
+                            <MaterialIcons name="business" size={20} color="#2B2E83" />
+                            <Text style={styles.sectionTitle}>Nombre de niveaux</Text>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.levelsContainer}>
+                            {BUILDING_LEVELS.map((level) => (
+                                <TouchableOpacity
+                                    key={level.id}
+                                    style={[
+                                        styles.levelItem,
+                                        selectedLevel?.id === level.id && styles.levelItemSelected
+                                    ]}
+                                    onPress={() => setSelectedLevel(level)}
+                                >
+                                    <Text style={[
+                                        styles.levelLabel,
+                                        selectedLevel?.id === level.id && styles.levelLabelSelected
+                                    ]}>{level.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Zone Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <MaterialIcons name="map" size={20} color="#2B2E83" />
+                            <Text style={styles.sectionTitle}>Zone de construction (Dakar)</Text>
                         </View>
 
-                        {FINISH_LEVELS.map((level) => (
+                        {ZONES_DAKAR.map((zone) => (
                             <TouchableOpacity
-                                key={level.id}
+                                key={zone.id}
                                 style={[
                                     styles.finishItem,
-                                    finishLevel.id === level.id && styles.finishItemSelected
+                                    selectedZone?.id === zone.id && styles.finishItemSelected
                                 ]}
-                                onPress={() => setFinishLevel(level)}
+                                onPress={() => setSelectedZone(zone)}
                             >
                                 <View style={styles.finishInfo}>
                                     <Text style={[
                                         styles.finishLabel,
-                                        finishLevel.id === level.id && styles.finishLabelSelected
-                                    ]}>{level.label}</Text>
-                                    <Text style={styles.finishDesc}>{level.description}</Text>
+                                        selectedZone?.id === zone.id && styles.finishLabelSelected
+                                    ]}>{zone.label}</Text>
+                                    <Text style={styles.finishDesc}>{zone.description}</Text>
                                 </View>
                                 <View style={styles.finishPriceBox}>
                                     <Text style={[
                                         styles.finishPrice,
-                                        finishLevel.id === level.id && styles.finishPriceSelected
-                                    ]}>~{level.pricePerM2.toLocaleString()} / m²</Text>
+                                        selectedZone?.id === zone.id && styles.finishPriceSelected
+                                    ]}>~{zone.pricePerM2.toLocaleString()} / m²</Text>
                                 </View>
-                                {finishLevel.id === level.id && (
+                                {selectedZone?.id === zone.id && (
                                     <MaterialIcons name="check-circle" size={24} color="#E96C2E" />
                                 )}
                             </TouchableOpacity>
@@ -147,11 +192,16 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
 
                     {/* CTA */}
                     <TouchableOpacity
-                        style={styles.ctaButton}
-                        onPress={() => navigation.navigate('ProspectForm', {
-                            interestedProject: `Simulation: ${surface}m² ${finishLevel.label}`,
-                            estimatedBudget: totalBudget
-                        })}
+                        style={[styles.ctaButton, totalBudget === 0 && styles.ctaButtonDisabled]}
+                        onPress={() => {
+                            if (totalBudget > 0) {
+                                navigation.navigate('ProspectForm', {
+                                    interestedProject: `Simulation: ${surface}m² x ${selectedLevel?.label} (${selectedZone?.label})`,
+                                    estimatedBudget: totalBudget
+                                });
+                            }
+                        }}
+                        disabled={totalBudget === 0}
                     >
                         <Text style={styles.ctaButtonText}>Recevoir ce devis par email</Text>
                         <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -295,6 +345,30 @@ const styles = StyleSheet.create({
         fontFamily: 'FiraSans_600SemiBold',
         marginLeft: 4,
     },
+    levelsContainer: {
+        gap: 12,
+        paddingVertical: 5,
+    },
+    levelItem: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    levelItemSelected: {
+        backgroundColor: '#2B2E83',
+        borderColor: '#2B2E83',
+    },
+    levelLabel: {
+        fontSize: 14,
+        color: '#4B5563',
+        fontFamily: 'FiraSans_600SemiBold',
+    },
+    levelLabelSelected: {
+        color: '#FFFFFF',
+    },
     finishItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -370,5 +444,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'FiraSans_700Bold',
         marginRight: 8,
+    },
+    ctaButtonDisabled: {
+        backgroundColor: '#9CA3AF',
+        opacity: 0.7,
     },
 });

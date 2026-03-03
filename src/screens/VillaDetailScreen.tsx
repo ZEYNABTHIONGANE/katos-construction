@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     Dimensions,
 } from 'react-native';
+// @ts-ignore
 import { Image } from 'expo-image';
 import { optimizeCloudinaryUrl } from '../utils/cloudinaryUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
