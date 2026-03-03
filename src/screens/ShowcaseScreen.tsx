@@ -188,7 +188,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
                 </SafeAreaView>
             </View>
 
-            <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+            <View style={{ flex: 1 }}>
                 <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
 
                     {/* Hero section : Carousel publicitaire */}
@@ -413,7 +413,7 @@ export default function ShowcaseScreen({ navigation }: Props) {
 
                     <View style={{ height: 40 }} />
                 </ScrollView>
-            </SafeAreaView>
+            </View>
 
         </View>
     );
