@@ -77,6 +77,25 @@ export interface FirebaseProject {
   createdAt: Timestamp;
 }
 
+// Firebase terrain interface
+export interface FirebaseTerrain {
+  id?: string;
+  reference: string;
+  name: string;
+  surface: number;
+  price: number;
+  currency: string;
+  documentType: string; // ex: "Titre foncier"
+  hasWater: boolean;
+  hasElectricity: boolean;
+  isHabited: boolean;
+  description: string;
+  status: 'Disponible' | 'Vendu' | 'Réservé';
+  zone: string;
+  images: string[];
+  createdAt: Timestamp;
+}
+
 // Firebase invitation interface - identical to backoffice
 export interface FirebaseInvitation {
   id?: string;
@@ -229,7 +248,7 @@ export interface FirebaseChantier {
 }
 
 // Document types for chantier documents
-export type DocumentCategory = 'contract' | 'plan' | 'invoice' | 'permit' | 'photo' | 'report' | 'video' | 'other';
+export type DocumentCategory = 'contract' | 'plan' | 'invoice' | 'permit' | 'report' | 'photo' | 'video' | 'other';
 export type DocumentVisibility = 'client_only' | 'chef_only' | 'both';
 
 export interface FirebaseDocument {
@@ -254,6 +273,7 @@ export interface FirebaseDocument {
 
   // Access control
   isVisible: boolean;
+  readByClient?: boolean; // Added property
   isDeleted?: boolean;
   deletedAt?: Timestamp;
   deletedBy?: string;
@@ -295,6 +315,7 @@ export interface FirebaseCollections {
   invitationCodes: 'invitationCodes';
   documentNotifications: 'documentNotifications';
   feedbacks: 'feedbacks'; // Sub-collection of chantiers
+  terrains: 'terrains';
 }
 
 export interface VoiceNoteFeedback {
@@ -324,7 +345,8 @@ export const COLLECTIONS: FirebaseCollections = {
   clientSelections: 'clientSelections',
   invitationCodes: 'invitationCodes',
   documentNotifications: 'documentNotifications',
-  feedbacks: 'feedbacks'
+  feedbacks: 'feedbacks',
+  terrains: 'terrains'
 };
 
 // Utility functions for chantier calculations

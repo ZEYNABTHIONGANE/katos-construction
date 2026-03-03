@@ -12,15 +12,24 @@ export type RootStackParamList = {
   ChefTabs: NavigatorScreenParams<ChefTabParamList> | undefined;
   ClientProjects: undefined;
   ClientDocuments: undefined;
+  Documents: undefined;
   HelpSupport: undefined;
   About: undefined;
   PrivacyPolicy: undefined;
   Diagnostic: undefined;
   Chat: undefined;
+  Notifications: undefined;
+  ClientInvoices: undefined;
   ChefChat: undefined;
   Main: undefined;
   Showcase: undefined;
-  ProspectForm: { interestedProject?: string } | undefined;
+  TerrainList: undefined;
+  TerrainDetail: { terrain: import('./firebase').FirebaseTerrain };
+  VillaList: undefined;
+  BTPAdvice: undefined;
+  BudgetEstimator: undefined;
+  BuyerChecklist: undefined;
+  ProspectForm: { interestedProject?: string, estimatedBudget?: number } | undefined;
   VillaDetail: { villa: import('./firebase').FirebaseProject };
   PhaseDetail: {
     chantierId: string;
@@ -34,8 +43,10 @@ export type RootStackParamList = {
 export type HomeTabParamList = {
   Home: undefined;
   Chantier: { chantierId?: string };
-  Documents: undefined;
+  ClientInvoices: undefined;
   Chat: undefined;
+  Documents: undefined;
+  ClientDocuments: undefined; // Missing screen
   Profil: undefined;
 };
 
@@ -44,6 +55,7 @@ export type ChefTabParamList = {
   ChefChantiers: { selectedChantierId?: string };
   ChefGallery: undefined;
   ChefChat: undefined;
+  Documents: undefined;
   ChefProfil: undefined;
 };
 
@@ -82,6 +94,17 @@ export interface Project {
   endDate?: string;
 }
 
+export interface Material {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  supplier: string;
+  description: string;
+  createdAt: any;
+}
+
 export interface Message {
   id: string;
   text: string;
@@ -112,5 +135,16 @@ export interface ProjectPhase {
   startDate?: string;
   endDate?: string;
   description: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'document_upload' | 'material_selection' | 'client_update' | 'payment';
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: any;
+  userId?: string;
+  clientId?: string;
 }
 

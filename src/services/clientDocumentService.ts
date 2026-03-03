@@ -40,11 +40,11 @@ export class ClientDocumentService {
           snapshot.forEach((doc) => {
             const data = doc.data();
             documents.push({
-              id: doc.id,
               ...data,
+              id: doc.id,
               uploadedAt: data.uploadedAt || Timestamp.now(),
               updatedAt: data.updatedAt || null,
-            } as FirebaseDocument);
+            } as any as FirebaseDocument);
           });
           callback(documents);
         },
@@ -58,7 +58,7 @@ export class ClientDocumentService {
     } catch (error) {
       console.error('Error setting up client documents subscription:', error);
       onError?.(error as Error);
-      return () => {}; // Return empty function as fallback
+      return () => { }; // Return empty function as fallback
     }
   }
 
@@ -99,9 +99,9 @@ export class ClientDocumentService {
       snapshot.forEach((doc) => {
         const data = doc.data();
         documents.push({
-          id: doc.id,
           ...data,
-        } as FirebaseDocument);
+          id: doc.id,
+        } as any as FirebaseDocument);
       });
 
       // Calculate stats

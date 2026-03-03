@@ -5,14 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Modal,
-  FlatList,
   Alert,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { ResizeMode } from 'expo-av';
+import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +21,7 @@ import { useAuth } from '../../hooks/useAuth';
 import ProgressBar from '../../components/ProgressBar';
 import DocumentUploadModal from '../../components/DocumentUploadModal';
 import VideoPlayer from '../../components/VideoPlayer';
+import { optimizeCloudinaryUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 import type { DocumentCategory, DocumentVisibility } from '../../types/firebase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClientProjects'>;
@@ -352,9 +351,14 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
                   >
                     {media.type === 'video' ? (
                       <View style={styles.videoContainer}>
-                        <Image
-                          source={{ uri: media.thumbnailUrl || media.url }}
+                        <Video
+                          source={{ uri: optimizeCloudinaryVideoUrl(media.url) }}
                           style={styles.photoImage}
+                          resizeMode={ResizeMode.COVER}
+                          shouldPlay={false}
+                          positionMillis={100}
+                          isMuted={true}
+                          useNativeControls={false}
                         />
                         <View style={styles.videoOverlay}>
                           <MaterialIcons name="play-circle-filled" size={32} color="rgba(255,255,255,0.9)" />
@@ -366,7 +370,12 @@ export default function ClientChantierDocumentsScreen({ navigation }: Props) {
                         </View>
                       </View>
                     ) : (
-                      <Image source={{ uri: media.url }} style={styles.photoImage} />
+                      <Image
+                        source={{ uri: optimizeCloudinaryUrl(media.url, { width: 300 }) }}
+                        style={styles.photoImage}
+                        contentFit="cover"
+                        transition={200}
+                      />
                     )}
                     <View style={styles.photoOverlay}>
                       <Text style={styles.photoDescription} numberOfLines={2}>

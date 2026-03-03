@@ -6,13 +6,17 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
     Dimensions,
-
     StatusBar,
+    Linking,
+    FlatList,
+    AppState,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useIsFocused } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useClientAuth } from '../hooks/useClientAuth';
@@ -21,11 +25,12 @@ import { authService } from '../services/authService';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ActivityIndicator } from 'react-native';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../utils/cloudinaryUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Showcase'>;
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Fallback data if Firebase is empty
 const DEFAULT_HERO = {
@@ -34,18 +39,89 @@ const DEFAULT_HERO = {
     imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?q=80&w=2070&auto=format&fit=crop',
     description: "Votre partenaire de confiance pour des projets immobiliers d'exception au Sénégal. Découvrez notre expertise et nos réalisations."
 };
+const DEFAULT_CAROUSEL_DATA: any[] = [
+    {
+        id: '1',
+        title: "Des villas d'exception au Sénégal",
+        tagline: "Construisons l'avenir ensemble",
+        image: 'https://images.unsplash.com/photo-1600585154340-be6199f7d009?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: '2',
+        title: "Simulation gratuite en 2 minutes",
+        tagline: "Planifiez votre budget",
+        image: 'https://images.unsplash.com/photo-1541888086414-b80c33fb3537?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: '3',
+        title: "Un expert BTP à votre écoute",
+        tagline: "Conseils techniques gratuits",
+        image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2070&auto=format&fit=crop',
+    }
+];
 
 export default function ShowcaseScreen({ navigation }: Props) {
+    const isFocused = useIsFocused();
     const { isAuthenticated: isClientAuthenticated } = useClientAuth();
     const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = React.useState(!!auth.currentUser);
     const { content, villas, loading: dataLoading } = useShowcaseData();
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const [isPausedByUser, setIsPausedByUser] = React.useState(false);
+    const [appState, setAppState] = React.useState(AppState.currentState);
+    const flatListRef = React.useRef<FlatList>(null);
+
+    const carouselData = content?.carousel && content.carousel.length > 0 ? content.carousel : DEFAULT_CAROUSEL_DATA;
+
+    React.useEffect(() => {
+        const currentItem = carouselData[activeIndex];
+        const isCurrentVideo = currentItem?.type === 'video' ||
+            /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(currentItem?.image || '') ||
+            (currentItem?.image?.includes('/video/upload/'));
+
+        // Pause automatic scrolling if the current item is a video
+        if (isCurrentVideo) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            let nextIndex = activeIndex + 1;
+            if (nextIndex >= carouselData.length) {
+                nextIndex = 0;
+            }
+            if (flatListRef.current) {
+                flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+            }
+            setActiveIndex(nextIndex);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [activeIndex, carouselData]);
+
+    React.useEffect(() => {
+        setIsPausedByUser(false);
+    }, [activeIndex]);
+
+    const handleScroll = (event: any) => {
+        const scrollPosition = event.nativeEvent.contentOffset.x;
+        const index = Math.round(scrollPosition / width);
+        setActiveIndex(index);
+    };
 
     React.useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setIsFirebaseAuthenticated(!!user);
         });
-        return unsubscribe;
+
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            setAppState(nextAppState);
+        });
+
+        return () => {
+            unsubscribe();
+            subscription.remove();
+        };
     }, []);
+
+    const isVisible = isFocused && appState === 'active';
 
     const isAuthenticated = isClientAuthenticated || isFirebaseAuthenticated;
 
@@ -55,11 +131,9 @@ export default function ShowcaseScreen({ navigation }: Props) {
 
     const handleLogin = async () => {
         if (isAuthenticated) {
-            // Déterminer vers quel dashboard aller
             if (isClientAuthenticated) {
                 navigation.navigate('ClientTabs' as any);
             } else {
-                // Pour les chefs, on vérifie s'ils sont dans le stack ou on reset
                 navigation.navigate('ChefTabs' as any);
             }
         } else {
@@ -67,7 +141,20 @@ export default function ShowcaseScreen({ navigation }: Props) {
         }
     };
 
-    const canGoBack = navigation.canGoBack();
+    const handleWhatsAppContact = () => {
+        const phone = '221770326990';
+        const message = "Bonjour Katos, je souhaite obtenir des conseils pour mon projet de construction.";
+        const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+        const webUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+        Linking.canOpenURL(url).then(supported => {
+            if (supported) {
+                Linking.openURL(url);
+            } else {
+                Linking.openURL(webUrl);
+            }
+        }).catch(() => Linking.openURL(webUrl));
+    };
 
     if (dataLoading) {
         return (
@@ -80,124 +167,266 @@ export default function ShowcaseScreen({ navigation }: Props) {
     const heroProject = content?.heroProject || DEFAULT_HERO;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        {canGoBack ? (
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                                <MaterialIcons name="arrow-back" size={24} color="#2B2E83" />
-                            </TouchableOpacity>
-                        ) : (
-                            <Image source={require('../assets/logo.png')} style={styles.logo} />
-                        )}
+        <View style={styles.container} >
+            <StatusBar barStyle="light-content" />
+
+            {/* Barre de bienvenue bleue */}
+            <View style={styles.welcomeHeader}>
+                <SafeAreaView edges={['top']}>
+                    <View style={styles.headerContent}>
+                        <View>
+                            <Text style={styles.welcomeText}>Bienvenue chez</Text>
+                            <Text style={styles.brandName}>Katos Construction</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.profileCircle}
+                            onPress={handleLogin}
+                        >
+                            <MaterialIcons name="login" size={28} color="#FFFFFF" />
+                        </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-                        <Text style={styles.loginBtnText}>
-                            {isAuthenticated ? 'Retour au Dashboard' : 'Espace Client'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                </SafeAreaView>
+            </View>
 
-                {/* Hero Section */}
-                <View style={styles.heroContainer}>
-                    <Image source={{ uri: heroProject.imageUrl }} style={styles.heroImage} />
-                    <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.8)']}
-                        style={styles.heroOverlay}
-                    >
-                        <View style={styles.heroContent}>
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>PROJET PHARE</Text>
-                            </View>
-                            <Text style={styles.heroTitle}>{heroProject.title}</Text>
-                            <Text style={styles.heroSubtitle}>{heroProject.subtitle}</Text>
-                            <TouchableOpacity
-                                style={styles.heroAction}
-                                onPress={() => handleBecomeOwner(heroProject.title)}
-                            >
-                                <Text style={styles.heroActionText}>En savoir plus</Text>
-                                <MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" />
-                            </TouchableOpacity>
-                        </View>
-                    </LinearGradient>
-                </View>
+            <View style={{ flex: 1 }}>
+                <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
 
-                {/* Introduction Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Katos Construction</Text>
-                    <Text style={styles.sectionText}>
-                        {content?.heroProject.description || heroProject.description}
-                    </Text>
-                </View>
+                    {/* Hero section : Carousel publicitaire */}
+                    <View style={styles.carouselContainer}>
+                        <FlatList
+                            ref={flatListRef}
+                            data={carouselData}
+                            keyExtractor={(item) => item.id}
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            onScroll={handleScroll}
+                            scrollEventThrottle={16}
+                            renderItem={({ item, index }) => {
+                                const isVideo = item.type === 'video' ||
+                                    /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(item.image || '') ||
+                                    (item.image?.includes('/video/upload/'));
 
-                {/* Villa Catalog */}
-                {villas.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Nos Modèles de Villas</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                            {villas.map((villa) => (
-                                <TouchableOpacity
-                                    key={villa.id}
-                                    style={styles.villaCard}
-                                    onPress={() => navigation.navigate('VillaDetail', { villa })}
-                                >
-                                    <Image source={{ uri: villa.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop' }} style={styles.villaImage} />
-                                    <View style={styles.villaInfo}>
-                                        <Text style={styles.villaModel} numberOfLines={1}>{villa.name}</Text>
-                                        <Text style={styles.villaType}>{villa.type}</Text>
-                                        {villa.price && (
-                                            <Text style={styles.villaPrice}>
-                                                À partir de {villa.price.toLocaleString()} {villa.currency || 'FCFA'}
-                                            </Text>
+                                return (
+                                    <View style={[styles.heroSimple, { backgroundColor: '#F9FAFB' }]}>
+                                        {isVideo ? (
+                                            <View style={styles.heroImageSimple}>
+                                                <Video
+                                                    source={{
+                                                        uri: optimizeCloudinaryVideoUrl(item.image, {
+                                                            width: Math.round(width - 40),
+                                                            height: Math.round(height * 0.3),
+                                                            crop: 'fit'
+                                                        })
+                                                    }}
+                                                    style={StyleSheet.absoluteFill}
+                                                    resizeMode={ResizeMode.CONTAIN}
+                                                    shouldPlay={activeIndex === index && isVisible && !isPausedByUser}
+                                                    isLooping
+                                                    isMuted={false}
+                                                    usePoster
+                                                    posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: Math.round(width - 40), height: Math.round(height * 0.3), crop: 'fit' }) }}
+                                                    posterStyle={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                                    onError={(error) => console.log('Video Error:', error)}
+                                                />
+                                            </View>
+                                        ) : (
+                                            <Image
+                                                source={{
+                                                    uri: optimizeCloudinaryUrl(item.image || DEFAULT_HERO.imageUrl, {
+                                                        width: Math.round(width - 40),
+                                                        height: Math.round(height * 0.3),
+                                                        crop: 'fit'
+                                                    })
+                                                }}
+                                                style={styles.heroImageSimple}
+                                                contentFit="contain"
+                                                contentPosition="top"
+                                                transition={300}
+                                            />
+                                        )}
+                                        <LinearGradient
+                                            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                                            style={styles.heroOverlaySimple}
+                                        >
+                                            <Text style={styles.heroTaglineSimple}>{item.tagline}</Text>
+                                            <Text style={styles.heroTitleSimple}>{item.title}</Text>
+                                        </LinearGradient>
+
+                                        {isVideo && (
+                                            <TouchableOpacity
+                                                style={styles.playPauseButton}
+                                                onPress={() => setIsPausedByUser(!isPausedByUser)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <MaterialIcons
+                                                    name={isPausedByUser ? "play-arrow" : "pause"}
+                                                    size={28}
+                                                    color="#FFFFFF"
+                                                />
+                                            </TouchableOpacity>
                                         )}
                                     </View>
-                                </TouchableOpacity>
+                                );
+                            }}
+                        />
+                        <View style={styles.pagination}>
+                            {carouselData.map((_, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.dot,
+                                        activeIndex === index ? styles.activeDot : {}
+                                    ]}
+                                />
                             ))}
-                        </ScrollView>
+                        </View>
                     </View>
-                )}
 
-                {/* Services / Promotions */}
-                {(content?.promo.active !== false) && (
-                    <View style={styles.promoSection}>
-                        <LinearGradient
-                            colors={['#2B2E83', '#1e2160']}
-                            style={styles.promoCard}
-                        >
-                            <View style={styles.promoContent}>
-                                <Text style={styles.promoTitle}>{content?.promo.title || 'Offre Spéciale'}</Text>
-                                <Text style={styles.promoSubtitle}>
-                                    {content?.promo.subtitle || '-10% sur les frais de dossier ce mois-ci'}
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.promoAction}
-                                    onPress={() => handleBecomeOwner()}
-                                >
-                                    <Text style={styles.promoActionText}>J'en profite</Text>
+                    {/* Grille de services (Pas de carrousel) */}
+                    <View style={styles.toolsSection}>
+                        <View style={styles.sectionHeaderFixed}>
+                            <Text style={styles.sectionTitle}>Outils & Services</Text>
+                        </View>
+
+                        <View style={styles.toolsGrid}>
+                            <ToolCard
+                                icon="calculate"
+                                title="Simulateur"
+                                onPress={() => navigation.navigate('BudgetEstimator' as any)}
+                                color="#2B2E83"
+                            />
+                            <ToolCard
+                                icon="fact-check"
+                                title="Guide Achat"
+                                onPress={() => navigation.navigate('BuyerChecklist' as any)}
+                                color="#E96C2E"
+                            />
+                            <ToolCard
+                                icon="support-agent"
+                                title="Expertise"
+                                onPress={() => navigation.navigate('BTPAdvice' as any)}
+                                color="#2B2E83"
+                            />
+                            <ToolCard
+                                icon="assignment"
+                                title="Mon Projet"
+                                onPress={() => handleBecomeOwner()}
+                                color="#E96C2E"
+                            />
+                        </View>
+                    </View>
+
+                    {/* Nos Solutions - Boutons larges colorés */}
+                    <View style={styles.hubContainer}>
+                        <Text style={styles.sectionTitle}>Nos Solutions</Text>
+                        <View style={styles.hubButtonsRow}>
+                            <TouchableOpacity
+                                style={[styles.largeHubBtn, { backgroundColor: '#2B2E83' }]}
+                                onPress={() => navigation.navigate('VillaList' as any)}
+                            >
+                                <MaterialIcons name="holiday-village" size={32} color="#FFFFFF" />
+                                <Text style={styles.largeHubBtnText}>Villas & Biens</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.largeHubBtn, { backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#2B2E83' }]}
+                                onPress={() => navigation.navigate('TerrainList' as any)}
+                            >
+                                <MaterialIcons name="landscape" size={32} color="#2B2E83" />
+                                <Text style={[styles.largeHubBtnText, { color: '#2B2E83' }]}>Terrains</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Catalogue Villa - Style épuré */}
+                    {villas.length > 0 && (
+                        <View style={styles.catalogSection}>
+                            <View style={styles.catalogHeader}>
+                                <Text style={styles.sectionTitle}>Réalisations</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('VillaList' as any)}>
+                                    <Text style={styles.seeMore}>Tout voir</Text>
                                 </TouchableOpacity>
                             </View>
-                            <MaterialIcons name="local-offer" size={80} color="rgba(255,255,255,0.1)" style={styles.promoIcon} />
-                        </LinearGradient>
-                    </View>
-                )}
 
-                {/* Global CTA */}
-                <View style={styles.footerCTA}>
-                    <Text style={styles.footerText}>Prêt à lancer votre projet ?</Text>
-                    <TouchableOpacity
-                        style={[styles.mainCTA, { backgroundColor: '#E96C2E' }]}
-                        onPress={() => handleBecomeOwner()}
-                    >
-                        <Text style={styles.mainCTAText}>Devenir Propriétaire</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                                {villas.map((villa) => (
+                                    <TouchableOpacity
+                                        key={villa.id}
+                                        style={styles.villaCardMobile}
+                                        onPress={() => navigation.navigate('VillaDetail', { villa })}
+                                    >
+                                        <Image
+                                            source={{ uri: optimizeCloudinaryUrl(villa.images?.[0], { width: 600, quality: 'auto' }) }}
+                                            style={styles.villaImageMobile}
+                                        />
+                                        <View style={styles.villaInfoMobile}>
+                                            <Text style={styles.villaNameMobile}>{villa.name}</Text>
+                                            <Text style={styles.villaPriceMobile}>
+                                                {villa.price?.toLocaleString()} {villa.currency || 'FCFA'}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {/* Section Mission & Confidence */}
+                    <View style={styles.missionSection}>
+                        <View style={styles.missionCard}>
+                            <MaterialIcons name="lightbulb" size={32} color="#E96C2E" style={{ marginBottom: 15 }} />
+                            <Text style={styles.missionTitle}>Pourquoi utiliser Katos ?</Text>
+                            <Text style={styles.missionDesc}>
+                                Une application conçue pour accompagner tous ceux qui souhaitent se lancer dans la construction au Sénégal sans savoir par où passer, ou qui ont besoin de conseils d'experts en BTP.
+                            </Text>
+                        </View>
+
+                        <View style={styles.trustGrid}>
+                            <View style={styles.trustItem}>
+                                <MaterialIcons name="security" size={24} color="#10B981" />
+                                <Text style={styles.trustText}>Données 100% sécurisées</Text>
+                            </View>
+                            <View style={styles.trustItem}>
+                                <MaterialIcons name="redeem" size={24} color="#2B2E83" />
+                                <Text style={styles.trustText}>Outils 100% gratuits</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Contact WhatsApp */}
+                    <View style={styles.whatsappSection}>
+                        <Text style={styles.whatsappTitle}>Besoin d'aide ?</Text>
+                        <Text style={styles.whatsappSubtitle}>Nos experts vous répondent directement</Text>
+                        <TouchableOpacity
+                            style={styles.whatsappBtn}
+                            onPress={handleWhatsAppContact}
+                            activeOpacity={0.8}
+                        >
+                            <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
+                            <Text style={styles.whatsappBtnText}>Contactez-nous sur WhatsApp</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.footerSimple}>
+                        <Text style={styles.footerText}>Katos Construction © 2024</Text>
+                    </View>
+
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+            </View>
+
+        </View>
+    );
+}
+
+function ToolCard({ icon, title, onPress, color }: any) {
+    return (
+        <TouchableOpacity style={styles.toolCard} onPress={onPress}>
+            <View style={[styles.toolIconContainer, { backgroundColor: color + '10' }]}>
+                <MaterialIcons name={icon} size={28} color={color} />
+            </View>
+            <Text style={styles.toolTitle}>{title}</Text>
+        </TouchableOpacity>
     );
 }
 
@@ -210,232 +439,331 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    header: {
+    // Welcome Header
+    welcomeHeader: {
+        backgroundColor: '#2B2E83',
+        paddingHorizontal: 20,
+        paddingBottom: 30,
+        borderBottomLeftRadius: 25,
+        borderBottomRightRadius: 25,
+        zIndex: 10,
+    },
+    headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        marginTop: 10,
     },
-    headerLeft: {
-        flexDirection: 'row',
+    welcomeText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        fontFamily: 'FiraSans_400Regular',
+    },
+    brandName: {
+        color: '#FFFFFF',
+        fontSize: 22,
+        fontFamily: 'FiraSans_700Bold',
+    },
+    profileCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    backBtn: {
-        padding: 5,
-        marginRight: 10,
+    // Carousel Header
+    carouselContainer: {
+        marginBottom: 20,
     },
-    logo: {
-        width: 100,
-        height: 40,
-        resizeMode: 'contain',
+    heroSimple: {
+        height: height * 0.3,
+        width: width - 40,
+        marginHorizontal: 20,
+        marginTop: 15,
+        borderRadius: 25,
+        overflow: 'hidden',
     },
-    loginBtn: {
-        backgroundColor: '#F3F4F6',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 20,
+    pagination: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 15,
+        marginBottom: 5,
     },
-    loginBtnText: {
-        color: '#2B2E83',
-        fontFamily: 'FiraSans_600SemiBold',
-        fontSize: 14,
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#D1D5DB',
+        marginHorizontal: 4,
     },
-    heroContainer: {
-        height: 450,
-        width: width,
-        position: 'relative',
+    activeDot: {
+        backgroundColor: '#E96C2E',
+        width: 24,
     },
-    heroImage: {
+    heroImageSimple: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
+        backgroundColor: '#F9FAFB',
     },
-    heroOverlay: {
+    playPauseButton: {
         position: 'absolute',
+        top: 15,
+        right: 15,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    heroOverlaySimple: {
+        position: 'absolute',
+        top: 0,
         bottom: 0,
         left: 0,
         right: 0,
-        height: '60%',
+        padding: 20,
         justifyContent: 'flex-end',
-        padding: 20,
     },
-    heroContent: {
-        marginBottom: 20,
-    },
-    badge: {
-        backgroundColor: '#E96C2E',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 4,
-        marginBottom: 10,
-    },
-    badgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
+    heroTaglineSimple: {
+        color: '#E96C2E',
+        fontSize: 12,
         fontFamily: 'FiraSans_700Bold',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
-    heroTitle: {
-        fontSize: 32,
+    heroTitleSimple: {
         color: '#FFFFFF',
+        fontSize: 24,
         fontFamily: 'FiraSans_700Bold',
-        marginBottom: 5,
+        marginTop: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
-    heroSubtitle: {
-        fontSize: 18,
-        color: 'rgba(255,255,255,0.9)',
-        fontFamily: 'FiraSans_400Regular',
-        marginBottom: 20,
-    },
-    heroAction: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        alignSelf: 'flex-start',
+    // Tools Grid
+    toolsSection: {
         paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 25,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.4)',
-    },
-    heroActionText: {
-        color: '#FFFFFF',
-        fontFamily: 'FiraSans_600SemiBold',
-        marginRight: 8,
-    },
-    section: {
-        padding: 20,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 30,
     },
     sectionTitle: {
         fontSize: 22,
-        color: '#2B2E83',
         fontFamily: 'FiraSans_700Bold',
+        color: '#111827',
+        marginBottom: 20,
     },
-    seeAll: {
-        color: '#E96C2E',
-        fontFamily: 'FiraSans_600SemiBold',
+    sectionHeaderFixed: {
+        marginBottom: 15,
     },
-    sectionText: {
-        fontSize: 16,
-        color: '#6B7280',
-        fontFamily: 'FiraSans_400Regular',
-        lineHeight: 24,
+    toolsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
     },
-    horizontalScroll: {
-        marginHorizontal: -20,
-        paddingLeft: 20,
-    },
-    villaCard: {
-        width: width * 0.7,
-        marginRight: 20,
+    toolCard: {
+        width: '48%',
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        marginBottom: 15,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 10,
-        elevation: 5,
-        marginBottom: 10,
-        overflow: 'hidden',
+        elevation: 2,
     },
-    villaImage: {
-        width: '100%',
-        height: 180,
+    toolIconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
-    villaInfo: {
-        padding: 15,
-    },
-    villaModel: {
-        fontSize: 18,
-        color: '#2B2E83',
-        fontFamily: 'FiraSans_700Bold',
-        marginBottom: 4,
-    },
-    villaType: {
+    toolTitle: {
         fontSize: 14,
-        color: '#6B7280',
-        fontFamily: 'FiraSans_400Regular',
-        marginBottom: 8,
+        fontFamily: 'FiraSans_700Bold',
+        color: '#111827',
     },
-    villaPrice: {
-        fontSize: 16,
+    // Hub
+    hubContainer: {
+        paddingHorizontal: 20,
+        marginBottom: 30,
+    },
+    hubButtonsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    largeHubBtn: {
+        width: '48%',
+        padding: 25,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    largeHubBtnText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontFamily: 'FiraSans_700Bold',
+        marginTop: 10,
+    },
+    // Catalog
+    catalogSection: {
+        marginBottom: 30,
+    },
+    catalogHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 15,
+    },
+    seeMore: {
         color: '#E96C2E',
         fontFamily: 'FiraSans_700Bold',
+        fontSize: 14,
     },
-    promoSection: {
-        padding: 20,
+    horizontalScroll: {
+        paddingLeft: 20,
+        paddingRight: 10,
     },
-    promoCard: {
-        borderRadius: 16,
-        padding: 25,
-        position: 'relative',
+    villaCardMobile: {
+        width: 250,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        marginRight: 15,
         overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+        marginBottom: 10,
+        marginLeft: 2,
     },
-    promoContent: {
-        zIndex: 1,
+    villaImageMobile: {
+        width: '100%',
+        height: 150,
+        resizeMode: 'cover',
     },
-    promoTitle: {
-        fontSize: 24,
+    villaInfoMobile: {
+        padding: 15,
+    },
+    villaNameMobile: {
+        fontSize: 16,
+        fontFamily: 'FiraSans_700Bold',
+        color: '#111827',
+    },
+    villaPriceMobile: {
+        fontSize: 15,
+        color: '#E96C2E',
+        fontFamily: 'FiraSans_700Bold',
+        marginTop: 4,
+    },
+    // Mission & Confidence
+    missionSection: {
+        paddingHorizontal: 20,
+        marginBottom: 30,
+    },
+    missionCard: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 25,
+        padding: 25,
+        marginBottom: 20,
+        borderLeftWidth: 5,
+        borderLeftColor: '#E96C2E',
+    },
+    missionTitle: {
+        fontSize: 18,
+        fontFamily: 'FiraSans_700Bold',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    missionDesc: {
+        fontSize: 14,
+        fontFamily: 'FiraSans_400Regular',
+        color: '#4B5563',
+        lineHeight: 22,
+    },
+    trustGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    trustItem: {
+        width: '48%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 12,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        gap: 8,
+    },
+    trustText: {
+        fontSize: 12,
+        fontFamily: 'FiraSans_600SemiBold',
+        color: '#111827',
+        flex: 1,
+    },
+    // WhatsApp Section
+    whatsappSection: {
+        marginHorizontal: 20,
+        padding: 30,
+        backgroundColor: '#2B2E83',
+        borderRadius: 25,
+        alignItems: 'center',
+        marginBottom: 30,
+        shadowColor: '#2B2E83',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    whatsappTitle: {
         color: '#FFFFFF',
+        fontSize: 22,
         fontFamily: 'FiraSans_700Bold',
         marginBottom: 8,
     },
-    promoSubtitle: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.8)',
+    whatsappSubtitle: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
         fontFamily: 'FiraSans_400Regular',
-        marginBottom: 20,
-        maxWidth: '70%',
+        marginBottom: 25,
+        textAlign: 'center',
     },
-    promoAction: {
-        backgroundColor: '#E96C2E',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 25,
-        alignSelf: 'flex-start',
-    },
-    promoActionText: {
-        color: '#FFFFFF',
-        fontFamily: 'FiraSans_600SemiBold',
-    },
-    promoIcon: {
-        position: 'absolute',
-        right: -10,
-        bottom: -10,
-    },
-    footerCTA: {
-        padding: 30,
+    whatsappBtn: {
+        flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F9FAFB',
-        marginTop: 20,
+        backgroundColor: '#25D366',
+        paddingHorizontal: 25,
+        paddingVertical: 15,
+        borderRadius: 20,
+        gap: 12,
+    },
+    whatsappBtnText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontFamily: 'FiraSans_700Bold',
+    },
+    // Footer
+    footerSimple: {
+        padding: 40,
+        alignItems: 'center',
     },
     footerText: {
-        fontSize: 18,
-        color: '#4B5563',
-        fontFamily: 'FiraSans_600SemiBold',
-        marginBottom: 20,
-    },
-    mainCTA: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 30,
-        alignItems: 'center',
-        shadowColor: '#E96C2E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
-    },
-    mainCTAText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontFamily: 'FiraSans_700Bold',
+        color: '#9CA3AF',
+        fontSize: 12,
+        fontFamily: 'FiraSans_400Regular',
     },
 });

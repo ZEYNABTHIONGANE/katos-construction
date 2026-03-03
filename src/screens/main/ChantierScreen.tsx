@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  ActivityIndicator,
   Modal,
   FlatList,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -23,6 +23,7 @@ import { useClientChantier } from '../../hooks/useClientChantier';
 import { ResizeMode, Video } from 'expo-av';
 import type { KatosChantierPhase } from '../../types/firebase';
 import { useUserNames } from '../../hooks/useUserNames';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 
 type Props = CompositeScreenProps<
@@ -294,14 +295,14 @@ export default function ChantierScreen({ navigation, route }: Props) {
       <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
         {/* Header moderne */}
         <View style={styles.header}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <Text style={styles.headerTitle}>Chantier</Text>
-          <View style={styles.headerRight} />
+          {/* <View style={styles.headerRight} /> */}
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -330,10 +331,27 @@ export default function ChantierScreen({ navigation, route }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: mainImage.url }} style={styles.mainImage} />
+                {(mainImage as any).type === 'video' ? (
+                  <Video
+                    source={{ uri: optimizeCloudinaryVideoUrl(mainImage.url) }}
+                    style={styles.mainImage}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={false}
+                    positionMillis={100}
+                    isMuted={true}
+                    useNativeControls={false}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: optimizeCloudinaryUrl(mainImage.url, { width: 800 }) }}
+                    style={styles.mainImage}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                )}
                 <View style={styles.mainImageOverlay}>
                   <MaterialIcons
-                    name="zoom-in"
+                    name={(mainImage as any).type === 'video' ? 'play-circle-filled' : 'zoom-in'}
                     size={24}
                     color="#fff"
                     style={styles.mainImageZoomIcon}
@@ -575,6 +593,10 @@ export default function ChantierScreen({ navigation, route }: Props) {
                   setSelectedMediaIndex(index);
                 }}
                 keyExtractor={(item) => item.id}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={2}
+                windowSize={3}
+                initialNumToRender={1}
                 renderItem={({ item, index }) => (
                   <View style={styles.carouselItemContainer}>
                     {item.type === 'video' ? (
@@ -588,7 +610,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: item.url }}
+                        source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />
@@ -617,8 +639,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: 80,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    // borderBottomLeftRadius: 20,
+    // borderBottomRightRadius: 20,
     marginBottom: 20,
   },
   backButton: {

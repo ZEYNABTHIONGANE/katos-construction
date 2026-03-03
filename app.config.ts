@@ -7,6 +7,9 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     icon: "./src/assets/logo.png",
+    plugins: [
+      "expo-font"
+    ],
     splash: {
       image: "./src/assets/logo.png",
       resizeMode: "cover",

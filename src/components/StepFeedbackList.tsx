@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { VoiceNoteFeedback } from '../types/firebase';
 import { useUserNames } from '../hooks/useUserNames';
 import { feedbackService } from '../services/feedbackService';
+import { optimizeCloudinaryVideoUrl } from '../utils/cloudinaryUtils';
 
 interface StepFeedbackListProps {
   feedbacks: VoiceNoteFeedback[];
@@ -89,6 +90,7 @@ export default function StepFeedbackList({ feedbacks, currentUserId }: StepFeedb
 
     const senderName = isMe ? 'Moi' : getUserName(item.clientId) || 'Utilisateur';
     const isText = item.type === 'text';
+    const optimizedAudioUrl = isText ? '' : optimizeCloudinaryVideoUrl(item.audioUrl);
 
     return (
       <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.otherMessage]}>
@@ -111,7 +113,7 @@ export default function StepFeedbackList({ feedbacks, currentUserId }: StepFeedb
             </Text>
           ) : (
             <View style={styles.contentRow}>
-              <TouchableOpacity onPress={() => playSound(item.audioUrl, item.id)}>
+              <TouchableOpacity onPress={() => playSound(optimizedAudioUrl, item.id)}>
                 <MaterialIcons
                   name={isPlaying ? "stop-circle" : "play-circle-filled"}
                   size={32}

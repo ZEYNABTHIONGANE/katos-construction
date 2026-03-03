@@ -81,7 +81,7 @@ export const useDeepLinking = () => {
 
   // Créer une URL d'invitation (utile pour les tests)
   const createInvitationURL = (token: string): string => {
-    return Linking.createURL('invitation', { token });
+    return Linking.createURL('invitation', { queryParams: { token } });
   };
 
   // Tester si l'app peut gérer une URL

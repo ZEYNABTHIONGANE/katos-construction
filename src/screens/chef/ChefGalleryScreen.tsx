@@ -5,13 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Modal,
   FlatList,
   Dimensions,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+// @ts-ignore
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,6 +23,7 @@ import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { FirebaseChantier, ProgressPhoto } from '../../types/firebase';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -141,7 +143,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
 
   const renderMediaItem = ({ item }: { item: ProgressPhoto }) => (
     <View style={styles.mediaItemContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           const originalIndex = selectedProject?.gallery.findIndex(g => g.id === item.id) ?? 0;
           openImageCarousel(originalIndex);
@@ -150,11 +152,12 @@ export default function ChefGalleryScreen({ navigation }: Props) {
         {item.type === 'video' ? (
           <View style={styles.videoContainer}>
             <Video
-              source={{ uri: item.thumbnailUrl || item.url }}
+              source={{ uri: optimizeCloudinaryVideoUrl(item.url) }}
               style={styles.mediaItem}
               resizeMode={ResizeMode.COVER}
               shouldPlay={false}
-              isLooping={false}
+              positionMillis={100}
+              isMuted={true}
               useNativeControls={false}
             />
             <View style={styles.videoOverlay}>
@@ -167,7 +170,12 @@ export default function ChefGalleryScreen({ navigation }: Props) {
             </View>
           </View>
         ) : (
-          <Image source={{ uri: item.url }} style={styles.mediaItem} />
+          <Image
+            source={{ uri: optimizeCloudinaryUrl(item.url, { width: 400 }) }}
+            style={styles.mediaItem}
+            contentFit="cover"
+            transition={300}
+          />
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -176,7 +184,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         <MaterialIcons name="delete" size={20} color="#FFFFFF" />
       </TouchableOpacity>
-  
+
     </View>
   );
 
@@ -186,7 +194,7 @@ export default function ChefGalleryScreen({ navigation }: Props) {
         <AppHeader
           title="Galerie"
           showNotification={true}
-          onNotificationPress={() => {}}
+          onNotificationPress={() => { }}
         />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#2B2E83" />
@@ -200,8 +208,8 @@ export default function ChefGalleryScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Galerie"
-            showNotification={false}
-        onNotificationPress={() => {}}
+        showNotification={false}
+        onNotificationPress={() => { }}
       />
 
       {/* Project Selector */}
@@ -324,12 +332,12 @@ export default function ChefGalleryScreen({ navigation }: Props) {
                     />
                   ) : (
                     <Image
-                      source={{ uri: item.url }}
+                      source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                       style={styles.carouselImage}
                       resizeMode="contain"
                     />
                   )}
-                
+
                 </View>
               )}
             />
@@ -399,7 +407,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   mediaGrid: {
-    paddingBottom: 10, 
+    paddingBottom: 10,
   },
   mediaRow: {
     justifyContent: 'space-between',

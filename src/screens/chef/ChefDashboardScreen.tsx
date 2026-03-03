@@ -156,7 +156,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
         <AppHeader
           title="Tableau de bord"
           showNotification={true}
-          onNotificationPress={() => {}}
+          onNotificationPress={() => { }}
         />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#2B2E83" />
@@ -191,7 +191,7 @@ export default function ChefDashboardScreen({ navigation }: Props) {
       <AppHeader
         title="Tableau de bord"
         showNotification={false}
-        onNotificationPress={() => {}}
+        onNotificationPress={() => { }}
       />
       <ScrollView
         style={styles.content}
@@ -226,77 +226,77 @@ export default function ChefDashboardScreen({ navigation }: Props) {
           </View>
         </View>
 
-      <View style={styles.projectsContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Projets en cours</Text>
-          {/* <TouchableOpacity
+        <View style={styles.projectsContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Projets en cours</Text>
+            {/* <TouchableOpacity
             onPress={() => navigation.navigate('ChefChantiers')}
           >
             <Text style={styles.seeAllText}>Voir tout</Text>
           </TouchableOpacity> */}
-        </View>
-
-        {chantiers.slice(0, 3).map((chantier) => (
-          <TouchableOpacity
-            key={chantier.id}
-            style={styles.projectCard}
-            onPress={() => handleProjectPress(chantier)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.projectCardInner}>
-              <View style={styles.projectHeader}>
-                <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{chantier.name}</Text>
-                  <Text style={styles.clientName}>{chantier.address}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(chantier.status) }]}>
-                  <Text style={styles.statusText}>{chantier.status}</Text>
-                </View>
-              </View>
-
-              <View style={styles.progressContainer}>
-                <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Progression</Text>
-                  <Text style={styles.progressValue}>{chantier.globalProgress}%</Text>
-                </View>
-                <View style={styles.progressBar}>
-                  <ExpoLinearGradient
-                    colors={['#2B2E83', '#E96C2E']}
-                    start={[0, 0]}
-                    end={[1, 0]}
-                    style={[
-                      styles.progressFill,
-                      { width: `${chantier.globalProgress}%` }
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.projectFooter}>
-                <View style={styles.dueDateContainer}>
-                  <View style={styles.iconContainer}>
-                    <MaterialIcons name="schedule" size={18} color="#2B2E83" />
-                  </View>
-                  <Text style={styles.dueDate}>Échéance: {formatDate(chantier.plannedEndDate)}</Text>
-                </View>
-                <View style={styles.arrowContainer}>
-                  <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {chantiers.length === 0 && (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="domain" size={64} color="#E0E0E0" />
-            <Text style={styles.emptyStateText}>Aucun chantier assigné</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Vous n'avez pas encore de chantiers assignés
-            </Text>
           </View>
-        )}
-      </View>
+
+          {chantiers.slice(0, 3).map((chantier) => (
+            <TouchableOpacity
+              key={chantier.id}
+              style={styles.projectCard}
+              onPress={() => handleProjectPress(chantier)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.projectCardInner}>
+                <View style={styles.projectHeader}>
+                  <View style={styles.projectInfo}>
+                    <Text style={styles.projectName}>{chantier.name}</Text>
+                    <Text style={styles.clientName}>{chantier.address}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(chantier.status) }]}>
+                    <Text style={styles.statusText}>{chantier.status}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>Progression</Text>
+                    <Text style={styles.progressValue}>{chantier.globalProgress}%</Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <ExpoLinearGradient
+                      colors={['#2B2E83', '#E96C2E']}
+                      start={[0, 0]}
+                      end={[1, 0]}
+                      style={[
+                        styles.progressFill,
+                        { width: `${chantier.globalProgress}%` }
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.projectFooter}>
+                  <View style={styles.dueDateContainer}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="schedule" size={18} color="#2B2E83" />
+                    </View>
+                    <Text style={styles.dueDate}>Échéance: {formatDate(chantier.plannedEndDate)}</Text>
+                  </View>
+                  <View style={styles.arrowContainer}>
+                    <MaterialIcons name="arrow-forward-ios" size={18} color="#2B2E83" />
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {chantiers.length === 0 && (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="domain" size={64} color="#E0E0E0" />
+              <Text style={styles.emptyStateText}>Aucun chantier assigné</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Vous n'avez pas encore de chantiers assignés
+              </Text>
+            </View>
+          )}
+        </View>
 
       </ScrollView>
 

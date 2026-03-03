@@ -6,9 +6,9 @@ export type UnifiedDocumentType =
   | 'contract'
   | 'invoice'
   | 'photo'
+  | 'progress_update'
   | 'report'
   | 'permit'
-  | 'progress_update'
   | 'other';
 
 export type DocumentSource = 'client_upload' | 'admin_upload';
@@ -143,10 +143,8 @@ export interface MobileDocumentStats {
   pendingApproval: number;
   byCategory: {
     contracts: number;
-    invoices: number;
     plans: number;
     photos: number;
-    reports: number;
     other: number;
   };
   recentActivity: {

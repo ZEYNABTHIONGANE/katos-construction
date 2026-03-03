@@ -5,14 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
   FlatList,
   Modal,
   Dimensions,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +23,7 @@ import PhaseFeedbackSection from '../../components/PhaseFeedbackSection';
 import { useClientChantier } from '../../hooks/useClientChantier';
 import { useUserNames } from '../../hooks/useUserNames';
 import { ResizeMode, Video } from 'expo-av';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PhaseDetail'>;
 
@@ -68,7 +69,7 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
         description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
-        thumbnailUrl: photo.thumbnailUrl
+        thumbnailUrl: photo.thumbnailUrl || (photo.type === 'video' ? getVideoThumbnailUrl(photo.url) : undefined)
       }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
   }, [chantier, phaseId, phaseName, stepId, stepName, currentPhase]);
@@ -312,11 +313,12 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
                             <Video
-                              source={{ uri: photo.thumbnailUrl || photo.url }}
+                              source={{ uri: optimizeCloudinaryVideoUrl(photo.url) }}
                               style={{ width: '100%', height: '100%' }}
                               resizeMode={ResizeMode.COVER}
                               shouldPlay={false}
-                              isLooping={false}
+                              positionMillis={100}
+                              isMuted={true}
                               useNativeControls={false}
                             />
                             <View style={styles.playIconOverlay}>
@@ -329,9 +331,10 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                           </View>
                         ) : (
                           <Image
-                            source={{ uri: photo.thumbnailUrl || photo.url }}
+                            source={{ uri: optimizeCloudinaryUrl(photo.url, { width: 400 }) }}
                             style={styles.galleryImage}
-                            resizeMode="cover"
+                            contentFit="cover"
+                            transition={200}
                           />
                         )}
                         <View style={styles.photoOverlay}>
@@ -411,6 +414,10 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                   setSelectedMediaIndex(index);
                 }}
                 keyExtractor={(item) => item.id}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={2}
+                windowSize={3}
+                initialNumToRender={1}
                 renderItem={({ item, index }) => (
                   <View style={styles.carouselItemContainer}>
                     {item.type === 'video' ? (
@@ -424,7 +431,7 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       />
                     ) : (
                       <Image
-                        source={{ uri: item.url }}
+                        source={{ uri: optimizeCloudinaryUrl(item.url, { width: 1200 }) }}
                         style={styles.carouselImage}
                         resizeMode="contain"
                       />

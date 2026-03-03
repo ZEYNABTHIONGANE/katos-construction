@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: 80,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    // borderBottomLeftRadius: 20,
+    // borderBottomRightRadius: 20,
     marginBottom: 20,
   },
   headerLeft: {

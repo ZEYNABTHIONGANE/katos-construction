@@ -38,7 +38,15 @@ import ChefChatScreen from '../screens/chef/ChefChatScreen';
 import ShowcaseScreen from '../screens/ShowcaseScreen';
 import ProspectFormScreen from '../screens/ProspectFormScreen';
 import VillaDetailScreen from '../screens/VillaDetailScreen';
+import VillaListScreen from '../screens/VillaListScreen';
+import TerrainListScreen from '../screens/TerrainListScreen';
+import TerrainDetailScreen from '../screens/TerrainDetailScreen';
 import DiagnosticScreen from '../screens/DiagnosticScreen';
+import ClientInvoicesScreen from '../screens/main/ClientInvoicesScreen';
+import NotificationScreen from '../screens/main/NotificationScreen';
+import BTPAdviceScreen from '../screens/BTPAdviceScreen';
+import BudgetEstimatorScreen from '../screens/BudgetEstimatorScreen';
+import BuyerChecklistScreen from '../screens/BuyerChecklistScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -146,8 +154,8 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
         }}
       />
       <ClientTab.Screen
-        name="Documents"
-        component={ClientDocumentsScreenV3}
+        name="ClientInvoices"
+        component={ClientInvoicesScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={{
@@ -155,12 +163,12 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
               justifyContent: 'center',
               backgroundColor: focused ? '#F0F1FF' : 'transparent',
               borderRadius: 16,
-              paddingHorizontal: 10,
+              paddingHorizontal: 12,
               paddingVertical: 8,
-              minWidth: 53,
+              minWidth: 50,
             }}>
               <MaterialIcons
-                name="description"
+                name="payments"
                 size={24}
                 color={focused ? '#2B2E83' : '#9CA3AF'}
               />
@@ -169,7 +177,7 @@ const ClientTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
                 fontFamily: 'FiraSans_600SemiBold',
                 color: focused ? '#2B2E83' : '#9CA3AF',
                 marginTop: 2,
-              }}>Documents</Text>
+              }}>Paiements</Text>
             </View>
           ),
         }}
@@ -534,9 +542,15 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
         {!isAuthenticated ? (
           <>
             <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+            <Stack.Screen name="VillaList" component={VillaListScreen} />
+            <Stack.Screen name="TerrainList" component={TerrainListScreen} />
+            <Stack.Screen name="TerrainDetail" component={TerrainDetailScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
             <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
+            <Stack.Screen name="BTPAdvice" component={BTPAdviceScreen} />
+            <Stack.Screen name="BudgetEstimator" component={BudgetEstimatorScreen} />
+            <Stack.Screen name="BuyerChecklist" component={BuyerChecklistScreen} />
           </>
         ) : (
           <>
@@ -561,8 +575,8 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
-                  name="ClientDocuments"
-                  component={ClientDocumentsScreen}
+                  name="Documents"
+                  component={ClientDocumentsScreenV3}
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen
@@ -575,9 +589,25 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   component={AboutScreen}
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen
+                  name="ClientInvoices"
+                  component={ClientInvoicesScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Notifications"
+                  component={NotificationScreen}
+                  options={{ headerShown: false }}
+                />
                 <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+                <Stack.Screen name="VillaList" component={VillaListScreen} />
+                <Stack.Screen name="TerrainList" component={TerrainListScreen} />
+                <Stack.Screen name="TerrainDetail" component={TerrainDetailScreen} />
                 <Stack.Screen name="VillaDetail" component={VillaDetailScreen} />
                 <Stack.Screen name="ProspectForm" component={ProspectFormScreen} />
+                <Stack.Screen name="BTPAdvice" component={BTPAdviceScreen} />
+                <Stack.Screen name="BudgetEstimator" component={BudgetEstimatorScreen} />
+                <Stack.Screen name="BuyerChecklist" component={BuyerChecklistScreen} />
               </>
             ) : (
               <Stack.Screen name="ChefTabs">
