@@ -73,25 +73,7 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    {/* Hero Card Result */}
-                    <LinearGradient
-                        colors={['#2B2E83', '#4B4FA3'] as const}
-                        style={styles.resultCard}
-                    >
-                        <Text style={styles.resultLabel}>Budget Total Estimé</Text>
-                        <Text style={styles.resultValue}>{formatPrice(totalBudget)}</Text>
-                        <View style={styles.resultDivider} />
-                        <View style={styles.resultDetails}>
-                            <View style={styles.detailItem}>
-                                <Text style={styles.detailLabel}>Gros Œuvre</Text>
-                                <Text style={styles.detailValue}>{formatPrice(totalBudget * 0.4)}</Text>
-                            </View>
-                            <View style={styles.detailItem}>
-                                <Text style={styles.detailLabel}>Second Œuvre</Text>
-                                <Text style={styles.detailValue}>{formatPrice(totalBudget * 0.6)}</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
+
 
                     {/* Controls Section */}
                     <View style={styles.section}>
@@ -115,7 +97,7 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                                 <Text style={styles.surfaceUnit}>m²</Text>
                             </View>
 
-                            <TouchableOpacity onPress={() => incrementSurface(10)} style={styles.stepButton}>
+                            <TouchableOpacity onPress={() => incrementSurface(5)} style={styles.stepButton}>
                                 <MaterialIcons name="add" size={24} color="#2B2E83" />
                             </TouchableOpacity>
                         </View>
@@ -181,6 +163,26 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                             </TouchableOpacity>
                         ))}
                     </View>
+
+                    {/* Hero Card Result */}
+                    <LinearGradient
+                        colors={['#2B2E83', '#4B4FA3'] as const}
+                        style={styles.resultCard}
+                    >
+                        <Text style={styles.resultLabel}>Budget Total Estimé</Text>
+                        <Text style={styles.resultValue}>{formatPrice(totalBudget)}</Text>
+                        <View style={styles.resultDivider} />
+                        <View style={styles.resultDetails}>
+                            <View style={styles.detailItem}>
+                                <Text style={styles.detailLabel}>Gros Œuvre</Text>
+                                <Text style={styles.detailValue}>{formatPrice(totalBudget * 0.4)}</Text>
+                            </View>
+                            <View style={styles.detailItem}>
+                                <Text style={styles.detailLabel}>Second Œuvre</Text>
+                                <Text style={styles.detailValue}>{formatPrice(totalBudget * 0.6)}</Text>
+                            </View>
+                        </View>
+                    </LinearGradient>
 
                     {/* Advice Box */}
                     <View style={styles.adviceBox}>
