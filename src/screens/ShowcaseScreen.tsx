@@ -10,6 +10,7 @@ import {
     StatusBar,
     Linking,
     FlatList,
+    AppState,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode } from 'expo-av';
@@ -65,6 +66,8 @@ export default function ShowcaseScreen({ navigation }: Props) {
     const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = React.useState(!!auth.currentUser);
     const { content, villas, loading: dataLoading } = useShowcaseData();
     const [activeIndex, setActiveIndex] = React.useState(0);
+    const [isPausedByUser, setIsPausedByUser] = React.useState(false);
+    const [appState, setAppState] = React.useState(AppState.currentState);
     const flatListRef = React.useRef<FlatList>(null);
 
     const carouselData = content?.carousel && content.carousel.length > 0 ? content.carousel : DEFAULT_CAROUSEL_DATA;
@@ -93,6 +96,10 @@ export default function ShowcaseScreen({ navigation }: Props) {
         return () => clearInterval(interval);
     }, [activeIndex, carouselData]);
 
+    React.useEffect(() => {
+        setIsPausedByUser(false);
+    }, [activeIndex]);
+
     const handleScroll = (event: any) => {
         const scrollPosition = event.nativeEvent.contentOffset.x;
         const index = Math.round(scrollPosition / width);
@@ -103,8 +110,18 @@ export default function ShowcaseScreen({ navigation }: Props) {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setIsFirebaseAuthenticated(!!user);
         });
-        return unsubscribe;
+
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            setAppState(nextAppState);
+        });
+
+        return () => {
+            unsubscribe();
+            subscription.remove();
+        };
     }, []);
+
+    const isVisible = isFocused && appState === 'active';
 
     const isAuthenticated = isClientAuthenticated || isFirebaseAuthenticated;
 
@@ -193,24 +210,26 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                 return (
                                     <View style={[styles.heroSimple, { backgroundColor: '#F9FAFB' }]}>
                                         {isVideo ? (
-                                            <Video
-                                                source={{
-                                                    uri: optimizeCloudinaryVideoUrl(item.image, {
-                                                        width: Math.round(width - 40),
-                                                        height: Math.round(height * 0.3),
-                                                        crop: 'fit'
-                                                    })
-                                                }}
-                                                style={styles.heroImageSimple}
-                                                resizeMode={ResizeMode.CONTAIN}
-                                                shouldPlay={activeIndex === index && isFocused}
-                                                isLooping
-                                                isMuted={false}
-                                                usePoster
-                                                posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: Math.round(width - 40), height: Math.round(height * 0.3), crop: 'fit' }) }}
-                                                posterStyle={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-                                                onError={(error) => console.log('Video Error:', error)}
-                                            />
+                                            <View style={styles.heroImageSimple}>
+                                                <Video
+                                                    source={{
+                                                        uri: optimizeCloudinaryVideoUrl(item.image, {
+                                                            width: Math.round(width - 40),
+                                                            height: Math.round(height * 0.3),
+                                                            crop: 'fit'
+                                                        })
+                                                    }}
+                                                    style={StyleSheet.absoluteFill}
+                                                    resizeMode={ResizeMode.CONTAIN}
+                                                    shouldPlay={activeIndex === index && isVisible && !isPausedByUser}
+                                                    isLooping
+                                                    isMuted={false}
+                                                    usePoster
+                                                    posterSource={{ uri: getVideoThumbnailUrl(item.image, { width: Math.round(width - 40), height: Math.round(height * 0.3), crop: 'fit' }) }}
+                                                    posterStyle={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                                    onError={(error) => console.log('Video Error:', error)}
+                                                />
+                                            </View>
                                         ) : (
                                             <Image
                                                 source={{
@@ -233,6 +252,20 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                             <Text style={styles.heroTaglineSimple}>{item.tagline}</Text>
                                             <Text style={styles.heroTitleSimple}>{item.title}</Text>
                                         </LinearGradient>
+
+                                        {isVideo && (
+                                            <TouchableOpacity
+                                                style={styles.playPauseButton}
+                                                onPress={() => setIsPausedByUser(!isPausedByUser)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <MaterialIcons
+                                                    name={isPausedByUser ? "play-arrow" : "pause"}
+                                                    size={28}
+                                                    color="#FFFFFF"
+                                                />
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 );
                             }}
@@ -472,7 +505,21 @@ const styles = StyleSheet.create({
     heroImageSimple: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
+        backgroundColor: '#F9FAFB',
+    },
+    playPauseButton: {
+        position: 'absolute',
+        top: 15,
+        right: 15,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     heroOverlaySimple: {
         position: 'absolute',
