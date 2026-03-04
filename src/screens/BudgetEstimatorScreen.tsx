@@ -68,8 +68,8 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Simulateur de Budget</Text>
-                    <View style={{ width: 40 }} />
+                    <Text style={styles.headerTitle}>Simulateur de Budget de Construction</Text>
+                    <View style={{ width: 30 }} />
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

@@ -1,6 +1,6 @@
 export default {
   expo: {
-    name: "katos-connect",
+    name: "Katos Connect",
     slug: "katos-connect",
     version: "1.0.1",
     orientation: "portrait",
