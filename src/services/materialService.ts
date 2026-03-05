@@ -201,9 +201,9 @@ export class MaterialService {
     const lowercaseSearch = searchTerm.toLowerCase();
 
     return materials.filter(material =>
-      material.name.toLowerCase().includes(lowercaseSearch) ||
-      material.description.toLowerCase().includes(lowercaseSearch) ||
-      material.supplier.toLowerCase().includes(lowercaseSearch)
+      (material.name || '').toLowerCase().includes(lowercaseSearch) ||
+      (material.description || '').toLowerCase().includes(lowercaseSearch) ||
+      (material.supplier || '').toLowerCase().includes(lowercaseSearch)
     );
   }
 

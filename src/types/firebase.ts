@@ -55,7 +55,7 @@ export interface FirebaseMaterial {
   id?: string;
   name: string;
   category: string;
-  price: number;
+  price: number | string;
   image: string;
   supplier: string;
   description: string;
@@ -69,7 +69,7 @@ export interface FirebaseProject {
   description: string;
   images: string[];
   type: string;
-  price: number;
+  price: number | string;
   currency: string;
   surface?: number;
   bedrooms?: number;
@@ -80,19 +80,19 @@ export interface FirebaseProject {
 // Firebase terrain interface
 export interface FirebaseTerrain {
   id?: string;
-  reference: string;
-  name: string;
-  surface: number;
-  price: number;
-  currency: string;
-  documentType: string; // ex: "Titre foncier"
-  hasWater: boolean;
-  hasElectricity: boolean;
-  isHabited: boolean;
-  description: string;
-  status: 'Disponible' | 'Vendu' | 'Réservé';
-  zone: string;
-  images: string[];
+  reference?: string | null;
+  name?: string | null;
+  surface?: number | null;
+  price?: number | string | null;
+  currency?: string | null;
+  documentType?: string | null; // ex: "Titre foncier"
+  hasWater?: boolean;
+  hasElectricity?: boolean;
+  isHabited?: boolean;
+  description?: string | null;
+  status?: 'Disponible' | 'Vendu' | 'Réservé';
+  zone?: string | null;
+  images?: string[] | null;
   createdAt: Timestamp;
 }
 

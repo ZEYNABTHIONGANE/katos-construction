@@ -164,8 +164,8 @@ export class ProjectService {
     const lowercaseSearch = searchTerm.toLowerCase();
 
     return projects.filter(project =>
-      project.name.toLowerCase().includes(lowercaseSearch) ||
-      project.description.toLowerCase().includes(lowercaseSearch)
+      (project.name || '').toLowerCase().includes(lowercaseSearch) ||
+      (project.description || '').toLowerCase().includes(lowercaseSearch)
     );
   }
 

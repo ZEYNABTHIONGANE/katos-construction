@@ -130,7 +130,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
   const groupPhasesByCategory = (phases: any[]) => {
     const katosPhases = phases as KatosChantierPhase[];
     const grouped = katosPhases.reduce((acc, phase) => {
-      const name = phase.name.toLowerCase();
+      const name = phase.name?.toLowerCase() || '';
       const category = (name.includes('clé') || name.includes('clef')) ? 'cloture' : (phase.category || 'main');
       if (!acc[category]) {
         acc[category] = [];
@@ -188,7 +188,7 @@ export default function ChantierScreen({ navigation, route }: Props) {
 
   // Fonction pour vérifier si c'est une phase de vérification
   const isVerificationPhase = (phaseName: string) => {
-    return phaseName.toLowerCase().includes('vérification');
+    return (phaseName || '').toLowerCase().includes('vérification');
   };
 
   // Fonction pour formater les dates avec heure

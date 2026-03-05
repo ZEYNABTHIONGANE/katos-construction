@@ -361,8 +361,10 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                         />
                                         <View style={styles.villaInfoMobile}>
                                             <Text style={styles.villaNameMobile}>{villa.name}</Text>
-                                            <Text style={styles.villaPriceMobile}>
-                                                {villa.price?.toLocaleString()} {villa.currency || 'FCFA'}
+                                            <Text style={(!isNaN(Number(villa.price)) && villa.price !== null && villa.price !== '') ? styles.villaPriceMobile : styles.villaPriceTextMobile}>
+                                                {(!isNaN(Number(villa.price)) && villa.price !== null && villa.price !== '')
+                                                    ? `${Number(villa.price).toLocaleString()} ${villa.currency || 'FCFA'}`
+                                                    : villa.price}
                                             </Text>
                                         </View>
                                     </TouchableOpacity>
@@ -676,6 +678,12 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#E96C2E',
         fontFamily: 'FiraSans_700Bold',
+        marginTop: 4,
+    },
+    villaPriceTextMobile: {
+        fontSize: 11,
+        color: '#E96C2E',
+        fontFamily: 'FiraSans_600SemiBold',
         marginTop: 4,
     },
     // Mission & Confidence

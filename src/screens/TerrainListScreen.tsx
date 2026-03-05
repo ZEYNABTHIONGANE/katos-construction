@@ -18,6 +18,7 @@ import { RootStackParamList } from '../types';
 import { terrainService } from '../services/terrainService';
 import { FirebaseTerrain } from '../types/firebase';
 import { LinearGradient } from 'expo-linear-gradient';
+import { optimizeCloudinaryUrl } from '../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TerrainList'>;
 
@@ -35,7 +36,7 @@ export default function TerrainListScreen({ navigation }: Props) {
     }, []);
 
     const filteredTerrains = searchZone
-        ? terrains.filter(t => t.zone.toLowerCase().includes(searchZone.toLowerCase()))
+        ? terrains.filter(t => (t.zone || '').toLowerCase().includes(searchZone.toLowerCase()))
         : terrains;
 
     const renderTerrain = ({ item }: { item: FirebaseTerrain }) => (
@@ -44,35 +45,41 @@ export default function TerrainListScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('TerrainDetail', { terrain: item })}
         >
             <Image
-                source={{ uri: require('../utils/cloudinaryUtils').optimizeCloudinaryUrl(item.images?.[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2232&auto=format&fit=crop', { width: 600, quality: 'auto' }) }}
+                source={{ uri: optimizeCloudinaryUrl(item.images?.[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2232&auto=format&fit=crop', { width: 600, quality: 'auto' }) }}
                 style={styles.image}
             />
             <View style={styles.cardContent}>
                 <View style={styles.headerRow}>
-                    <Text style={styles.ref}>{item.reference}</Text>
+                    <Text style={styles.ref}>{item.reference || 'REF-N/A'}</Text>
                     <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>{item.status}</Text>
+                        <Text style={styles.statusText}>{item.status || 'Disponible'}</Text>
                     </View>
                 </View>
-                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.name}>{item.name || 'Terrain sans nom'}</Text>
                 <View style={styles.infoRow}>
                     <View style={styles.infoBox}>
                         <MaterialIcons name="square-foot" size={16} color="#6B7280" />
-                        <Text style={styles.infoText}>{item.surface} m²</Text>
+                        <Text style={styles.infoText}>{item.surface || '?'} m²</Text>
                     </View>
                     <View style={styles.infoBox}>
                         <MaterialIcons name="place" size={16} color="#6B7280" />
-                        <Text style={styles.infoText}>{item.zone}</Text>
+                        <Text style={styles.infoText}>{item.zone || 'Zone non précisée'}</Text>
                     </View>
                 </View>
-                <View style={styles.priceRow}>
-                    <Text style={styles.price}>
-                        {item.price.toLocaleString()} {item.currency}
-                    </Text>
-                    <View style={styles.docType}>
-                        <Text style={styles.docTypeText}>{item.documentType}</Text>
+                {(item.price !== null && item.price !== undefined && item.price !== '') && (item.price !== 0) && (
+                    <View style={styles.priceRow}>
+                        <Text style={(!isNaN(Number(item.price)) && item.price !== null && item.price !== '') ? styles.price : styles.priceText}>
+                            {(!isNaN(Number(item.price)) && item.price !== null && item.price !== '')
+                                ? `${Number(item.price).toLocaleString()} ${item.currency || 'FCFA'}`
+                                : item.price}
+                        </Text>
+                        {item.documentType && (
+                            <View style={styles.docType}>
+                                <Text style={styles.docTypeText}>{item.documentType}</Text>
+                            </View>
+                        )}
                     </View>
-                </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -113,7 +120,7 @@ export default function TerrainListScreen({ navigation }: Props) {
                     <FlatList
                         data={filteredTerrains}
                         renderItem={renderTerrain}
-                        keyExtractor={(item) => item.id!}
+                        keyExtractor={(item) => item.id || Math.random().toString()}
                         contentContainerStyle={styles.list}
                         ListEmptyComponent={
                             <View style={styles.empty}>
@@ -251,6 +258,11 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 18,
         fontFamily: 'FiraSans_700Bold',
+        color: '#2B2E83',
+    },
+    priceText: {
+        fontSize: 11,
+        fontFamily: 'FiraSans_600SemiBold',
         color: '#2B2E83',
     },
     docType: {

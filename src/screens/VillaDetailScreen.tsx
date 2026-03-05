@@ -36,7 +36,7 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
     return (
         <View style={styles.container}>
             <AppHeader
-                title={villa.name}
+                title={villa?.name || 'Modèle Villa'}
                 showBack={true}
                 showNotification={false}
                 onBackPress={() => navigation.goBack()}
@@ -51,16 +51,16 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
 
                 <View style={styles.content}>
                     <View style={styles.headerRow}>
-                        <Text style={styles.title}>{villa.name}</Text>
-                        {villa.price > 0 && (
+                        <Text style={styles.title}>{villa?.name || 'Modèle Villa'}</Text>
+                        {(!isNaN(Number(villa.price)) && villa.price !== null && villa.price !== '' && Number(villa.price) > 0) && (
                             <Text style={styles.price}>
-                                {villa.price.toLocaleString()} {villa.currency || 'FCFA'}
+                                {Number(villa.price).toLocaleString()} {villa.currency || 'FCFA'}
                             </Text>
                         )}
                     </View>
 
                     <View style={styles.tagRow}>
-                        {villa.surface ? (
+                        {villa?.surface ? (
                             <View style={styles.tag}>
                                 <MaterialIcons name="square-foot" size={16} color="#6B7280" />
                                 <Text style={styles.tagText}>{villa.surface}m²</Text>
@@ -68,24 +68,24 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
                         ) : (
                             <View style={styles.tag}>
                                 <MaterialIcons name="home" size={16} color="#6B7280" />
-                                <Text style={styles.tagText}>{villa.type}</Text>
+                                <Text style={styles.tagText}>{villa?.type || 'Villa'}</Text>
                             </View>
                         )}
                         <View style={styles.tag}>
                             <MaterialIcons name="bed" size={16} color="#6B7280" />
-                            <Text style={styles.tagText}>{villa.bedrooms ? `${villa.bedrooms} Chambres` : getChambres(villa.type)}</Text>
+                            <Text style={styles.tagText}>{villa?.bedrooms ? `${villa.bedrooms} Chambres` : getChambres(villa?.type || '')}</Text>
                         </View>
-                        {villa.bathrooms && (
+                        {villa?.bathrooms ? (
                             <View style={styles.tag}>
                                 <MaterialIcons name="bathtub" size={16} color="#6B7280" />
                                 <Text style={styles.tagText}>{villa.bathrooms} SDB</Text>
                             </View>
-                        )}
+                        ) : null}
                     </View>
 
                     <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.description}>
-                        {villa.description || `La ${villa.name} offre un cadre de vie exceptionnel avec des finitions de haute qualité. Conçue pour maximiser l'espace et la lumière naturelle, elle est idéale pour une famille moderne.`}
+                        {villa?.description || `La villa ${villa?.name || ''} offre un cadre de vie exceptionnel avec des finitions de haute qualité. Conçue pour maximiser l'espace et la lumière naturelle, elle est idéale pour une famille moderne.`}
                     </Text>
 
                     <Text style={styles.sectionTitle}>Points Forts</Text>
@@ -104,7 +104,7 @@ export default function VillaDetailScreen({ navigation, route }: Props) {
 
                     <TouchableOpacity
                         style={styles.ctaBtn}
-                        onPress={() => navigation.navigate('ProspectForm', { interestedProject: villa.name })}
+                        onPress={() => navigation.navigate('ProspectForm', { interestedProject: villa?.name || 'Villa' })}
                     >
                         <Text style={styles.ctaBtnText}>Lancer mon projet</Text>
                     </TouchableOpacity>

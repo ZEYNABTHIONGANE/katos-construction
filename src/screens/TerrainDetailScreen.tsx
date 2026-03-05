@@ -35,7 +35,10 @@ export default function TerrainDetailScreen({ route, navigation }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleWhatsApp = () => {
-        const message = `Bonjour, je suis intéressé par le terrain ${terrain.name} (Réf: ${terrain.reference}) situé à ${terrain.zone}.`;
+        const name = terrain?.name || 'Terrain';
+        const ref = terrain?.reference || 'Sans référence';
+        const zone = terrain?.zone || 'Zone non précisée';
+        const message = `Bonjour, je suis intéressé par le terrain ${name} (Réf: ${ref}) situé à ${zone}.`;
         const phone = '221770326990';
         const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
         const webUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -59,10 +62,10 @@ export default function TerrainDetailScreen({ route, navigation }: Props) {
 
         setIsSubmitting(true);
         try {
-            await terrainService.submitInterest(terrain.id!, {
+            await terrainService.submitInterest(terrain?.id || '', {
                 ...form,
-                terrainRef: terrain.reference,
-                terrainName: terrain.name
+                terrainRef: terrain?.reference || null,
+                terrainName: terrain?.name || 'Terrain sans nom'
             });
             Alert.alert(
                 'Succès',
@@ -103,29 +106,33 @@ export default function TerrainDetailScreen({ route, navigation }: Props) {
                 <View style={styles.content}>
                     <View style={styles.badgeRow}>
                         <View style={styles.statusBadge}>
-                            <Text style={styles.statusText}>{terrain.status}</Text>
+                            <Text style={styles.statusText}>{terrain.status || 'Disponible'}</Text>
                         </View>
-                        <Text style={styles.refText}>{terrain.reference}</Text>
+                        <Text style={styles.refText}>{terrain.reference || 'REF-N/A'}</Text>
                     </View>
 
-                    <Text style={styles.title}>{terrain.name}</Text>
-                    <Text style={styles.price}>{terrain.price.toLocaleString()} {terrain.currency}</Text>
+                    <Text style={styles.title}>{terrain?.name || 'Terrain sans nom'}</Text>
+                    {(!isNaN(Number(terrain.price)) && terrain.price !== null && terrain.price !== '' && Number(terrain.price) > 0) && (
+                        <Text style={styles.price}>
+                            {Number(terrain.price).toLocaleString()} {terrain.currency || 'FCFA'}
+                        </Text>
+                    )}
 
                     <View style={styles.statsContainer}>
-                        <StatItem icon="square-foot" label="Surface" value={`${terrain.surface} m²`} />
-                        <StatItem icon="description" label="Document" value={terrain.documentType} />
-                        <StatItem icon="place" label="Zone" value={terrain.zone} />
+                        <StatItem icon="square-foot" label="Surface" value={terrain.surface ? `${terrain.surface} m²` : 'Réelle'} />
+                        <StatItem icon="description" label="Document" value={terrain.documentType || 'En cours'} />
+                        <StatItem icon="place" label="Zone" value={terrain.zone || 'Non précisée'} />
                     </View>
 
                     <View style={styles.featuresContainer}>
-                        <FeatureItem icon="water_drop" label="Eau" active={terrain.hasWater} />
-                        <FeatureItem icon="flash_on" label="Électricité" active={terrain.hasElectricity} />
-                        <FeatureItem icon="groups" label="Zone habitée" active={terrain.isHabited} />
+                        <FeatureItem icon="water_drop" label="Eau" active={terrain?.hasWater} />
+                        <FeatureItem icon="flash_on" label="Électricité" active={terrain?.hasElectricity} />
+                        <FeatureItem icon="groups" label="Zone habitée" active={terrain?.isHabited} />
                     </View>
 
                     <View style={styles.descriptionSection}>
                         <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.description}>{terrain.description}</Text>
+                        <Text style={styles.description}>{terrain.description || 'Aucune description disponible pour ce terrain.'}</Text>
                     </View>
 
                     {!isInterested ? (
@@ -322,6 +329,12 @@ const styles = StyleSheet.create({
     },
     price: {
         fontSize: 24,
+        fontFamily: 'FiraSans_700Bold',
+        color: '#2B2E83',
+        marginBottom: 24,
+    },
+    priceText: {
+        fontSize: 18,
         fontFamily: 'FiraSans_700Bold',
         color: '#2B2E83',
         marginBottom: 24,

@@ -18,11 +18,11 @@ export class ClientProjectService {
       return null;
     }
 
-    const targetProjectName = clientData.projetAdhere.toLowerCase().trim();
+    const targetProjectName = (clientData.projetAdhere || '').toLowerCase().trim();
 
     // First, try exact match
     let matchedProject = allProjects.find(
-      project => project.name.toLowerCase().trim() === targetProjectName
+      project => (project.name || '').toLowerCase().trim() === targetProjectName
     );
 
     if (matchedProject) {
@@ -51,7 +51,7 @@ export class ClientProjectService {
     let bestMatch: { project: FirebaseProject; score: number } | null = null;
 
     for (const project of projects) {
-      const projectWords = project.name.toLowerCase().split(/\s+/);
+      const projectWords = (project.name || '').toLowerCase().split(/\s+/);
       let matchCount = 0;
 
       // Count how many target words are found in project name
@@ -86,11 +86,11 @@ export class ClientProjectService {
       return [];
     }
 
-    const targetProjectName = clientData.projetAdhere.toLowerCase().trim();
+    const targetProjectName = (clientData.projetAdhere || '').toLowerCase().trim();
     const matches: Array<{ project: FirebaseProject; matchType: 'exact' | 'fuzzy' | 'partial'; score: number }> = [];
 
     for (const project of allProjects) {
-      const projectName = project.name.toLowerCase().trim();
+      const projectName = (project.name || '').toLowerCase().trim();
 
       // Exact match
       if (projectName === targetProjectName) {
