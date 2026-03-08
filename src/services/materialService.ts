@@ -235,7 +235,7 @@ export class MaterialService {
       return { min: 0, max: 0, average: 0 };
     }
 
-    const prices = materials.map(material => material.price);
+    const prices = materials.map(material => typeof material.price === 'string' ? Number(material.price) : material.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const average = prices.reduce((sum, price) => sum + price, 0) / prices.length;
