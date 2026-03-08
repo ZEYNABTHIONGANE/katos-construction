@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { LinearGradient } from 'expo-linear-gradient';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BudgetEstimator'>;
 
@@ -87,7 +89,14 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Simulateur de Budget de Construction</Text>
+                    <Text
+                        style={styles.headerTitle}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        Simulateur de Budget
+                    </Text>
                     <View style={{ width: 30 }} />
                 </View>
 
@@ -95,8 +104,9 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
                         {/* Hero Card Result */}
-                        <View
-                            style={[styles.resultCard, { backgroundColor: '#2B2E83' }]}
+                        <LinearGradient
+                            colors={['#2B2E83', '#4B4FA3'] as const}
+                            style={styles.resultCard}
                         >
                             <Text style={styles.resultLabel}>Budget Total Estimé</Text>
                             <Text style={styles.resultValue}>{formatPrice(totalBudget)}</Text>
@@ -111,7 +121,8 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                                     <Text style={styles.detailValue}>{formatPrice(totalBudget * 0.6)}</Text>
                                 </View>
                             </View>
-                        </View>
+                        </LinearGradient>
+
 
                         {/* Controls Section */}
                         <View style={[styles.section, { borderColor: '#2B2E83', borderWidth: 2, backgroundColor: '#F0F4FF' }]}>
@@ -228,11 +239,12 @@ export default function BudgetEstimatorScreen({ navigation }: Props) {
                             <MaterialIcons name="arrow-forward" size={24} color="#FFFFFF" />
                         </TouchableOpacity>
 
+
                         <View style={{ height: 40 }} />
                     </Animated.View>
                 </ScrollView>
-            </SafeAreaView>
-        </View>
+            </SafeAreaView >
+        </View >
     );
 }
 
@@ -259,9 +271,11 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     headerTitle: {
+        flex: 1,
         fontSize: 18,
         color: '#FFFFFF',
         fontFamily: 'FiraSans_700Bold',
+        textAlign: 'center',
     },
     scrollContent: {
         padding: 16,
