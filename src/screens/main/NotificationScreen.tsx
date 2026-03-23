@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useClientSpecificData } from '../../hooks/useClientSpecificData';
+import { useAuth } from '../../contexts/AuthContext';
 import AppHeader from '../../components/AppHeader';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Toast } from 'toastify-react-native';
@@ -32,27 +32,27 @@ import {
     deleteDoc
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-
+import { notificationService } from '../../services/notificationService';
 import { Notification } from '../../types';
 
 export default function NotificationScreen() {
     const navigation = useNavigation<any>();
-    const { clientInfo } = useClientSpecificData();
+    const { user, isChef } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'reminders' | 'received'>('reminders');
+    const [activeTab, setActiveTab] = useState<'general' | 'received'>('general');
     const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
     useEffect(() => {
-        if (!clientInfo?.id) {
+        if (!user?.uid) {
             setLoading(false);
             return;
         }
 
         const q = query(
             collection(db, 'notifications'),
-            where('userId', '==', clientInfo.id),
+            where('userId', '==', user.uid),
             limit(100)
         );
 
@@ -77,7 +77,7 @@ export default function NotificationScreen() {
         });
 
         return () => unsubscribe();
-    }, [clientInfo?.id]);
+    }, [user?.uid]);
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -117,11 +117,56 @@ export default function NotificationScreen() {
         const notification = selectedNotification;
         setSelectedNotification(null);
 
-        // Navigate based on type
+        // Prioritize the link property from the notification
+        if (notification.link) {
+            // Basic mapping for simple screen names
+            const screenMap: Record<string, string> = {
+                'Documents': 'Documents',
+                'Chat': 'ClientTabs',
+                'ChefChat': 'ChefChat',
+                'Chantier': 'ClientTabs',
+                'ChefChantiers': 'ChefChantiers',
+                'ClientInvoices': 'ClientTabs'
+            };
+
+            const targetScreen = screenMap[notification.link] || notification.link;
+            
+            if (targetScreen === 'ClientTabs') {
+                const subScreen = notification.link === 'Chantier' ? 'Chantier' : 
+                                 notification.link === 'Chat' ? 'Chat' : 
+                                 notification.link === 'ClientInvoices' ? 'ClientInvoices' : 'Home';
+                navigation.navigate('ClientTabs', { screen: subScreen });
+            } else {
+                navigation.navigate(targetScreen);
+            }
+            return;
+        }
+
+        // Fallback to type-based navigation if no link
         if (notification.type === 'payment') {
-            navigation.navigate('ClientInvoices');
-        } else if (notification.type === 'document_upload') {
-            navigation.navigate('Documents');
+            if (isChef) {
+                navigation.navigate('ChefDashboard');
+            } else {
+                navigation.navigate('ClientTabs', { screen: 'ClientInvoices' });
+            }
+        } else if (notification.type === 'document_upload' || notification.type === 'document') {
+            if (isChef) {
+                navigation.navigate('Documents');
+            } else {
+                navigation.navigate('ClientTabs', { screen: 'Documents' });
+            }
+        } else if (notification.type === 'chat') {
+            if (isChef) {
+                navigation.navigate('ChefChat');
+            } else {
+                navigation.navigate('ClientTabs', { screen: 'Chat' });
+            }
+        } else if (notification.type === 'photo' || notification.type === 'video') {
+            if (isChef) {
+                navigation.navigate('ChefChantiers');
+            } else {
+                navigation.navigate('ClientTabs', { screen: 'Chantier' });
+            }
         }
     };
 
@@ -152,9 +197,7 @@ export default function NotificationScreen() {
         );
     };
 
-    const renderNotificationItem = ({ item }: { item: any }) => {
-        const date = item.createdAt?.toDate() || new Date();
-
+    const renderNotificationItem = ({ item }: { item: Notification }) => {
         return (
             <Swipeable
                 renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}
@@ -168,15 +211,15 @@ export default function NotificationScreen() {
                 >
                     <View style={styles.iconContainer}>
                         <MaterialIcons
-                            name={getIconName(item.type)}
+                            name={notificationService.getNotificationIcon(item.type) as any}
                             size={24}
-                            color={!item.isRead ? '#2B2E83' : '#9CA3AF'}
+                            color={!item.isRead ? notificationService.getNotificationColor(item.type) : '#9CA3AF'}
                         />
                     </View>
                     <View style={styles.contentContainer}>
                         <Text style={[styles.title, !item.isRead && styles.unreadText]}>{item.title}</Text>
                         <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
-                        <Text style={styles.date}>{date.toLocaleDateString('fr-FR')} à {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+                        <Text style={styles.date}>{notificationService.getRelativeTime(item.createdAt)}</Text>
                     </View>
                     {!item.isRead && <View style={styles.unreadDot} />}
                 </TouchableOpacity>
@@ -184,14 +227,7 @@ export default function NotificationScreen() {
         );
     };
 
-    const getIconName = (type: string) => {
-        switch (type) {
-            case 'payment': return 'receipt';
-            case 'document_upload': return 'description';
-            case 'material_selection': return 'shopping-cart';
-            default: return 'notifications';
-        }
-    };
+    // getIconName is now provided by notificationService.getNotificationIcon
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -202,26 +238,28 @@ export default function NotificationScreen() {
                     showNotification={false}
                 />
 
-                <View style={styles.tabBar}>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'reminders' && styles.activeTab]}
-                        onPress={() => setActiveTab('reminders')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'reminders' && styles.activeTabText]}>Rappels</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'received' && styles.activeTab]}
-                        onPress={() => setActiveTab('received')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'received' && styles.activeTabText]}>Paiements Reçus</Text>
-                    </TouchableOpacity>
-                </View>
+                {!isChef && (
+                    <View style={styles.tabBar}>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'general' && styles.activeTab]}
+                            onPress={() => setActiveTab('general')}
+                        >
+                            <Text style={[styles.tabText, activeTab === 'general' && styles.activeTabText]}>Général</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'received' && styles.activeTab]}
+                            onPress={() => setActiveTab('received')}
+                        >
+                            <Text style={[styles.tabText, activeTab === 'received' && styles.activeTabText]}>Paiements Reçus</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {loading ? (
                     <ActivityIndicator size="large" color="#2B2E83" style={{ marginTop: 20 }} />
                 ) : (
                     <FlatList
-                        data={notifications.filter(n =>
+                        data={isChef ? notifications : notifications.filter(n =>
                             activeTab === 'received'
                                 ? n.title === 'Paiement reçu'
                                 : n.title !== 'Paiement reçu'
@@ -236,9 +274,11 @@ export default function NotificationScreen() {
                             <View style={styles.emptyContainer}>
                                 <MaterialIcons name="notifications-none" size={64} color="#E5E7EB" />
                                 <Text style={styles.emptyText}>
-                                    {activeTab === 'received'
-                                        ? 'Aucun paiement reçu pour le moment'
-                                        : 'Aucun rappel pour le moment'}
+                                    {isChef ? 'Aucune notification pour le moment' : (
+                                        activeTab === 'received'
+                                            ? 'Aucun paiement reçu pour le moment'
+                                            : 'Aucune notification pour le moment'
+                                    )}
                                 </Text>
                             </View>
                         }
@@ -260,11 +300,13 @@ export default function NotificationScreen() {
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <View style={[styles.modalIconContainer, { backgroundColor: selectedNotification?.type === 'payment' ? '#F0F1FF' : '#FFF7ED' }]}>
+                            <View style={[styles.modalIconContainer, { 
+                                backgroundColor: notificationService.getNotificationColor(selectedNotification?.type || 'chat') + '15'
+                            }]}>
                                 <MaterialIcons
-                                    name={selectedNotification ? getIconName(selectedNotification.type) : 'notifications'}
+                                    name={(selectedNotification ? notificationService.getNotificationIcon(selectedNotification.type) : 'notifications') as any}
                                     size={32}
-                                    color={selectedNotification?.type === 'payment' ? '#2B2E83' : '#E96C2E'}
+                                    color={notificationService.getNotificationColor(selectedNotification?.type || 'chat')}
                                 />
                             </View>
                             <TouchableOpacity onPress={() => setSelectedNotification(null)}>
@@ -290,13 +332,20 @@ export default function NotificationScreen() {
                                 <Text style={styles.closeButtonText}>Fermer</Text>
                             </TouchableOpacity>
 
-                            {(selectedNotification?.type === 'payment' || selectedNotification?.type === 'document_upload') && (
+                            {(selectedNotification?.type === 'payment' || 
+                              selectedNotification?.type === 'document_upload' || 
+                              selectedNotification?.type === 'chat' || 
+                              selectedNotification?.type === 'photo' || 
+                              selectedNotification?.type === 'video') && (
                                 <TouchableOpacity
                                     style={styles.actionButton}
                                     onPress={handleAction}
                                 >
                                     <Text style={styles.actionButtonText}>
-                                        {selectedNotification.type === 'payment' ? 'Voir mes paiements' : 'Voir les documents'}
+                                        {selectedNotification.type === 'payment' ? (isChef ? 'Voir tableau de bord' : 'Voir mes paiements') : 
+                                         selectedNotification.type === 'chat' ? 'Ouvrir le chat' :
+                                         selectedNotification.type === 'document_upload' ? 'Voir les documents' :
+                                         (isChef ? 'Voir les chantiers' : 'Voir le projet')}
                                     </Text>
                                 </TouchableOpacity>
                             )}

@@ -106,7 +106,7 @@ export const PaymentDashboard: React.FC<PaymentDashboardProps> = ({
               </Text>
             </View>
             <View style={styles.amountItem}>
-              <Text style={styles.amountLabel}>Restant</Text>
+              <Text style={styles.amountLabel}>Reliquat</Text>
               <Text style={styles.amountValue}>
                 {mobileInvoiceService.formatCurrency(dashboard.totalRemaining)}
               </Text>

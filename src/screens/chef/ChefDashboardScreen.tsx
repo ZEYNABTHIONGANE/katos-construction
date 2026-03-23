@@ -190,8 +190,8 @@ export default function ChefDashboardScreen({ navigation }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Tableau de bord"
-        showNotification={false}
-        onNotificationPress={() => { }}
+        showNotification={true}
+        onNotificationPress={() => navigation.navigate('Notifications')}
       />
       <ScrollView
         style={styles.content}

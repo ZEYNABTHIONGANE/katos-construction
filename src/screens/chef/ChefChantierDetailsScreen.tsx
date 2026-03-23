@@ -182,7 +182,8 @@ export default function ChefChantierDetailsScreen({ navigation, route }: Props) 
                 title={selectedProject.name}
                 showBack
                 onBackPress={() => navigation.goBack()}
-                showNotification={false}
+                showNotification={true}
+                onNotificationPress={() => navigation.navigate('Notifications')}
             />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

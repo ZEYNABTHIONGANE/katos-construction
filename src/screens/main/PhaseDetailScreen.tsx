@@ -69,7 +69,9 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
         description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
-        thumbnailUrl: photo.thumbnailUrl || (photo.type === 'video' ? getVideoThumbnailUrl(photo.url) : undefined)
+        thumbnailUrl: photo.type === 'video' 
+          ? (getVideoThumbnailUrl(photo.url) || photo.thumbnailUrl)
+          : (photo.thumbnailUrl || photo.url)
       }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
   }, [chantier, phaseId, phaseName, stepId, stepName, currentPhase]);
@@ -312,14 +314,11 @@ export default function PhaseDetailScreen({ navigation, route }: Props) {
                       >
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
-                            <Video
-                              source={{ uri: optimizeCloudinaryVideoUrl(photo.url) }}
+                            <Image
+                              source={{ uri: photo.thumbnailUrl }}
                               style={{ width: '100%', height: '100%' }}
-                              resizeMode={ResizeMode.COVER}
-                              shouldPlay={false}
-                              positionMillis={100}
-                              isMuted={true}
-                              useNativeControls={false}
+                              contentFit="cover"
+                              transition={200}
                             />
                             <View style={styles.playIconOverlay}>
                               <MaterialIcons

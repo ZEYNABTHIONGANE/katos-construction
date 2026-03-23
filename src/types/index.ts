@@ -57,6 +57,7 @@ export type ChefTabParamList = {
   ChefChat: undefined;
   Documents: undefined;
   ChefProfil: undefined;
+  Notifications: undefined;
 };
 
 export type ChefStackParamList = {
@@ -71,6 +72,9 @@ export type ChefStackParamList = {
   ChefChantierDetails: {
     chantierId: string;
   };
+  Notifications: undefined;
+  ChefChat: undefined;
+  Documents: undefined;
 };
 
 // Data types
@@ -139,12 +143,14 @@ export interface ProjectPhase {
 
 export interface Notification {
   id: string;
-  type: 'document_upload' | 'material_selection' | 'client_update' | 'payment';
+  type: 'document_upload' | 'document' | 'material_selection' | 'client_update' | 'payment' | 'photo' | 'video' | 'chat';
   title: string;
   message: string;
   isRead: boolean;
   createdAt: any;
   userId?: string;
   clientId?: string;
+  clientName?: string;
+  link?: string;
 }
 

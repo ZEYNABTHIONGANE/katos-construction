@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { useClientSpecificData } from './useClientSpecificData';
+import { db, auth } from '../config/firebase';
 
 export const useNotifications = () => {
-    const { clientInfo } = useClientSpecificData();
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!clientInfo?.id) {
+        const user = auth.currentUser;
+        if (!user) {
             setLoading(false);
             return;
         }
@@ -17,7 +16,7 @@ export const useNotifications = () => {
         // We only query by userId to avoid missing index errors for (userId + isRead)
         const q = query(
             collection(db, 'notifications'),
-            where('userId', '==', clientInfo.id)
+            where('userId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -31,7 +30,7 @@ export const useNotifications = () => {
         });
 
         return () => unsubscribe();
-    }, [clientInfo?.id]);
+    }, [auth.currentUser?.uid]);
 
     return {
         unreadCount,

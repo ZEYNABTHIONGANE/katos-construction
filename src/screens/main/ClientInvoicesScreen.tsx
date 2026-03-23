@@ -359,7 +359,7 @@ export const ClientInvoicesScreen: React.FC = () => {
 
             <View style={styles.statItem}>
               <View style={[styles.statDot, { backgroundColor: '#E96C2E' }]} />
-              <Text style={styles.statLabel}>Reste</Text>
+              <Text style={styles.statLabel}>Reliquat</Text>
               <Text style={styles.statValue}>
                 {mobileInvoiceService.formatCurrency(dashboard?.totalRemaining || 0)}
               </Text>

@@ -5,18 +5,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Dimensions,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useIsFocused } from '@react-navigation/native';
 import { ChefStackParamList } from '../../types';
 import AppHeader from '../../components/AppHeader';
 import { chantierService } from '../../services/chantierService';
 import { FirebaseChantier } from '../../types/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,6 +26,7 @@ type Props = NativeStackScreenProps<ChefStackParamList, 'ChefTabs'>;
 
 export default function ChefChantiersScreen({ navigation, route }: Props) {
   const { user, loading: authLoading } = useAuth();
+  const isFocused = useIsFocused();
 
   const [projects, setProjects] = useState<FirebaseChantier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,15 +39,22 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
 
   // Gérer la sélection automatique d'un chantier si passé en paramètre
   useEffect(() => {
+    // Ne rediriger que si l'écran est au premier plan
+    if (!isFocused) return;
+
     const params = route?.params as any;
     const selectedChantierId = params?.selectedChantierId;
     if (selectedChantierId && projects.length > 0) {
       const chantier = projects.find(p => p.id === selectedChantierId);
       if (chantier) {
+        console.log('🚀 Redirection automatique vers le chantier:', selectedChantierId);
         openProjectDetail(chantier);
+        // Effacer le paramètre après navigation pour éviter de boucler ou de rediriger
+        // lors des mises à jour en temps réel des projets.
+        navigation.setParams({ selectedChantierId: undefined } as any);
       }
     }
-  }, [projects, route?.params]);
+  }, [projects, route?.params, isFocused]);
 
   const loadChefChantiers = async () => {
     try {
@@ -120,8 +130,8 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <AppHeader
         title="Mes Chantiers"
-        showNotification={false}
-        onNotificationPress={() => { }}
+        showNotification={true}
+        onNotificationPress={() => navigation.navigate('Notifications')}
       />
 
       <View style={styles.statsHeader}>
@@ -149,9 +159,23 @@ export default function ChefChantiersScreen({ navigation, route }: Props) {
               onPress={() => openProjectDetail(project)}
             >
               {project.coverImage ? (
-                <Image source={{ uri: project.coverImage }} style={styles.projectImage} />
+                <Image 
+                  source={{ uri: optimizeCloudinaryUrl(project.coverImage, { width: 800 }) }} 
+                  style={styles.projectImage}
+                  contentFit="cover"
+                  transition={300}
+                />
               ) : project.gallery && project.gallery.length > 0 ? (
-                <Image source={{ uri: project.gallery[0].url }} style={styles.projectImage} />
+                <Image 
+                  source={{ 
+                    uri: project.gallery[0].type === 'video'
+                      ? getVideoThumbnailUrl(project.gallery[0].url, { width: 800 })
+                      : optimizeCloudinaryUrl(project.gallery[0].url, { width: 800 })
+                  }} 
+                  style={styles.projectImage}
+                  contentFit="cover"
+                  transition={300}
+                />
               ) : (
                 <View style={[styles.projectImage, styles.placeholderImage]}>
                   <MaterialIcons name="image" size={48} color="#E0E0E0" />

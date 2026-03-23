@@ -28,6 +28,7 @@ import {
 } from '../types/firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
+import { notificationService } from './notificationService';
 
 export class ChantierService {
   private readonly COLLECTION_NAME = 'chantiers';
@@ -293,6 +294,48 @@ export class ChantierService {
         gallery: [...(chantier.gallery || []), newPhoto],
         updatedAt: Timestamp.now()
       });
+
+      // Notifier le client et le backoffice du nouveau média
+      try {
+        const phaseName = updatedPhases.find(p => p.id === phaseId)?.name;
+
+        // 1. Notifier le client
+        if (chantier.clientId && uploadedBy !== chantier.clientId) {
+          const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+          if (clientUserId) {
+            await notificationService.notifyMediaUploaded(
+              clientUserId,
+              mediaType === 'video' ? 'video' : 'photo',
+              chantier.name,
+              phaseName,
+              'client'
+            );
+          }
+        }
+
+        // 2. Notifier le backoffice (Admins et Super Admins)
+        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        const adminsQuery = query(
+          collection(db, 'users'), 
+          where('role', 'in', ['admin', 'super_admin'])
+        );
+        const adminDocs = await getDocs(adminsQuery);
+        
+        for (const adminDoc of adminDocs.docs) {
+          const adminId = adminDoc.id;
+          if (adminId !== uploadedBy) {
+            await notificationService.notifyMediaUploaded(
+              adminId,
+              mediaType === 'video' ? 'video' : 'photo',
+              chantier.name,
+              phaseName,
+              'backoffice'
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error('Erreur lors de l\'envoi des notifications de média:', notifError);
+      }
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la photo:', error);
       throw error;

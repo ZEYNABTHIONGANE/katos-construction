@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { useNavigation } from '@react-navigation/native';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface AppHeaderProps {
   title: string;
@@ -21,11 +22,14 @@ export default function AppHeader({
   onBackPress,
   showNotification = false,
   onNotificationPress,
-  notificationCount = 0,
+  notificationCount,
   showProfile = false,
   onProfilePress,
 }: AppHeaderProps) {
   const navigation = useNavigation();
+  const { unreadCount } = useNotifications();
+  
+  const finalNotificationCount = notificationCount ?? unreadCount;
 
   const handleBack = () => {
     if (onBackPress) {
@@ -50,10 +54,10 @@ export default function AppHeader({
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress}>
             <View>
               <MaterialIcons name="notifications" size={24} color="#fff" />
-              {notificationCount > 0 && (
+              {finalNotificationCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {notificationCount > 99 ? '99+' : notificationCount}
+                    {finalNotificationCount > 99 ? '99+' : finalNotificationCount}
                   </Text>
                 </View>
               )}
