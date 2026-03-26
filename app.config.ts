@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "katos-connect",
     slug: "katos-connect",
-    version: "1.0.3",
+    version: "1.0.4",
     orientation: "portrait",
     userInterfaceStyle: "light",
     newArchEnabled: true,
@@ -20,7 +20,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.katos.app",
-      buildNumber: "41",
+      buildNumber: "45",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSMicrophoneUsageDescription:
@@ -62,7 +62,7 @@ export default {
       "url": "https://u.expo.dev/079a76f8-c4fe-420b-8c2d-b08fcfd5d63c",
     },
 
-    runtimeVersion: "1.0.5",
+    runtimeVersion: "1.0.6",
     scheme: "katos",
 
     extra: {
