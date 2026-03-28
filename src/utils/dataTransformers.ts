@@ -41,7 +41,7 @@ export const transformFirebaseMaterialToMaterial = (firebaseMaterial: FirebaseMa
     id: firebaseMaterial.id!,
     name: firebaseMaterial.name,
     category: firebaseMaterial.category,
-    price: firebaseMaterial.price,
+    price: Number(firebaseMaterial.price) || 0,
     image: firebaseMaterial.image,
     supplier: firebaseMaterial.supplier,
     description: firebaseMaterial.description,
