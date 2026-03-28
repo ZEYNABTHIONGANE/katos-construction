@@ -109,77 +109,26 @@ export const notificationService = {
 
   // Notifier d'un média ajouté (photo, vidéo, document)
   async notifyMediaUploaded(
-    targetId: string, // clientId or userId depending on role
-    type: 'photo' | 'video' | 'document_upload' | 'document',
-    projectName: string,
-    phaseName?: string,
-    recipientRole: 'client' | 'backoffice' = 'client'
+    _targetId: string,
+    _type: 'photo' | 'video' | 'document_upload' | 'document',
+    _projectName: string,
+    _phaseName?: string,
+    _recipientRole: 'client' | 'backoffice' = 'client'
   ) {
-    if (recipientRole === 'backoffice') {
-      return; // Désactivé selon la demande utilisateur
-    }
-
-    const typeLabel = type === 'photo' ? 'une photo' : type === 'video' ? 'une vidéo' : 'un document';
-    
-    // Pour le backoffice, on commence toujours par "L'équipe" car ce ne sont pas les clients qui ajoutent les médias
-    const senderLabel = "L'équipe";
-    
-    const locationInfo = (recipientRole === 'client' && phaseName) 
-      ? ` de la phase "${phaseName}"` 
-      : ` au projet "${projectName}"`;
-    
-    let userId: string | null = targetId;
-    if (recipientRole === 'client') {
-      userId = await this.getClientUserId(targetId);
-    }
-    
-    if (!userId) {
-      console.warn(`Impossible d'envoyer la notification de média : aucun userId valide pour ${targetId}`);
-      return;
-    }
-
-    await this.createNotification({
-      userId,
-      type: (type === 'document_upload' ? 'document_upload' : type) as any,
-      title: 'Nouveau média ajouté',
-      message: `${senderLabel} a ajouté ${typeLabel}${locationInfo}.`,
-      isRead: false,
-      link: type === 'document_upload' || type === 'document' ? 'Documents' : 'Chantier'
-    });
+    // Désactivé : seul les chats sont conservés
+    return;
   },
 
   // Notifier d'un nouveau message chat
   async notifyNewMessage(
-    targetId: string, // clientId or userId depending on role
-    senderName: string,
-    messagePreview: string,
-    projectName?: string,
-    recipientRole: 'client' | 'backoffice' = 'client'
+    _targetId: string,
+    _senderName: string,
+    _messagePreview: string,
+    _projectName?: string,
+    _recipientRole: 'client' | 'backoffice' = 'client'
   ) {
-    if (recipientRole === 'backoffice') {
-      return; // Désactivé selon la demande utilisateur
-    }
-
-    const projectInfo = projectName ? ` concernant le projet "${projectName}"` : '';
-    
-    let userId: string | null = targetId;
-    if (recipientRole === 'client') {
-      userId = await this.getClientUserId(targetId);
-    }
-
-    if (!userId) {
-      console.warn(`Impossible d'envoyer la notification de message : aucun userId valide pour ${targetId}`);
-      return;
-    }
-    
-    await this.createNotification({
-      userId,
-      type: 'chat',
-      title: 'Nouveau message',
-      message: `Vous avez un nouveau message de ${senderName}${projectInfo}.`,
-      isRead: false,
-      link: 'Chat'
-    });
+    // Désactivé pour le staff et clients selon demande
+    return;
   },
 
   // Obtenir l'icône selon le type de notification (utilisé par NotificationScreen)

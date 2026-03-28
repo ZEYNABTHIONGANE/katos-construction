@@ -4,6 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { useNavigation } from '@react-navigation/native';
 import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types/firebase';
 
 interface AppHeaderProps {
   title: string;
@@ -28,8 +30,15 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const navigation = useNavigation();
   const { unreadCount } = useNotifications();
+  const { userData } = useAuth();
   
+  // Masquer la cloche si l'utilisateur est un chef
+  const isChef = userData?.role === UserRole.CHEF || userData?.isChef;
+  const shouldHideNotification = isChef;
+
   const finalNotificationCount = notificationCount ?? unreadCount;
+  
+  const displayNotification = showNotification && !shouldHideNotification;
 
   const handleBack = () => {
     if (onBackPress) {
@@ -50,7 +59,7 @@ export default function AppHeader({
       </View>
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={styles.headerRight}>
-        {showNotification && (
+        {displayNotification && (
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress}>
             <View>
               <MaterialIcons name="notifications" size={24} color="#fff" />

@@ -299,7 +299,7 @@ export class ChantierService {
       try {
         const phaseName = updatedPhases.find(p => p.id === phaseId)?.name;
 
-        // 1. Notifier le client
+        // 1. Notifier le client (si c'est le staff qui upload)
         if (chantier.clientId && uploadedBy !== chantier.clientId) {
           const clientUserId = await notificationService.getClientUserId(chantier.clientId);
           if (clientUserId) {
@@ -313,7 +313,18 @@ export class ChantierService {
           }
         }
 
-        // 2. Notifier le backoffice (Admins et Super Admins)
+        // 2. Notifier le chef assigné (si c'est le client qui upload)
+        if (chantier.assignedChefId && uploadedBy === chantier.clientId) {
+          await notificationService.notifyMediaUploaded(
+            chantier.assignedChefId,
+            mediaType === 'video' ? 'video' : 'photo',
+            chantier.name,
+            phaseName,
+            'backoffice'
+          );
+        }
+
+        // 3. Notifier le backoffice (Admins et Super Admins)
         const { collection, query, where, getDocs } = await import('firebase/firestore');
         const adminsQuery = query(
           collection(db, 'users'), 
@@ -323,7 +334,7 @@ export class ChantierService {
         
         for (const adminDoc of adminDocs.docs) {
           const adminId = adminDoc.id;
-          if (adminId !== uploadedBy) {
+          if (adminId !== uploadedBy && adminId !== chantier.assignedChefId) {
             await notificationService.notifyMediaUploaded(
               adminId,
               mediaType === 'video' ? 'video' : 'photo',
