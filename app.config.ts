@@ -36,7 +36,7 @@ export default {
     android: {
       package: "com.katos.app",
       googleServicesFile: "./google-services.json",
-      versionCode: 40,
+      versionCode: 41,
       adaptiveIcon: {
         foregroundImage: "./src/assets/ic_launcher_foreground.png",
         backgroundImage: "./src/assets/ic_launcher_background.png",

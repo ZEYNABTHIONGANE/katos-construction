@@ -25,6 +25,7 @@ export interface FirebaseUser {
   blockedAt?: Timestamp | null;
   isDeleted?: boolean;
   deletedAt?: Timestamp;
+  expoPushToken?: string | null;
 }
 
 // Firebase client interface - identical to backoffice
@@ -48,6 +49,7 @@ export interface FirebaseClient {
   createdAt: Timestamp;
   invitedAt?: Timestamp;
   acceptedAt?: Timestamp;
+  expoPushToken?: string | null;
 }
 
 // Firebase material interface - identical to backoffice
@@ -356,14 +358,31 @@ export const calculateGlobalProgress = (phases: ChantierPhase[]): number => {
   return Math.round(totalProgress / phases.length);
 };
 
-export const getChantierStatus = (phases: ChantierPhase[], plannedEndDate: Timestamp): ChantierStatus => {
+export const getChantierStatus = (phases: ChantierPhase[], plannedEndDate: Timestamp | any): ChantierStatus => {
   const globalProgress = calculateGlobalProgress(phases);
   const now = new Date();
-  const endDate = plannedEndDate.toDate();
 
   if (globalProgress === 100) return 'Terminé';
   if (globalProgress === 0) return 'En attente';
-  if (now > endDate && globalProgress < 100) return 'En retard';
+
+  if (!plannedEndDate) return 'En cours';
+
+  let endDate: Date;
+  if (typeof plannedEndDate.toDate === 'function') {
+    endDate = plannedEndDate.toDate();
+  } else if (plannedEndDate instanceof Date) {
+    endDate = plannedEndDate;
+  } else if (typeof plannedEndDate === 'string' || typeof plannedEndDate === 'number') {
+    endDate = new Date(plannedEndDate);
+  } else if (plannedEndDate.seconds) {
+    endDate = new Date(plannedEndDate.seconds * 1000);
+  } else if (plannedEndDate._seconds) {
+    endDate = new Date(plannedEndDate._seconds * 1000);
+  } else {
+    return 'En cours';
+  }
+
+  if (!isNaN(endDate.getTime()) && now > endDate && globalProgress < 100) return 'En retard';
   return 'En cours';
 };
 

@@ -4,6 +4,27 @@ import { chantierService } from '../services/chantierService';
 import { useClientAuth } from './useClientAuth';
 import type { FirebaseChantier, KatosChantierPhase } from '../types/firebase';
 
+const formatDate = (dateValue: any): string => {
+  if (!dateValue) return '';
+  if (typeof dateValue.toDate === 'function') {
+    return dateValue.toDate().toLocaleDateString('fr-FR');
+  }
+  if (dateValue instanceof Date) {
+    return dateValue.toLocaleDateString('fr-FR');
+  }
+  if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+    const d = new Date(dateValue);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR');
+  }
+  if (dateValue.seconds) {
+    return new Date(dateValue.seconds * 1000).toLocaleDateString('fr-FR');
+  }
+  if (dateValue._seconds) {
+    return new Date(dateValue._seconds * 1000).toLocaleDateString('fr-FR');
+  }
+  return '';
+};
+
 export const useClientChantier = (specificChantierId?: string) => {
   const { session, isAuthenticated, refreshKey } = useClientAuth();
   const [chantier, setChantier] = useState<FirebaseChantier | null>(null);
@@ -95,7 +116,7 @@ export const useClientChantier = (specificChantierId?: string) => {
         id: update.id,
         title: update.title,
         description: update.description,
-        date: update.createdAt.toDate().toLocaleDateString('fr-FR'),
+        date: formatDate(update.createdAt),
         status: update.type === 'phase_completion' ? 'completed' : 'progress'
       }));
   };
@@ -164,11 +185,11 @@ export const useClientChantier = (specificChantierId?: string) => {
           steps: katosPhase.steps,       // From KatosChantierPhase
 
           startDate: phase.actualStartDate
-            ? phase.actualStartDate.toDate().toLocaleDateString('fr-FR')
-            : phase.plannedStartDate?.toDate().toLocaleDateString('fr-FR'),
+            ? formatDate(phase.actualStartDate)
+            : formatDate(phase.plannedStartDate),
           endDate: phase.actualEndDate
-            ? phase.actualEndDate.toDate().toLocaleDateString('fr-FR')
-            : phase.plannedEndDate?.toDate().toLocaleDateString('fr-FR')
+            ? formatDate(phase.actualEndDate)
+            : formatDate(phase.plannedEndDate)
         };
       });
   };
@@ -188,8 +209,8 @@ export const useClientChantier = (specificChantierId?: string) => {
     name: chantier?.name || '',
     address: chantier?.address || '',
     assignedChefId: chantier?.assignedChefId || '',
-    startDate: chantier?.startDate?.toDate().toLocaleDateString('fr-FR') || '',
-    plannedEndDate: chantier?.plannedEndDate?.toDate().toLocaleDateString('fr-FR') || '',
+    startDate: formatDate(chantier?.startDate),
+    plannedEndDate: formatDate(chantier?.plannedEndDate),
 
     // Main image logic
     mainImage: chantier?.coverImage

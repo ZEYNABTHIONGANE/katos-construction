@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Notification } from '../types';
+import { pushNotificationService } from './pushNotificationService';
 
 export const notificationService = {
   // Résoudre un clientId (collection 'clients') en userId (UID Firebase Auth)
@@ -28,6 +29,22 @@ export const notificationService = {
       return null;
     } catch (error) {
       console.error('Erreur lors de la résolution du userId du client:', error);
+      return null;
+    }
+  },
+
+  // Récupérer le Push Token d'un utilisateur
+  async getPushTokenByUserId(userId: string): Promise<string | null> {
+    try {
+      if (!userId) return null;
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return userData.expoPushToken || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Erreur lors de la récupération du push token:', error);
       return null;
     }
   },
@@ -101,6 +118,25 @@ export const notificationService = {
         ...notification,
         createdAt: serverTimestamp()
       });
+
+      // --- OPTION A: Envoi direct de la Push Notification ---
+      try {
+        if (notification.userId) {
+          const pushToken = await this.getPushTokenByUserId(notification.userId);
+          if (pushToken) {
+            await pushNotificationService.sendPushNotification(
+              pushToken,
+              notification.title,
+              notification.message,
+              { link: notification.link, type: notification.type }
+            );
+          }
+        }
+      } catch (pushError) {
+        console.error('Erreur lors de l\'envoi de la push (Option A):', pushError);
+      }
+      // ------------------------------------------------------
+
     } catch (error) {
       console.error('Erreur lors de la création de la notification:', error);
       throw error;
