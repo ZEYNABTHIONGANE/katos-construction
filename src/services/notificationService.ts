@@ -145,26 +145,79 @@ export const notificationService = {
 
   // Notifier d'un média ajouté (photo, vidéo, document)
   async notifyMediaUploaded(
-    _targetId: string,
-    _type: 'photo' | 'video' | 'document_upload' | 'document',
-    _projectName: string,
-    _phaseName?: string,
-    _recipientRole: 'client' | 'backoffice' = 'client'
+    userId: string,
+    type: 'photo' | 'video' | 'document_upload' | 'document',
+    projectName: string,
+    phaseName?: string,
+    recipientRole: 'client' | 'backoffice' = 'client'
   ) {
-    // Désactivé : seul les chats sont conservés
-    return;
+    const typeLabel = type === 'video' ? 'une vidéo' : type === 'photo' ? 'une photo' : 'un document';
+    const message = `Nouvelle ${typeLabel} ajoutée pour le projet ${projectName}${phaseName ? ` (${phaseName})` : ''}.`;
+    
+    await this.createNotification({
+      userId,
+      type: type === 'document_upload' ? 'document_upload' : type === 'video' ? 'video' : 'photo',
+      title: 'Nouveau média',
+      message,
+      isRead: false,
+      link: recipientRole === 'client' ? '/chantier' : '/projects'
+    });
   },
 
   // Notifier d'un nouveau message chat
   async notifyNewMessage(
-    _targetId: string,
-    _senderName: string,
-    _messagePreview: string,
-    _projectName?: string,
-    _recipientRole: 'client' | 'backoffice' = 'client'
+    userId: string,
+    senderName: string,
+    messagePreview: string,
+    projectName?: string,
+    recipientRole: 'client' | 'backoffice' = 'client'
   ) {
-    // Désactivé pour le staff et clients selon demande
-    return;
+    await this.createNotification({
+      userId,
+      type: 'chat',
+      title: projectName ? `${projectName} - Nouveau message` : `Message de ${senderName}`,
+      message: `${senderName}: ${messagePreview}`,
+      isRead: false,
+      link: recipientRole === 'client' ? '/chat' : '/messages'
+    });
+  },
+
+  // Notifier la fin d'une phase
+  async notifyPhaseCompleted(
+    clientId: string,
+    projectName: string,
+    phaseName: string
+  ) {
+    const userId = await this.getClientUserId(clientId);
+    if (!userId) return;
+
+    await this.createNotification({
+      userId,
+      type: 'photo', // Ou un type spécifique 'phase' si disponible
+      title: 'Phase terminée !',
+      message: `Bonne nouvelle ! La phase "${phaseName}" de votre projet "${projectName}" est terminée à 100%.`,
+      isRead: false,
+      link: '/chantier'
+    });
+  },
+
+  // Notifier d'un changement de statut du projet
+  async notifyProjectStatusChanged(
+    clientId: string,
+    projectName: string,
+    newStatus: string
+  ) {
+    const userId = await this.getClientUserId(clientId);
+    if (!userId) return;
+
+    await this.createNotification({
+      userId,
+      type: 'client_update',
+      title: 'Mise à jour du projet',
+      message: `Le statut de votre projet "${projectName}" est désormais : ${newStatus}.`,
+      isRead: false,
+      link: '/chantier'
+    });
   },
 
   // Obtenir l'icône selon le type de notification (utilisé par NotificationScreen)

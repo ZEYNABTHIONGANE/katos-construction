@@ -96,6 +96,8 @@ export const pushNotificationService = {
       title: title,
       body: body,
       data: data || {},
+      // Logo Katos (Android uniquement)
+      icon: 'https://res.cloudinary.com/dnxfzj45y/image/upload/v1774835900/wsjvuuutqhyzime8d86n.png',
     };
 
     try {
