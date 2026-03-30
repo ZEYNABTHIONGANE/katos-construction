@@ -117,55 +117,77 @@ export default function NotificationScreen() {
         const notification = selectedNotification;
         setSelectedNotification(null);
 
-        // Prioritize the link property from the notification
-        if (notification.link) {
-            // Basic mapping for simple screen names
-            const screenMap: Record<string, string> = {
-                'Documents': 'Documents',
-                'Chat': 'ClientTabs',
-                'ChefChat': 'ChefChat',
-                'Chantier': 'ClientTabs',
-                'ChefChantiers': 'ChefChantiers',
-                'ClientInvoices': 'ClientTabs'
-            };
+        // Normaliser le lien (enlever le slash au début et mettre en minuscule)
+        const rawLink = notification.link || '';
+        const cleanLink = rawLink.replace(/^\//, '').toLowerCase();
 
-            const targetScreen = screenMap[notification.link] || notification.link;
-            
-            if (targetScreen === 'ClientTabs') {
-                const subScreen = notification.link === 'Chantier' ? 'Chantier' : 
-                                 notification.link === 'Chat' ? 'Chat' : 
-                                 notification.link === 'ClientInvoices' ? 'ClientInvoices' : 'Home';
-                navigation.navigate('ClientTabs', { screen: subScreen });
-            } else {
-                navigation.navigate(targetScreen);
-            }
-            return;
-        }
-
-        // Fallback to type-based navigation if no link
-        if (notification.type === 'payment') {
-            if (isChef) {
-                navigation.navigate('ChefDashboard');
-            } else {
-                navigation.navigate('ClientTabs', { screen: 'ClientInvoices' });
-            }
-        } else if (notification.type === 'document_upload' || notification.type === 'document') {
-            if (isChef) {
-                navigation.navigate('Documents');
-            } else {
-                navigation.navigate('ClientTabs', { screen: 'Documents' });
-            }
-        } else if (notification.type === 'chat') {
+        // 1. Gestion spécifique pour le CHAT
+        if (cleanLink === 'chat' || cleanLink === 'messages') {
             if (isChef) {
                 navigation.navigate('ChefChat');
             } else {
                 navigation.navigate('ClientTabs', { screen: 'Chat' });
             }
-        } else if (notification.type === 'photo' || notification.type === 'video') {
+            return;
+        }
+
+        // 2. Gestion spécifique pour le CHANTIER / PROJETS
+        if (cleanLink === 'chantier' || cleanLink === 'projects' || cleanLink === 'chefchantiers') {
             if (isChef) {
                 navigation.navigate('ChefChantiers');
             } else {
                 navigation.navigate('ClientTabs', { screen: 'Chantier' });
+            }
+            return;
+        }
+
+        // 3. Mapping pour les autres écrans
+        const screenMap: Record<string, string> = {
+            'documents': 'Documents',
+            'clientinvoices': 'ClientTabs',
+            'details': 'PhaseDetailScreen'
+        };
+
+        const targetScreen = screenMap[cleanLink] || notification.link;
+        
+        if (targetScreen === 'ClientTabs' || targetScreen === 'clienttabs') {
+            const subScreen = cleanLink === 'clientinvoices' ? 'ClientInvoices' : 
+                             cleanLink === 'chat' ? 'Chat' :
+                             cleanLink === 'chantier' ? 'Chantier' : 'Home';
+            navigation.navigate('ClientTabs', { screen: subScreen });
+        } else if (targetScreen) {
+            // Fallback pour les noms d'écrans directs
+            try {
+                navigation.navigate(targetScreen);
+            } catch (e) {
+                console.error('Navigation error:', e);
+            }
+        } else {
+            // Fallback sur l'ancien système par type si aucun lien n'a matché
+            if (notification.type === 'payment') {
+                if (isChef) {
+                    navigation.navigate('ChefDashboard');
+                } else {
+                    navigation.navigate('ClientTabs', { screen: 'ClientInvoices' });
+                }
+            } else if (notification.type === 'document_upload' || notification.type === 'document') {
+                if (isChef) {
+                    navigation.navigate('Documents');
+                } else {
+                    navigation.navigate('ClientTabs', { screen: 'Documents' });
+                }
+            } else if (notification.type === 'chat') {
+                if (isChef) {
+                    navigation.navigate('ChefChat');
+                } else {
+                    navigation.navigate('ClientTabs', { screen: 'Chat' });
+                }
+            } else if (notification.type === 'photo' || notification.type === 'video') {
+                if (isChef) {
+                    navigation.navigate('ChefChantiers');
+                } else {
+                    navigation.navigate('ClientTabs', { screen: 'Chantier' });
+                }
             }
         }
     };
