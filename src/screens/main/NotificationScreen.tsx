@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingVertical: 8,
-        paddingBottom: 20,
+        paddingBottom: 120,
     },
     tabBar: {
         flexDirection: 'row',

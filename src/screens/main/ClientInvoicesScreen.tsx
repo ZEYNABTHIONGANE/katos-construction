@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   invoicesListContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 120, // Increased to clear tab navigation
   },
 
   // Invoice Card

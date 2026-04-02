@@ -433,6 +433,7 @@ const styles = StyleSheet.create({
   },
   documentsContainer: {
     paddingHorizontal: 20,
+    paddingBottom: 120,
   },
   documentCard: {
     backgroundColor: '#FFFFFF',
