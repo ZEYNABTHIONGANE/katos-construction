@@ -119,7 +119,7 @@ export const notificationService = {
         createdAt: serverTimestamp()
       });
 
-      /* --- OPTION A: Envoi direct de la Push Notification ---
+      // --- OPTION A: Envoi direct de la Push Notification ---
       try {
         if (notification.userId) {
           const pushToken = await this.getPushTokenByUserId(notification.userId);
@@ -135,7 +135,7 @@ export const notificationService = {
       } catch (pushError) {
         console.error('Erreur lors de l\'envoi de la push (Option A):', pushError);
       }
-      ------------------------------------------------------ */
+      // ------------------------------------------------------
 
     } catch (error) {
       console.error('Erreur lors de la création de la notification:', error);
