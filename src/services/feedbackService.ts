@@ -3,6 +3,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
+    getDoc,
     doc,
     onSnapshot,
     query,
@@ -68,11 +69,26 @@ export const feedbackService = {
 
             // Notifier le destinataire
             try {
-                const { chantierService } = await import('./chantierService');
-                const chantier = await chantierService.getChantierById(chantierId);
-                if (chantier) {
+                const chantierRef = doc(db, CHANTIERS_COLLECTION, chantierId);
+                const chantierSnap = await getDoc(chantierRef);
+                
+                if (chantierSnap.exists()) {
+                    const chantier = { id: chantierSnap.id, ...chantierSnap.data() } as any;
                     // Résoudre l'ID utilisateur du client pour la comparaison
                     const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Récupérer le nom du client pour la notification au chef
+                    let senderName = "Le client";
+                    try {
+                        const clientDocRef = doc(db, 'clients', chantier.clientId);
+                        const clientDocSnap = await getDoc(clientDocRef);
+                        if (clientDocSnap.exists()) {
+                            const clientData = clientDocSnap.data();
+                            senderName = `${clientData.prenom} ${clientData.nom}`;
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la récupération du nom du client:', e);
+                    }
 
                     // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
                     if (clientUserId !== clientId) {
@@ -90,7 +106,7 @@ export const feedbackService = {
                     else if (chantier.assignedChefId) {
                         await notificationService.notifyNewMessage(
                             chantier.assignedChefId,
-                            chantier.name,
+                            senderName,
                             "Note vocale",
                             chantier.name,
                             'backoffice'
@@ -141,11 +157,25 @@ export const feedbackService = {
 
             // Notifier le destinataire
             try {
-                const { chantierService } = await import('./chantierService');
-                const chantier = await chantierService.getChantierById(chantierId);
-                if (chantier) {
+                const chantierRef = doc(db, CHANTIERS_COLLECTION, chantierId);
+                const chantierSnap = await getDoc(chantierRef);
+                
+                if (chantierSnap.exists()) {
+                    const chantier = { id: chantierSnap.id, ...chantierSnap.data() } as any;
                     // Résoudre l'ID utilisateur du client pour la comparaison
                     const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Récupérer le nom du client pour la notification au chef
+                    let senderName = "Le client";
+                    try {
+                        const clientSnap = await getDoc(doc(db, 'clients', chantier.clientId));
+                        if (clientSnap.exists()) {
+                            const clientData = clientSnap.data();
+                            senderName = `${clientData.prenom} ${clientData.nom}`;
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la récupération du nom du client:', e);
+                    }
 
                     // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
                     if (clientUserId !== clientId) {
@@ -163,7 +193,7 @@ export const feedbackService = {
                     else if (chantier.assignedChefId) {
                         await notificationService.notifyNewMessage(
                             chantier.assignedChefId,
-                            chantier.name,
+                            senderName,
                             text,
                             chantier.name,
                             'backoffice'

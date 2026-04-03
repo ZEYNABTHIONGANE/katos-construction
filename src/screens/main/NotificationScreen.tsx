@@ -282,7 +282,7 @@ export default function NotificationScreen() {
                 ) : (
                     <FlatList
                         data={isChef
-                            ? [] // No notifications for chefs
+                            ? notifications // For chefs, show all notifications
                             : notifications.filter(n =>
                                 activeTab === 'received'
                                     ? n.title === 'Paiement reçu'

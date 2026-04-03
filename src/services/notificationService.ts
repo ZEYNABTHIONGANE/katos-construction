@@ -175,8 +175,10 @@ export const notificationService = {
     await this.createNotification({
       userId,
       type: 'chat',
-      title: projectName ? `${projectName} - Nouveau message` : `Message de ${senderName}`,
-      message: `${senderName}: ${messagePreview}`,
+      title: 'Nouveau message',
+      message: projectName 
+        ? `Nouveau message de ${senderName} pour le projet ${projectName} : "${messagePreview}"`
+        : `Nouveau message de ${senderName} : "${messagePreview}"`,
       isRead: false,
       link: recipientRole === 'client' ? '/chat' : '/messages'
     });
