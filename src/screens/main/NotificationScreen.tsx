@@ -281,15 +281,14 @@ export default function NotificationScreen() {
                     <ActivityIndicator size="large" color="#2B2E83" style={{ marginTop: 20 }} />
                 ) : (
                     <FlatList
-                        data={notifications.filter(n => {
-                            if (!isChef) {
-                                return activeTab === 'received'
+                        data={isChef
+                            ? [] // No notifications for chefs
+                            : notifications.filter(n =>
+                                activeTab === 'received'
                                     ? n.title === 'Paiement reçu'
-                                    : n.title !== 'Paiement reçu';
-                            }
-                            // Chefs see all their notifications
-                            return true;
-                        })}
+                                    : n.title !== 'Paiement reçu'
+                            )
+                        }
                         renderItem={renderNotificationItem}
                         keyExtractor={item => item.id}
                         contentContainerStyle={styles.listContent}

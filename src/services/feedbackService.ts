@@ -154,7 +154,7 @@ export const feedbackService = {
                                 'client'
                             );
                         }
-                    } 
+                    }
                     // Si le message vient du client, notifier le chef de chantier
                     else if (chantier.assignedChefId) {
                         await notificationService.notifyNewMessage(
