@@ -149,11 +149,11 @@ export default function NotificationScreen() {
         };
 
         const targetScreen = screenMap[cleanLink] || notification.link;
-        
+
         if (targetScreen === 'ClientTabs' || targetScreen === 'clienttabs') {
-            const subScreen = cleanLink === 'clientinvoices' ? 'ClientInvoices' : 
-                             cleanLink === 'chat' ? 'Chat' :
-                             cleanLink === 'chantier' ? 'Chantier' : 'Home';
+            const subScreen = cleanLink === 'clientinvoices' ? 'ClientInvoices' :
+                cleanLink === 'chat' ? 'Chat' :
+                    cleanLink === 'chantier' ? 'Chantier' : 'Home';
             navigation.navigate('ClientTabs', { screen: subScreen });
         } else if (targetScreen) {
             // Fallback pour les noms d'écrans directs
@@ -281,7 +281,7 @@ export default function NotificationScreen() {
                     <ActivityIndicator size="large" color="#2B2E83" style={{ marginTop: 20 }} />
                 ) : (
                     <FlatList
-                        data={isChef 
+                        data={isChef
                             ? [] // No notifications for chefs
                             : notifications.filter(n =>
                                 activeTab === 'received'
@@ -325,7 +325,7 @@ export default function NotificationScreen() {
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <View style={[styles.modalIconContainer, { 
+                            <View style={[styles.modalIconContainer, {
                                 backgroundColor: notificationService.getNotificationColor(selectedNotification?.type || 'chat') + '15'
                             }]}>
                                 <MaterialIcons
@@ -349,32 +349,7 @@ export default function NotificationScreen() {
                             {selectedNotification?.createdAt?.toDate().toLocaleDateString('fr-FR')} à {selectedNotification?.createdAt?.toDate().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </Text>
 
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setSelectedNotification(null)}
-                            >
-                                <Text style={styles.closeButtonText}>Fermer</Text>
-                            </TouchableOpacity>
 
-                            {(selectedNotification?.type === 'payment' || 
-                              selectedNotification?.type === 'document_upload' || 
-                              selectedNotification?.type === 'chat' || 
-                              selectedNotification?.type === 'photo' || 
-                              selectedNotification?.type === 'video') && (
-                                <TouchableOpacity
-                                    style={styles.actionButton}
-                                    onPress={handleAction}
-                                >
-                                    <Text style={styles.actionButtonText}>
-                                        {selectedNotification.type === 'payment' ? (isChef ? 'Voir tableau de bord' : 'Voir mes paiements') : 
-                                         selectedNotification.type === 'chat' ? 'Ouvrir le chat' :
-                                         selectedNotification.type === 'document_upload' ? 'Voir les documents' :
-                                         (isChef ? 'Voir les chantiers' : 'Voir le projet')}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
