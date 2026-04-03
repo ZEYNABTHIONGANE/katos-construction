@@ -71,9 +71,11 @@ export const feedbackService = {
                 const { chantierService } = await import('./chantierService');
                 const chantier = await chantierService.getChantierById(chantierId);
                 if (chantier) {
-                    // Si le message vient d'un staff, notifier le client
-                    if (chantier.clientId !== clientId) {
-                        const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+                    // Résoudre l'ID utilisateur du client pour la comparaison
+                    const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
+                    if (clientUserId !== clientId) {
                         if (clientUserId) {
                             await notificationService.notifyNewMessage(
                                 clientUserId,
@@ -142,9 +144,11 @@ export const feedbackService = {
                 const { chantierService } = await import('./chantierService');
                 const chantier = await chantierService.getChantierById(chantierId);
                 if (chantier) {
-                    // Si le message vient d'un staff, notifier le client
-                    if (chantier.clientId !== clientId) {
-                        const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+                    // Résoudre l'ID utilisateur du client pour la comparaison
+                    const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
+                    if (clientUserId !== clientId) {
                         if (clientUserId) {
                             await notificationService.notifyNewMessage(
                                 clientUserId,

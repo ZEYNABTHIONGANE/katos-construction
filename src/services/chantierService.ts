@@ -340,21 +340,20 @@ export class ChantierService {
         const phaseName = updatedPhases.find(p => p.id === phaseId)?.name;
 
         // 1. Notifier le client (si c'est le staff qui upload)
-        if (chantier.clientId && uploadedBy !== chantier.clientId) {
-          const clientUserId = await notificationService.getClientUserId(chantier.clientId);
-          if (clientUserId) {
-            await notificationService.notifyMediaUploaded(
-              clientUserId,
-              mediaType === 'video' ? 'video' : 'photo',
-              chantier.name,
-              phaseName,
-              'client'
-            );
-          }
+        const clientUserId = chantier.clientId ? await notificationService.getClientUserId(chantier.clientId) : null;
+
+        if (clientUserId && uploadedBy !== clientUserId) {
+          await notificationService.notifyMediaUploaded(
+            clientUserId,
+            mediaType === 'video' ? 'video' : 'photo',
+            chantier.name,
+            phaseName,
+            'client'
+          );
         }
 
         // 2. Notifier le chef assigné (si c'est le client qui upload)
-        if (chantier.assignedChefId && uploadedBy === chantier.clientId) {
+        if (chantier.assignedChefId && uploadedBy === clientUserId) {
           await notificationService.notifyMediaUploaded(
             chantier.assignedChefId,
             mediaType === 'video' ? 'video' : 'photo',
