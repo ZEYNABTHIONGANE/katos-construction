@@ -9,6 +9,7 @@ import {
     LayoutAnimation,
     Platform,
     UIManager,
+    Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -73,6 +74,25 @@ const INITIAL_SECTIONS: ChecklistSection[] = [
 export default function BuyerChecklistScreen({ navigation }: Props) {
     const [sections, setSections] = useState<ChecklistSection[]>(INITIAL_SECTIONS);
 
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const slideAnim = React.useRef(new Animated.Value(30)).current;
+
+    React.useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                tension: 40,
+                friction: 6,
+                useNativeDriver: true,
+            })
+        ]).start();
+    }, []);
+
     const toggleSection = (sectionId: string) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setSections(prev => prev.map(sec =>
@@ -111,76 +131,89 @@ export default function BuyerChecklistScreen({ navigation }: Props) {
                     <View style={{ width: 40 }} />
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    {/* Progress Header */}
-                    <View style={styles.progressCard}>
-                        <View style={styles.progressTextRow}>
-                            <Text style={styles.progressLabel}>Votre progression</Text>
-                            <Text style={styles.progressPercent}>{Math.round(calculateProgress())}%</Text>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                        {/* Progress Header */}
+                        <View style={styles.progressCard}>
+                            <View style={styles.progressTextRow}>
+                                <Text style={styles.progressLabel}>Votre progression</Text>
+                                <Text style={styles.progressPercent}>{Math.round(calculateProgress())}%</Text>
+                            </View>
+                            <View style={styles.progressBarBg}>
+                                <View style={[styles.progressBarFill, { width: `${calculateProgress()}%` }]} />
+                            </View>
+                            <Text style={styles.progressHint}>
+                                {calculateProgress() === 100 ? "Félicitations ! Vous êtes prêt à construire." : "Suivez ces étapes pour sécuriser votre investissement."}
+                            </Text>
                         </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: `${calculateProgress()}%` }]} />
-                        </View>
-                        <Text style={styles.progressHint}>
-                            {calculateProgress() === 100 ? "Félicitations ! Vous êtes prêt à construire." : "Suivez ces étapes pour sécuriser votre investissement."}
-                        </Text>
-                    </View>
 
-                    {/* Sections */}
-                    {sections.map((section) => (
-                        <View key={section.id} style={styles.sectionContainer}>
-                            <TouchableOpacity
-                                style={styles.sectionHeader}
-                                onPress={() => toggleSection(section.id)}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.sectionTitle}>{section.title}</Text>
-                                <MaterialIcons
-                                    name={section.isOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-                                    size={24}
-                                    color="#2B2E83"
-                                />
-                            </TouchableOpacity>
+                        {/* Sections */}
+                        {sections.map((section, index) => (
+                            <View key={section.id} style={[
+                                styles.sectionContainer,
+                                section.isOpen && { borderColor: index % 2 === 0 ? '#2B2E83' : '#E96C2E', borderWidth: 2 }
+                            ]}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sectionHeader,
+                                        section.isOpen && { backgroundColor: index % 2 === 0 ? '#F0F4FF' : '#FFF5F0' }
+                                    ]}
+                                    onPress={() => toggleSection(section.id)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[
+                                        styles.sectionTitle,
+                                        section.isOpen && { color: index % 2 === 0 ? '#2B2E83' : '#E96C2E' }
+                                    ]}>{section.title}</Text>
+                                    <MaterialIcons
+                                        name={section.isOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                                        size={28}
+                                        color={section.isOpen ? (index % 2 === 0 ? '#2B2E83' : '#E96C2E') : "#6B7280"}
+                                    />
+                                </TouchableOpacity>
 
-                            {section.isOpen && (
-                                <View style={styles.itemsList}>
-                                    {section.items.map((item) => (
-                                        <TouchableOpacity
-                                            key={item.id}
-                                            style={styles.itemRow}
-                                            onPress={() => toggleItem(section.id, item.id)}
-                                            activeOpacity={0.6}
-                                        >
-                                            <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
-                                                {item.checked && <MaterialIcons name="check" size={16} color="#FFFFFF" />}
-                                            </View>
-                                            <View style={styles.itemInfo}>
-                                                <Text style={[styles.itemTitle, item.checked && styles.itemTitleChecked]}>
-                                                    {item.title}
-                                                </Text>
-                                                <Text style={styles.itemDescription}>{item.description}</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
-                    ))}
+                                {section.isOpen && (
+                                    <View style={styles.itemsList}>
+                                        {section.items.map((item) => (
+                                            <TouchableOpacity
+                                                key={item.id}
+                                                style={[styles.itemRow, item.checked && { backgroundColor: '#F0FDF4', borderColor: '#10B981', borderWidth: 1 }]}
+                                                onPress={() => toggleItem(section.id, item.id)}
+                                                activeOpacity={0.6}
+                                            >
+                                                <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+                                                    {item.checked && <MaterialIcons name="check" size={18} color="#FFFFFF" />}
+                                                </View>
+                                                <View style={styles.itemInfo}>
+                                                    <Text style={[styles.itemTitle, item.checked && styles.itemTitleChecked]}>
+                                                        {item.title}
+                                                    </Text>
+                                                    <Text style={styles.itemDescription}>{item.description}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        ))}
 
-                    {/* Expert Help CTA */}
-                    <TouchableOpacity
-                        style={styles.expertCta}
-                        onPress={() => navigation.navigate('BTPAdvice')}
-                    >
-                        <MaterialIcons name="live-help" size={24} color="#E96C2E" />
-                        <View style={styles.expertCtaInfo}>
-                            <Text style={styles.expertCtaTitle}>Besoin d'aide sur une étape ?</Text>
-                            <Text style={styles.expertCtaDesc}>Parlez gratuitement à notre conseiller expert.</Text>
-                        </View>
-                        <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
-                    </TouchableOpacity>
+                        {/* Expert Help CTA */}
+                        <TouchableOpacity
+                            style={styles.expertCta}
+                            onPress={() => navigation.navigate('BTPAdvice')}
+                        >
+                            <MaterialIcons name="live-help" size={28} color="#E96C2E" />
+                            <View style={styles.expertCtaInfo}>
+                                <Text style={styles.expertCtaTitle}>Besoin d'aide sur une étape ?</Text>
+                                <Text style={styles.expertCtaDesc}>Parlez gratuitement à notre conseiller expert.</Text>
+                            </View>
+                            <View style={styles.expertChevronContainer}>
+                                <MaterialIcons name="chevron-right" size={24} color="#FFFFFF" />
+                            </View>
+                        </TouchableOpacity>
 
-                    <View style={{ height: 40 }} />
+                        <View style={{ height: 40 }} />
+                    </Animated.View>
                 </ScrollView>
             </SafeAreaView>
         </View>
@@ -253,7 +286,7 @@ const styles = StyleSheet.create({
     },
     progressBarFill: {
         height: '100%',
-        backgroundColor: '#10B981',
+        backgroundColor: '#E96C2E',
         borderRadius: 5,
     },
     progressHint: {
@@ -286,21 +319,29 @@ const styles = StyleSheet.create({
     },
     itemRow: {
         flexDirection: 'row',
-        padding: 12,
+        padding: 14,
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        marginBottom: 8,
+        borderRadius: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 4,
+        elevation: 1,
     },
     checkbox: {
-        width: 24,
-        height: 24,
-        borderRadius: 6,
+        width: 28,
+        height: 28,
+        borderRadius: 8,
         borderWidth: 2,
         borderColor: '#D1D5DB',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 14,
         marginTop: 2,
+        backgroundColor: '#F9FAFB',
     },
     checkboxChecked: {
         backgroundColor: '#10B981',
@@ -327,25 +368,38 @@ const styles = StyleSheet.create({
     expertCta: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF7ED',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#FED7AA',
-        marginTop: 8,
+        backgroundColor: '#FFFFFF',
+        padding: 18,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#E96C2E',
+        marginTop: 10,
+        shadowColor: '#E96C2E',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 6,
     },
     expertCtaInfo: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 14,
     },
     expertCtaTitle: {
-        fontSize: 14,
-        color: '#9A3412',
+        fontSize: 15,
+        color: '#E96C2E',
         fontFamily: 'FiraSans_700Bold',
     },
     expertCtaDesc: {
         fontSize: 12,
-        color: '#C2410C',
-        marginTop: 2,
+        color: '#4B5563',
+        marginTop: 4,
+    },
+    expertChevronContainer: {
+        backgroundColor: '#E96C2E',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

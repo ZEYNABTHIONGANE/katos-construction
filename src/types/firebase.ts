@@ -25,6 +25,7 @@ export interface FirebaseUser {
   blockedAt?: Timestamp | null;
   isDeleted?: boolean;
   deletedAt?: Timestamp;
+  expoPushToken?: string | null;
 }
 
 // Firebase client interface - identical to backoffice
@@ -45,9 +46,11 @@ export interface FirebaseClient {
   username?: string; // Nom d'utilisateur généré pour la connexion
   tempPassword?: string; // Mot de passe temporaire
   typePaiement: 'comptant' | 'echeancier'; // Type de paiement
+  commercial?: string;
   createdAt: Timestamp;
   invitedAt?: Timestamp;
   acceptedAt?: Timestamp;
+  expoPushToken?: string | null;
 }
 
 // Firebase material interface - identical to backoffice
@@ -55,7 +58,7 @@ export interface FirebaseMaterial {
   id?: string;
   name: string;
   category: string;
-  price: number;
+  price: number | string;
   image: string;
   supplier: string;
   description: string;
@@ -69,7 +72,7 @@ export interface FirebaseProject {
   description: string;
   images: string[];
   type: string;
-  price: number;
+  price: number | string;
   currency: string;
   surface?: number;
   bedrooms?: number;
@@ -80,19 +83,19 @@ export interface FirebaseProject {
 // Firebase terrain interface
 export interface FirebaseTerrain {
   id?: string;
-  reference: string;
-  name: string;
-  surface: number;
-  price: number;
-  currency: string;
-  documentType: string; // ex: "Titre foncier"
-  hasWater: boolean;
-  hasElectricity: boolean;
-  isHabited: boolean;
-  description: string;
-  status: 'Disponible' | 'Vendu' | 'Réservé';
-  zone: string;
-  images: string[];
+  reference?: string | null;
+  name?: string | null;
+  surface?: number | null;
+  price?: number | string | null;
+  currency?: string | null;
+  documentType?: string | null; // ex: "Titre foncier"
+  hasWater?: boolean;
+  hasElectricity?: boolean;
+  isHabited?: boolean;
+  description?: string | null;
+  status?: 'Disponible' | 'Vendu' | 'Réservé';
+  zone?: string | null;
+  images?: string[] | null;
   createdAt: Timestamp;
 }
 
@@ -356,14 +359,31 @@ export const calculateGlobalProgress = (phases: ChantierPhase[]): number => {
   return Math.round(totalProgress / phases.length);
 };
 
-export const getChantierStatus = (phases: ChantierPhase[], plannedEndDate: Timestamp): ChantierStatus => {
+export const getChantierStatus = (phases: ChantierPhase[], plannedEndDate: Timestamp | any): ChantierStatus => {
   const globalProgress = calculateGlobalProgress(phases);
   const now = new Date();
-  const endDate = plannedEndDate.toDate();
 
   if (globalProgress === 100) return 'Terminé';
   if (globalProgress === 0) return 'En attente';
-  if (now > endDate && globalProgress < 100) return 'En retard';
+
+  if (!plannedEndDate) return 'En cours';
+
+  let endDate: Date;
+  if (typeof plannedEndDate.toDate === 'function') {
+    endDate = plannedEndDate.toDate();
+  } else if (plannedEndDate instanceof Date) {
+    endDate = plannedEndDate;
+  } else if (typeof plannedEndDate === 'string' || typeof plannedEndDate === 'number') {
+    endDate = new Date(plannedEndDate);
+  } else if (plannedEndDate.seconds) {
+    endDate = new Date(plannedEndDate.seconds * 1000);
+  } else if (plannedEndDate._seconds) {
+    endDate = new Date(plannedEndDate._seconds * 1000);
+  } else {
+    return 'En cours';
+  }
+
+  if (!isNaN(endDate.getTime()) && now > endDate && globalProgress < 100) return 'En retard';
   return 'En cours';
 };
 

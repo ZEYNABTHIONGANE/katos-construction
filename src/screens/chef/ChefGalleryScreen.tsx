@@ -151,14 +151,11 @@ export default function ChefGalleryScreen({ navigation }: Props) {
       >
         {item.type === 'video' ? (
           <View style={styles.videoContainer}>
-            <Video
-              source={{ uri: optimizeCloudinaryVideoUrl(item.url) }}
+            <Image
+              source={{ uri: getVideoThumbnailUrl(item.url, { width: 400 }) }}
               style={styles.mediaItem}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={false}
-              positionMillis={100}
-              isMuted={true}
-              useNativeControls={false}
+              contentFit="cover"
+              transition={300}
             />
             <View style={styles.videoOverlay}>
               <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.9)" />

@@ -7,99 +7,108 @@ export class CloudinaryService {
     }
 
     /**
-     * Upload a file to Cloudinary
+     * Upload a file to Cloudinary with progress support
      */
-    async uploadFile(uri: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<string> {
+    async uploadFile(
+        uri: string, 
+        resourceType: 'image' | 'video' | 'raw' = 'image',
+        onProgress?: (progress: number) => void
+    ): Promise<string> {
         if (!this.CLOUD_NAME || !this.UPLOAD_PRESET) {
             console.error('❌ Cloudinary config missing:', { name: this.CLOUD_NAME, preset: this.UPLOAD_PRESET });
             throw new Error('Cloudinary configuration missing. Please check your .env file.');
         }
 
-        try {
-            const formData = new FormData();
+        return new Promise((resolve, reject) => {
+            try {
+                const formData = new FormData();
 
-            // Extract filename and extension from URI
-            const filename = uri.split('/').pop() || (resourceType === 'video' ? 'upload.m4a' : 'upload.jpg');
-            const match = /\.(\w+)$/.exec(filename);
-            const ext = match ? match[1] : (resourceType === 'video' ? 'm4a' : 'jpg');
+                // Extract filename and extension from URI
+                const filename = uri.split('/').pop() || (resourceType === 'video' ? 'upload.m4a' : 'upload.jpg');
+                const match = /\.(\w+)$/.exec(filename);
+                const ext = match ? match[1] : (resourceType === 'video' ? 'm4a' : 'jpg');
 
-            // Map common extensions to MIME types
-            const mimeTypeMap: Record<string, string> = {
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'png': 'image/png',
-                'gif': 'image/gif',
-                'webp': 'image/webp',
-                'heic': 'image/heic',
-                'heif': 'image/heif',
-                'mov': 'video/quicktime',
-                'mp4': 'video/mp4',
-                '3gp': 'audio/3gpp', // Changed from video to audio if appropriate
-                'm4a': 'audio/mp4',
-                'aac': 'audio/aac',
-                'wav': 'audio/wav',
-            };
+                // Map common extensions to MIME types
+                const mimeTypeMap: Record<string, string> = {
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'png': 'image/png',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp',
+                    'heic': 'image/heic',
+                    'heif': 'image/heif',
+                    'mov': 'video/quicktime',
+                    'mp4': 'video/mp4',
+                    '3gp': 'audio/3gpp',
+                    'm4a': 'audio/mp4',
+                    'aac': 'audio/aac',
+                    'wav': 'audio/wav',
+                };
 
-            // Determine MIME type
-            let mimeType = mimeTypeMap[ext.toLowerCase()];
-            if (!mimeType) {
-                mimeType = resourceType === 'video' ? 'video/mp4' : 'image/jpeg';
+                let mimeType = mimeTypeMap[ext.toLowerCase()];
+                if (!mimeType) {
+                    mimeType = resourceType === 'video' ? 'video/mp4' : 'image/jpeg';
+                }
+
+                const uriLower = uri.toLowerCase();
+                const hasScheme = uriLower.startsWith('file://') ||
+                    uriLower.startsWith('content://') ||
+                    uriLower.startsWith('blob:') ||
+                    uriLower.startsWith('data:');
+
+                let finalUri = uri;
+                if (!hasScheme && uri.startsWith('/')) {
+                    finalUri = `file://${uri}`;
+                }
+
+                const fileToUpload = {
+                    uri: finalUri,
+                    type: mimeType,
+                    name: filename,
+                };
+
+                formData.append('file', fileToUpload as any);
+                formData.append('upload_preset', this.UPLOAD_PRESET);
+                formData.append('resource_type', resourceType);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', this.apiUrl);
+
+                if (onProgress) {
+                    xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                            const progress = Math.round((event.loaded / event.total) * 100);
+                            onProgress(progress);
+                        }
+                    };
+                }
+
+                xhr.onload = () => {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            if (response.error) {
+                                reject(new Error(response.error.message || 'Cloudinary error'));
+                            } else {
+                                console.log('✅ Cloudinary Upload Success:', response.secure_url);
+                                resolve(response.secure_url);
+                            }
+                        } else {
+                            reject(new Error(response.error?.message || `Upload failed with status ${xhr.status}`));
+                        }
+                    } catch (e) {
+                        reject(new Error('Failed to parse Cloudinary response'));
+                    }
+                };
+
+                xhr.onerror = () => reject(new Error('Network error during upload'));
+                xhr.send(formData);
+
+            } catch (error) {
+                console.error('❌ Cloudinary Upload Exception:', error);
+                reject(error);
             }
-
-            // In React Native, we need to treat the URI properly
-            // Support multiple schemes (file, content, blob, data)
-            const uriLower = uri.toLowerCase();
-            const hasScheme = uriLower.startsWith('file://') ||
-                uriLower.startsWith('content://') ||
-                uriLower.startsWith('blob:') ||
-                uriLower.startsWith('data:');
-
-            let finalUri = uri;
-            // On Android, content:// and file:// are usually fine as is.
-            // On iOS, we often need to ensure file:// prefix if it's a local path.
-            if (!hasScheme && !uri.startsWith('/')) {
-                // Not a path and no scheme? Probably a local filename
-            } else if (!hasScheme) {
-                finalUri = `file://${uri}`;
-            }
-
-            const fileToUpload = {
-                uri: finalUri,
-                type: mimeType,
-                name: filename,
-            };
-
-            formData.append('file', fileToUpload as any);
-            formData.append('upload_preset', this.UPLOAD_PRESET);
-            formData.append('resource_type', resourceType);
-
-            console.log(`📤 Uploading to Cloudinary: ${filename} (${mimeType}) as ${resourceType}`);
-            console.log(`🔗 Final URI: ${finalUri}`);
-            console.log(`⚙️ Config: Cloud=${this.CLOUD_NAME}, Preset=${this.UPLOAD_PRESET}`);
-
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                    // Note: Do NOT set Content-Type: multipart/form-data manually, 
-                    // fetch will do it with the correct boundary.
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.error) {
-                console.error('❌ Cloudinary Error Response:', data.error);
-                throw new Error(data.error.message || 'Unknown Cloudinary error');
-            }
-
-            console.log('✅ Cloudinary Upload Success:', data.secure_url);
-            return data.secure_url;
-        } catch (error) {
-            console.error('❌ Cloudinary Upload Exception:', error);
-            throw error;
-        }
+        });
     }
 
     /**

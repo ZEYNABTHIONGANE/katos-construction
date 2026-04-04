@@ -37,8 +37,8 @@ export default function VillaListScreen({ navigation }: Props) {
     const types = ['F3', 'F4', 'F6'];
 
     const filteredVillas = villas.filter(v => {
-        const matchesSearch = v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            v.type.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (v.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (v.type?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesType = !selectedType || v.type === selectedType;
         return matchesSearch && matchesType;
     });
@@ -72,8 +72,10 @@ export default function VillaListScreen({ navigation }: Props) {
                 </View>
 
                 <View style={styles.footerRow}>
-                    <Text style={styles.price}>
-                        {item.price?.toLocaleString()} {item.currency || 'FCFA'}
+                    <Text style={(!isNaN(Number(item.price)) && item.price !== null && item.price !== '') ? styles.price : styles.priceText}>
+                        {(!isNaN(Number(item.price)) && item.price !== null && item.price !== '')
+                            ? `${Number(item.price).toLocaleString()} ${item.currency || 'FCFA'}`
+                            : item.price}
                     </Text>
                     <TouchableOpacity
                         style={styles.actionBtn}
@@ -297,6 +299,11 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 18,
         fontFamily: 'FiraSans_700Bold',
+        color: '#E96C2E',
+    },
+    priceText: {
+        fontSize: 11,
+        fontFamily: 'FiraSans_600SemiBold',
         color: '#E96C2E',
     },
     actionBtn: {

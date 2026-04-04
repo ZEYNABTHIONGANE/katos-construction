@@ -15,9 +15,9 @@ export class StorageService {
   /**
    * Upload an image from React Native URI to Cloudinary
    */
-  async uploadImageFromUri(uri: string, _path: string): Promise<string> {
+  async uploadImageFromUri(uri: string, _path: string, onProgress?: (p: number) => void): Promise<string> {
     try {
-      return cloudinaryService.uploadFile(uri, 'image');
+      return cloudinaryService.uploadFile(uri, 'image', onProgress);
     } catch (error) {
       console.error('Error uploading image to Cloudinary:', error);
       throw error;
@@ -27,9 +27,9 @@ export class StorageService {
   /**
    * Upload a video from React Native URI to Cloudinary
    */
-  async uploadVideoFromUri(uri: string, _path: string): Promise<string> {
+  async uploadVideoFromUri(uri: string, _path: string, onProgress?: (p: number) => void): Promise<string> {
     try {
-      return cloudinaryService.uploadFile(uri, 'video');
+      return cloudinaryService.uploadFile(uri, 'video', onProgress);
     } catch (error) {
       console.error('Error uploading video to Cloudinary:', error);
       throw error;
@@ -39,8 +39,13 @@ export class StorageService {
   /**
    * Upload media (image or video) from React Native URI
    */
-  async uploadMediaFromUri(uri: string, _path: string, mediaType: 'image' | 'video'): Promise<string> {
-    return cloudinaryService.uploadFile(uri, mediaType);
+  async uploadMediaFromUri(
+    uri: string, 
+    _path: string, 
+    mediaType: 'image' | 'video',
+    onProgress?: (p: number) => void
+  ): Promise<string> {
+    return cloudinaryService.uploadFile(uri, mediaType, onProgress);
   }
 
   /**

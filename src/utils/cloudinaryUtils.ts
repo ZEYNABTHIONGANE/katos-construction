@@ -107,25 +107,17 @@ export const getVideoThumbnailUrl = (
         timeOffset = '1'
     } = options;
 
-    // Convert video URL to image URL for thumbnail
-    // e.g. upload/video/upload/v123/video.mp4 -> upload/image/upload/v123/video.jpg
-    let thumbUrl = videoUrl.replace('/video/upload/', '/image/upload/');
-
-    // Replace extension
-    const lastDot = thumbUrl.lastIndexOf('.');
-    if (lastDot !== -1) {
-        thumbUrl = thumbUrl.substring(0, lastDot) + '.jpg';
-    }
-
-    return optimizeCloudinaryUrl(thumbUrl, {
+    const thumbnailUrl = optimizeCloudinaryUrl(videoUrl, {
         width,
         height,
         quality,
-        format: 'webp', // WebP is efficient for mobile
+        format: 'jpg', // Use JPG for video thumbnails as per Cloudinary best practices
         crop,
         gravity,
         startOffset: timeOffset
     });
+
+    return thumbnailUrl;
 };
 
 /**

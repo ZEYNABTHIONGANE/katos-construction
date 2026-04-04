@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   FlatList,
   Modal,
   Dimensions,
@@ -15,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,7 +28,7 @@ import { chantierService } from '../../services/chantierService';
 import { storageService } from '../../services/storageService';
 import { useUserNames } from '../../hooks/useUserNames';
 import { FirebaseChantier, getPhaseStatus } from '../../types/firebase';
-import { optimizeCloudinaryUrl, getVideoThumbnailUrl } from '../../utils/cloudinaryUtils';
+import { optimizeCloudinaryUrl, getVideoThumbnailUrl, optimizeCloudinaryVideoUrl } from '../../utils/cloudinaryUtils';
 
 type Props = NativeStackScreenProps<ChefStackParamList, 'ChefPhaseDetail'>;
 
@@ -40,6 +40,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
   const [chantier, setChantier] = useState<FirebaseChantier | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showMediaCarousel, setShowMediaCarousel] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [sliderValue, setSliderValue] = useState(0);
@@ -76,7 +77,9 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
         description: photo.description || `Photo ${stepName || phaseName}`,
         uploadedAt: photo.uploadedAt,
         type: photo.type,
-        thumbnailUrl: photo.thumbnailUrl || (photo.type === 'video' ? getVideoThumbnailUrl(photo.url) : undefined)
+        thumbnailUrl: photo.type === 'video' 
+          ? (getVideoThumbnailUrl(photo.url) || photo.thumbnailUrl)
+          : (photo.thumbnailUrl || photo.url)
       }))
       .sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
 
@@ -141,7 +144,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
-      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_960x540,
     };
 
     try {
@@ -169,7 +172,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
-      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_960x540,
     };
 
     try {
@@ -202,17 +205,22 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
         assetUri: asset.uri
       });
 
+      setUploadProgress(0);
       const uploadedUrl = await storageService.uploadMediaFromUri(
         asset.uri,
         `chantiers/${chantierId}`,
-        isVideo ? 'video' : 'image'
+        isVideo ? 'video' : 'image',
+        (progress) => {
+          setUploadProgress(progress);
+        }
       );
 
 
       let thumbnailUrl: string | undefined;
-      if (isVideo && asset.uri) {
-        // Pour les vidéos, on pourrait générer une miniature ici
-        thumbnailUrl = uploadedUrl; // Temporairement, utiliser la même URL
+      if (isVideo) {
+        // Pour Cloudinary, on laisse vide pour que le frontend génère la miniature 
+        // via getVideoThumbnailUrl(photo.url)
+        thumbnailUrl = undefined;
       }
 
       const description = `${stepName || phaseName} - ${new Date().toLocaleDateString('fr-FR')}`;
@@ -250,6 +258,7 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
       );
     } finally {
       setUploadingImage(false);
+      setUploadProgress(0);
     }
   };
 
@@ -412,7 +421,12 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
           <Text style={styles.headerTitle} numberOfLines={2}>
             {displayTitle}
           </Text>
-          <View style={styles.headerRight} />
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <MaterialIcons name="notifications" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         <KeyboardAvoidingView
@@ -542,7 +556,10 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                       disabled={uploadingImage}
                     >
                       {uploadingImage ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <View style={{ alignItems: 'center' }}>
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <Text style={{ color: '#FFFFFF', fontSize: 10, marginTop: 2 }}>{uploadProgress}%</Text>
+                        </View>
                       ) : (
                         <>
                           <MaterialIcons name="add-a-photo" size={20} color="#FFFFFF" />
@@ -565,9 +582,10 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                         {photo.type === 'video' ? (
                           <View style={styles.galleryImage}>
                             <Image
-                              source={{ uri: photo.thumbnailUrl || photo.url }}
+                              source={{ uri: photo.thumbnailUrl }}
                               style={{ width: '100%', height: '100%' }}
-                              resizeMode="cover"
+                              contentFit="cover"
+                              transition={200}
                             />
                             <View style={styles.playIconOverlay}>
                               <MaterialIcons
@@ -581,7 +599,8 @@ export default function ChefPhaseDetailScreen({ navigation, route }: Props) {
                           <Image
                             source={{ uri: photo.thumbnailUrl || photo.url }}
                             style={styles.galleryImage}
-                            resizeMode="cover"
+                            contentFit="cover"
+                            transition={200}
                           />
                         )}
                         <View style={styles.photoOverlay}>

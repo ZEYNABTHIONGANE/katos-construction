@@ -3,6 +3,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
+    getDoc,
     doc,
     onSnapshot,
     query,
@@ -15,6 +16,7 @@ import {
 import { db } from '../config/firebase'; // Adjust path if needed, assuming standard setup
 import { cloudinaryService } from './cloudinaryService';
 import { VoiceNoteFeedback } from '../types/firebase';
+import { notificationService } from './notificationService';
 
 const FEEDBACKS_SUBCOLLECTION = 'feedbacks';
 const CHANTIERS_COLLECTION = 'chantiers';
@@ -64,6 +66,57 @@ export const feedbackService = {
 
             const feedbacksRef = collection(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION);
             const docRef = await addDoc(feedbacksRef, feedbackData);
+
+            // Notifier le destinataire
+            try {
+                const chantierRef = doc(db, CHANTIERS_COLLECTION, chantierId);
+                const chantierSnap = await getDoc(chantierRef);
+                
+                if (chantierSnap.exists()) {
+                    const chantier = { id: chantierSnap.id, ...chantierSnap.data() } as any;
+                    // Résoudre l'ID utilisateur du client pour la comparaison
+                    const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Récupérer le nom du client pour la notification au chef
+                    let senderName = "Le client";
+                    try {
+                        const clientDocRef = doc(db, 'clients', chantier.clientId);
+                        const clientDocSnap = await getDoc(clientDocRef);
+                        if (clientDocSnap.exists()) {
+                            const clientData = clientDocSnap.data();
+                            senderName = `${clientData.prenom} ${clientData.nom}`;
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la récupération du nom du client:', e);
+                    }
+
+                    // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
+                    if (clientUserId !== clientId) {
+                        if (clientUserId) {
+                            await notificationService.notifyNewMessage(
+                                clientUserId,
+                                "L'équipe",
+                                "Note vocale",
+                                chantier.name,
+                                'client'
+                            );
+                        }
+                    } 
+                    // Si le message vient du client, notifier le chef de chantier
+                    else if (chantier.assignedChefId) {
+                        await notificationService.notifyNewMessage(
+                            chantier.assignedChefId,
+                            senderName,
+                            "Note vocale",
+                            chantier.name,
+                            'backoffice'
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la création de la notification de note vocale:', error);
+            }
+
             return docRef.id;
         } catch (error) {
             console.error('Error creating voice note:', error);
@@ -101,6 +154,56 @@ export const feedbackService = {
 
             const feedbacksRef = collection(db, CHANTIERS_COLLECTION, chantierId, FEEDBACKS_SUBCOLLECTION);
             const docRef = await addDoc(feedbacksRef, feedbackData);
+
+            // Notifier le destinataire
+            try {
+                const chantierRef = doc(db, CHANTIERS_COLLECTION, chantierId);
+                const chantierSnap = await getDoc(chantierRef);
+                
+                if (chantierSnap.exists()) {
+                    const chantier = { id: chantierSnap.id, ...chantierSnap.data() } as any;
+                    // Résoudre l'ID utilisateur du client pour la comparaison
+                    const clientUserId = await notificationService.getClientUserId(chantier.clientId);
+
+                    // Récupérer le nom du client pour la notification au chef
+                    let senderName = "Le client";
+                    try {
+                        const clientSnap = await getDoc(doc(db, 'clients', chantier.clientId));
+                        if (clientSnap.exists()) {
+                            const clientData = clientSnap.data();
+                            senderName = `${clientData.prenom} ${clientData.nom}`;
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la récupération du nom du client:', e);
+                    }
+
+                    // Si le message ne vient PAS du client (donc vient d'un staff), notifier le client
+                    if (clientUserId !== clientId) {
+                        if (clientUserId) {
+                            await notificationService.notifyNewMessage(
+                                clientUserId,
+                                "L'équipe",
+                                text,
+                                chantier.name,
+                                'client'
+                            );
+                        }
+                    }
+                    // Si le message vient du client, notifier le chef de chantier
+                    else if (chantier.assignedChefId) {
+                        await notificationService.notifyNewMessage(
+                            chantier.assignedChefId,
+                            senderName,
+                            text,
+                            chantier.name,
+                            'backoffice'
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la création de la notification de message:', error);
+            }
+
             return docRef.id;
         } catch (error) {
             console.error('Error creating text message:', error);

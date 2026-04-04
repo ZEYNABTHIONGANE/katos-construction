@@ -39,6 +39,25 @@ export default function BTPAdviceScreen({ navigation }: Props) {
     const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef<FlatList>(null);
 
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                tension: 50,
+                friction: 7,
+                useNativeDriver: true,
+            })
+        ]).start();
+    }, []);
+
     useEffect(() => {
         if (messages.length > 0) {
             setTimeout(() => {
@@ -110,61 +129,63 @@ export default function BTPAdviceScreen({ navigation }: Props) {
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
-                    <FlatList
-                        ref={flatListRef}
-                        data={messages}
-                        renderItem={renderMessage}
-                        keyExtractor={(item) => item.id}
-                        contentContainerStyle={styles.messagesList}
-                        showsVerticalScrollIndicator={false}
-                    />
+                    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                        <FlatList
+                            ref={flatListRef}
+                            data={messages}
+                            renderItem={renderMessage}
+                            keyExtractor={(item) => item.id}
+                            contentContainerStyle={styles.messagesList}
+                            showsVerticalScrollIndicator={false}
+                        />
 
-                    {isTyping && (
-                        <View style={styles.typingWrapper}>
-                            <TypingIndicator />
-                            <Text style={styles.typingText}>L'expert analyse votre question...</Text>
-                        </View>
-                    )}
+                        {isTyping && (
+                            <View style={styles.typingWrapper}>
+                                <TypingIndicator />
+                                <Text style={styles.typingText}>L'expert analyse votre question...</Text>
+                            </View>
+                        )}
 
-                    {/* Suggestions rapide */}
-                    {!isTyping && messages[messages.length - 1]?.isFromUser === false && (
-                        <View style={styles.suggestionsContainer}>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
-                                {['Construction', 'Finitions', 'Vérifier terrain', 'Titre foncier', 'NICAD', 'Notaire', 'Fondations', 'Prix devis'].map((tag, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        style={styles.suggestionTag}
-                                        onPress={() => handleSendMessage(tag)}
-                                    >
-                                        <Text style={styles.suggestionTagText}>{tag}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
+                        {/* Suggestions rapide */}
+                        {!isTyping && messages[messages.length - 1]?.isFromUser === false && (
+                            <View style={styles.suggestionsContainer}>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
+                                    {['Construction', 'Finitions', 'Vérifier terrain', 'Titre foncier', 'NICAD', 'Notaire', 'Fondations', 'Prix devis'].map((tag, idx) => (
+                                        <TouchableOpacity
+                                            key={idx}
+                                            style={styles.suggestionTag}
+                                            onPress={() => handleSendMessage(tag)}
+                                        >
+                                            <Text style={styles.suggestionTagText}>{tag}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )}
 
-                    <View style={styles.inputContainer}>
-                        <View style={styles.inputWrapper}>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="Posez votre question BTP..."
-                                value={newMessage}
-                                onChangeText={setNewMessage}
-                                multiline
-                            />
-                            <TouchableOpacity
-                                style={[styles.sendButton, { backgroundColor: newMessage.trim() ? '#2B2E83' : '#E5E7EB' }]}
-                                onPress={() => handleSendMessage()}
-                                disabled={!newMessage.trim()}
-                            >
-                                <MaterialIcons
-                                    name="send"
-                                    size={20}
-                                    color={newMessage.trim() ? '#FFFFFF' : '#9CA3AF'}
+                        <View style={styles.inputContainer}>
+                            <View style={styles.inputWrapper}>
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Posez votre question BTP..."
+                                    value={newMessage}
+                                    onChangeText={setNewMessage}
+                                    multiline
                                 />
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.sendButton, { backgroundColor: newMessage.trim() ? '#2B2E83' : '#E5E7EB' }]}
+                                    onPress={() => handleSendMessage()}
+                                    disabled={!newMessage.trim()}
+                                >
+                                    <MaterialIcons
+                                        name="send"
+                                        size={20}
+                                        color={newMessage.trim() ? '#FFFFFF' : '#9CA3AF'}
+                                    />
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
+                    </Animated.View>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         </View>
@@ -321,15 +342,20 @@ const styles = StyleSheet.create({
     suggestionTag: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderRadius: 20,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        marginRight: 10,
+        borderWidth: 1.5,
+        borderColor: '#E96C2E',
+        shadowColor: '#E96C2E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     suggestionTagText: {
         fontSize: 13,
-        color: '#2B2E83',
+        color: '#E96C2E',
         fontFamily: 'FiraSans_600SemiBold',
     },
     inputContainer: {
@@ -338,16 +364,21 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 10,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F9FAFB',
+        backgroundColor: '#F0F4FF',
         borderRadius: 25,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         paddingVertical: 4,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderWidth: 1.5,
+        borderColor: '#2B2E83',
     },
     textInput: {
         flex: 1,

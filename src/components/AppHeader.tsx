@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { useNavigation } from '@react-navigation/native';
+import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types/firebase';
 
 interface AppHeaderProps {
   title: string;
@@ -21,11 +24,21 @@ export default function AppHeader({
   onBackPress,
   showNotification = false,
   onNotificationPress,
-  notificationCount = 0,
+  notificationCount,
   showProfile = false,
   onProfilePress,
 }: AppHeaderProps) {
   const navigation = useNavigation();
+  const { unreadCount } = useNotifications();
+  const { userData } = useAuth();
+  
+  // Masquer la cloche si l'utilisateur est un chef
+  const isChef = userData?.role === UserRole.CHEF || userData?.isChef;
+  const shouldHideNotification = isChef;
+
+  const finalNotificationCount = notificationCount ?? unreadCount;
+  
+  const displayNotification = showNotification && !shouldHideNotification;
 
   const handleBack = () => {
     if (onBackPress) {
@@ -46,14 +59,14 @@ export default function AppHeader({
       </View>
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={styles.headerRight}>
-        {showNotification && (
+        {displayNotification && (
           <TouchableOpacity style={styles.iconButton} onPress={onNotificationPress}>
             <View>
               <MaterialIcons name="notifications" size={24} color="#fff" />
-              {notificationCount > 0 && (
+              {finalNotificationCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {notificationCount > 99 ? '99+' : notificationCount}
+                    {finalNotificationCount > 99 ? '99+' : finalNotificationCount}
                   </Text>
                 </View>
               )}

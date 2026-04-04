@@ -62,6 +62,8 @@ const ChefStackNavigator = ({ onLogout }: { onLogout: () => void }) => {
       </ChefStack.Screen>
       <ChefStack.Screen name="ChefPhaseDetail" component={ChefPhaseDetailScreen} />
       <ChefStack.Screen name="ChefChantierDetails" component={ChefChantierDetailsScreen} />
+      <ChefStack.Screen name="ChefChat" component={ChefChatScreen} />
+      <ChefStack.Screen name="Documents" component={ClientDocumentsScreenV3} />
     </ChefStack.Navigator>
   );
 };
@@ -594,11 +596,6 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                   component={ClientInvoicesScreen}
                   options={{ headerShown: false }}
                 />
-                <Stack.Screen
-                  name="Notifications"
-                  component={NotificationScreen}
-                  options={{ headerShown: false }}
-                />
                 <Stack.Screen name="Showcase" component={ShowcaseScreen} />
                 <Stack.Screen name="VillaList" component={VillaListScreen} />
                 <Stack.Screen name="TerrainList" component={TerrainListScreen} />
@@ -614,6 +611,11 @@ export default function AppNavigator({ fontsLoaded }: { fontsLoaded: boolean }) 
                 {() => <ChefStackNavigator onLogout={handleLogout} />}
               </Stack.Screen>
             )}
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="PrivacyPolicy"
               component={PrivacyPolicyScreen}

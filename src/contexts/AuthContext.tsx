@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User } from 'firebase/auth';
 import { authService } from '../services/authService';
 import { FirebaseUser } from '../types/firebase';
+import { pushNotificationService } from '../services/pushNotificationService';
 
 interface AuthContextType {
   user: User | null;
@@ -44,6 +45,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return unsubscribe;
   }, []);
+
+  // Handle push notification registration
+  useEffect(() => {
+    const registerPush = async () => {
+      if (user) {
+        try {
+          const token = await pushNotificationService.registerForPushNotificationsAsync();
+          if (token) {
+            await pushNotificationService.saveTokenToFirestore(user.uid, token);
+          }
+        } catch (error) {
+          console.error('Push notification registration error:', error);
+        }
+      }
+    };
+
+    registerPush();
+  }, [user]);
 
   const isChef = userData?.role === 'chef' || userData?.role === 'admin' || userData?.role === 'super_admin';
 

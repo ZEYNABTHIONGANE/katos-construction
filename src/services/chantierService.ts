@@ -28,6 +28,7 @@ import {
 } from '../types/firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
+import { notificationService } from './notificationService';
 
 export class ChantierService {
   private readonly COLLECTION_NAME = 'chantiers';
@@ -165,12 +166,33 @@ export class ChantierService {
       const globalProgress = calculateGlobalProgress(updatedPhases);
       const status = getChantierStatus(updatedPhases, chantier.plannedEndDate);
 
+      const phaseBefore = chantier.phases.find(p => p.id === phaseId);
+      const previousProgress = phaseBefore ? phaseBefore.progress : 0;
+
       await this.updateChantier(chantierId, {
         phases: updatedPhases,
         globalProgress,
         status,
         updatedAt: Timestamp.now()
       });
+
+      // Notifier le client si la phase vient de passer à 100% via la mise à jour d'une sous-étape
+      const phaseAfter = updatedPhases.find(p => p.id === phaseId);
+      const newProgress = phaseAfter ? phaseAfter.progress : 0;
+
+      if (newProgress >= 100 && previousProgress < 100) {
+        try {
+          if (chantier.clientId) {
+            await notificationService.notifyPhaseCompleted(
+              chantier.clientId,
+              chantier.name,
+              phaseAfter?.name || 'Phase'
+            );
+          }
+        } catch (notifError) {
+          console.error('Erreur notification phase terminée via step update (mobile):', notifError);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'étape:', error);
       throw error;
@@ -190,6 +212,9 @@ export class ChantierService {
       if (!chantier) {
         throw new Error('Chantier non trouvé');
       }
+
+      const phaseToUpdate = chantier.phases.find(p => p.id === phaseId);
+      const previousProgress = phaseToUpdate ? phaseToUpdate.progress : 0;
 
       const updatedPhases = chantier.phases.map(phase => {
         if (phase.id === phaseId) {
@@ -214,6 +239,22 @@ export class ChantierService {
         status,
         updatedAt: Timestamp.now()
       });
+
+      // Notifier le client si la phase vient de passer à 100%
+      if (progress >= 100 && previousProgress < 100) {
+        try {
+          const phaseName = updatedPhases.find(p => p.id === phaseId)?.name || 'Phase';
+          if (chantier.clientId) {
+            await notificationService.notifyPhaseCompleted(
+              chantier.clientId,
+              chantier.name,
+              phaseName
+            );
+          }
+        } catch (notifError) {
+          console.error('Erreur lors de la notification de phase terminée (mobile):', notifError);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la phase:', error);
       throw error;
@@ -293,6 +334,58 @@ export class ChantierService {
         gallery: [...(chantier.gallery || []), newPhoto],
         updatedAt: Timestamp.now()
       });
+
+      // Notifier le client et le backoffice du nouveau média
+      try {
+        const phaseName = updatedPhases.find(p => p.id === phaseId)?.name;
+
+        // 1. Notifier le client (si c'est le staff qui upload)
+        const clientUserId = chantier.clientId ? await notificationService.getClientUserId(chantier.clientId) : null;
+
+        if (clientUserId && uploadedBy !== clientUserId) {
+          await notificationService.notifyMediaUploaded(
+            clientUserId,
+            mediaType === 'video' ? 'video' : 'photo',
+            chantier.name,
+            phaseName,
+            'client'
+          );
+        }
+
+        // 2. Notifier le chef assigné (si c'est le client qui upload)
+        if (chantier.assignedChefId && uploadedBy === clientUserId) {
+          await notificationService.notifyMediaUploaded(
+            chantier.assignedChefId,
+            mediaType === 'video' ? 'video' : 'photo',
+            chantier.name,
+            phaseName,
+            'backoffice'
+          );
+        }
+
+        // 3. Notifier le backoffice (Admins et Super Admins)
+        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        const adminsQuery = query(
+          collection(db, 'users'), 
+          where('role', 'in', ['admin', 'super_admin'])
+        );
+        const adminDocs = await getDocs(adminsQuery);
+        
+        for (const adminDoc of adminDocs.docs) {
+          const adminId = adminDoc.id;
+          if (adminId !== uploadedBy && adminId !== chantier.assignedChefId) {
+            await notificationService.notifyMediaUploaded(
+              adminId,
+              mediaType === 'video' ? 'video' : 'photo',
+              chantier.name,
+              phaseName,
+              'backoffice'
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error('Erreur lors de l\'envoi des notifications de média:', notifError);
+      }
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la photo:', error);
       throw error;
@@ -452,6 +545,21 @@ export class ChantierService {
     try {
       const chantierRef = doc(db, this.COLLECTION_NAME, chantierId);
 
+      // Pour la notification de changement de statut
+      let oldStatus: string | undefined;
+      let projectName: string | undefined;
+      let clientId: string | undefined;
+
+      if (updates.status) {
+        const snapshot = await getDoc(chantierRef);
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          oldStatus = data.status;
+          projectName = data.name;
+          clientId = data.clientId;
+        }
+      }
+
       // Filtrer les valeurs undefined pour éviter l'erreur Firestore
       const cleanedUpdates: any = {};
       Object.keys(updates).forEach(key => {
@@ -465,6 +573,19 @@ export class ChantierService {
         ...cleanedUpdates,
         updatedAt: Timestamp.now()
       });
+
+      // Notifier en cas de changement de statut
+      if (updates.status && updates.status !== oldStatus && clientId) {
+        try {
+          await notificationService.notifyProjectStatusChanged(
+            clientId,
+            projectName || 'Projet',
+            updates.status
+          );
+        } catch (notifError) {
+          console.error('Erreur notification changement statut (mobile):', notifError);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du chantier:', error);
       throw error;

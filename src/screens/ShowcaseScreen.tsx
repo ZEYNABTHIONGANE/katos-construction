@@ -295,24 +295,40 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                 title="Simulateur"
                                 onPress={() => navigation.navigate('BudgetEstimator' as any)}
                                 color="#2B2E83"
+                                bgColor="#F0F4FF"
+                                borderColor="#2B2E83"
+                                iconBgColor="#FFFFFF"
+                                textColor="#2B2E83"
                             />
                             <ToolCard
                                 icon="fact-check"
                                 title="Guide Achat"
                                 onPress={() => navigation.navigate('BuyerChecklist' as any)}
                                 color="#E96C2E"
+                                bgColor="#FFF5F0"
+                                borderColor="#E96C2E"
+                                iconBgColor="#FFFFFF"
+                                textColor="#E96C2E"
                             />
                             <ToolCard
                                 icon="support-agent"
                                 title="Expertise"
                                 onPress={() => navigation.navigate('BTPAdvice' as any)}
                                 color="#2B2E83"
+                                bgColor="#ffffffff"
+                                borderColor="#2B2E83"
+                                iconBgColor="#9a9cdeff"
+                                textColor="#2B2E83"
                             />
                             <ToolCard
                                 icon="assignment"
                                 title="Mon Projet"
                                 onPress={() => handleBecomeOwner()}
-                                color="#E96C2E"
+                                color="#FFFFFF"
+                                bgColor="#E96C2E"
+                                borderColor="#D0561E"
+                                iconBgColor="rgba(255,255,255,0.2)"
+                                textColor="#FFFFFF"
                             />
                         </View>
                     </View>
@@ -361,8 +377,10 @@ export default function ShowcaseScreen({ navigation }: Props) {
                                         />
                                         <View style={styles.villaInfoMobile}>
                                             <Text style={styles.villaNameMobile}>{villa.name}</Text>
-                                            <Text style={styles.villaPriceMobile}>
-                                                {villa.price?.toLocaleString()} {villa.currency || 'FCFA'}
+                                            <Text style={(!isNaN(Number(villa.price)) && villa.price !== null && villa.price !== '') ? styles.villaPriceMobile : styles.villaPriceTextMobile}>
+                                                {(!isNaN(Number(villa.price)) && villa.price !== null && villa.price !== '')
+                                                    ? `${Number(villa.price).toLocaleString()} ${villa.currency || 'FCFA'}`
+                                                    : villa.price}
                                             </Text>
                                         </View>
                                     </TouchableOpacity>
@@ -375,10 +393,9 @@ export default function ShowcaseScreen({ navigation }: Props) {
                     <View style={styles.missionSection}>
                         <View style={styles.missionCard}>
                             <MaterialIcons name="lightbulb" size={32} color="#E96C2E" style={{ marginBottom: 15 }} />
-                            <Text style={styles.missionTitle}>Pourquoi utiliser Katos ?</Text>
+                            <Text style={styles.missionTitle}>Pourquoi choisir Katos Connect ?</Text>
                             <Text style={styles.missionDesc}>
-                                Une application conçue pour accompagner tous ceux qui souhaitent se lancer dans la construction au Sénégal sans savoir par où passer, ou qui ont besoin de conseils d'experts en BTP.
-                            </Text>
+                                Katos Connect est une application conçue pour accompagner toutes les personnes souhaitant se lancer dans la construction au Sénégal, sans savoir par où commencer, ou ayant besoin de conseils d’experts en BTP.                             </Text>
                         </View>
 
                         <View style={styles.trustGrid}>
@@ -419,13 +436,13 @@ export default function ShowcaseScreen({ navigation }: Props) {
     );
 }
 
-function ToolCard({ icon, title, onPress, color }: any) {
+function ToolCard({ icon, title, onPress, color, bgColor, borderColor, iconBgColor, textColor }: any) {
     return (
-        <TouchableOpacity style={styles.toolCard} onPress={onPress}>
-            <View style={[styles.toolIconContainer, { backgroundColor: color + '10' }]}>
-                <MaterialIcons name={icon} size={28} color={color} />
+        <TouchableOpacity style={[styles.toolCard, { backgroundColor: bgColor || '#FFFFFF', borderColor: borderColor || 'rgba(0,0,0,0.03)', borderWidth: borderColor ? 2 : 1 }]} onPress={onPress}>
+            <View style={[styles.toolIconContainer, { backgroundColor: iconBgColor || color + '10' }]}>
+                <MaterialIcons name={icon} size={32} color={color} />
             </View>
-            <Text style={styles.toolTitle}>{title}</Text>
+            <Text style={[styles.toolTitle, { color: textColor || '#111827' }]}>{title}</Text>
         </TouchableOpacity>
     );
 }
@@ -571,22 +588,22 @@ const styles = StyleSheet.create({
     toolCard: {
         width: '48%',
         backgroundColor: '#FFFFFF',
-        borderRadius: 24,
+        borderRadius: 20,
         padding: 20,
         alignItems: 'center',
         marginBottom: 15,
         borderWidth: 1,
         borderColor: 'rgba(0,0,0,0.03)',
         shadowColor: '#2B2E83',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
         shadowRadius: 15,
-        elevation: 3,
+        elevation: 6,
     },
     toolIconContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 15,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
@@ -676,6 +693,12 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#E96C2E',
         fontFamily: 'FiraSans_700Bold',
+        marginTop: 4,
+    },
+    villaPriceTextMobile: {
+        fontSize: 11,
+        color: '#E96C2E',
+        fontFamily: 'FiraSans_600SemiBold',
         marginTop: 4,
     },
     // Mission & Confidence

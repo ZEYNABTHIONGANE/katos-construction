@@ -61,8 +61,8 @@ export const useClientSpecificData = () => {
   const searchProjects = (query: string): Project[] => {
     const lowercaseQuery = query.toLowerCase();
     return clientProjects.filter(project =>
-      project.name.toLowerCase().includes(lowercaseQuery) ||
-      project.address.toLowerCase().includes(lowercaseQuery)
+      (project.name || '').toLowerCase().includes(lowercaseQuery) ||
+      (project.address || '').toLowerCase().includes(lowercaseQuery)
     );
   };
 
