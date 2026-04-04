@@ -46,6 +46,7 @@ export interface FirebaseClient {
   username?: string; // Nom d'utilisateur généré pour la connexion
   tempPassword?: string; // Mot de passe temporaire
   typePaiement: 'comptant' | 'echeancier'; // Type de paiement
+  commercial?: string;
   createdAt: Timestamp;
   invitedAt?: Timestamp;
   acceptedAt?: Timestamp;

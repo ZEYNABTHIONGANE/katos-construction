@@ -65,6 +65,11 @@ export interface MobilePaymentHistory {
   date: Timestamp;
   notes?: string;
   receivedBy: string;
+  allocations?: {
+    installmentId?: string;
+    invoiceId?: string;
+    amount: number;
+  }[];
 }
 
 export interface MobilePaymentDashboard {
